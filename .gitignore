@@ -1,1 +1,18 @@
-coffeechat
+# 1. (필수) Node.js 라이브러리 폴더 무시
+frontend/node_modules
+
+# 2. (🚨보안🚨) API 키와 비밀번호가 담긴 .env 파일 무시
+# 1단계에서 만든 .env 파일들이 GitHub에 올라가지 않도록 막습니다.
+backend/.env
+frontend/.env
+
+# 3. (필수) Python 캐시 파일 무시
+backend/__pycache__
+backend/app/__pycache__
+backend/app/core/__pycache__
+
+# 4. (필수) 테스트용 파일 무시
+backend/test_connection.py
+
+# 5. (선택) Conda 가상환경 폴더 무시
+lecture_web_38/
