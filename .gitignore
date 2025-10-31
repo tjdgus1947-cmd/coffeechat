@@ -1,0 +1,22 @@
+# backend/.gitignore
+
+# (보안) API 키 파일
+.env
+
+# (필수) Python 캐시 파일
+__pycache__/
+app/__pycache__/
+app/api/__pycache__/
+app/core/__pycache__/
+app/services/__pycache__/
+
+# (필수) Conda/Python 가상환경 폴더
+venv/
+lecture_web_38/
+*.egg-info/
+
+# (필수) 테스트용 파일
+test_connection.py
+
+# (선택) VS Code 설정
+.vscode/
