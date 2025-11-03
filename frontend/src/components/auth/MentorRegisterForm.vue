@@ -62,23 +62,24 @@ const isLoading = ref(false);
 const errorMessage = ref('');
 
 const handleSubmit = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
-  try {
-    // 3-4 단계: auth.js 스토어에 registerMentor 액션 추가
-    // (wbs_detail.md) POST /api/auth/register (role: 'mentor' 포함)
-    // await authStore.registerMentor(form.value); 
-    console.log('멘토 가입 폼 제출 (구현 필요)', form.value);
-    
-    alert('멘토 가입 신청이 완료되었습니다. 관리자 승인 후 활동 가능합니다.');
-    router.push({ name: 'login' });
+  isLoading.value = true;
+  errorMessage.value = '';
+  try {
+    // (수정) 님의 백엔드 API를 실제로 호출합니다.
+    // 님의 auth.js 스토어가 이 'form.value' (JSON)를
+    // /api/auth/register/mentor로 보내도록 이미 수정되었습니다.
+    await authStore.registerMentor(form.value);  
+    
+    // (수정) API가 성공한 후에 알림창을 띄웁니다.
+    alert('멘토 가입 신청이 완료되었습니다. 관리자 승인 후 활동 가능합니다.');
+    router.push({ name: 'login' });
 
-  } catch (error) {
-    console.error('멘토 가입 실패:', error);
-    errorMessage.value = '가입에 실패했습니다: ' + (error.response?.data?.detail || error.message);
-  } finally {
-    isLoading.value = false;
-  }
+  } catch (error) {
+    console.error('멘토 가입 실패:', error);
+    errorMessage.value = '가입에 실패했습니다: ' + (error.response?.data?.detail || error.message);
+  } finally {
+    isLoading.value = false;
+  }
 };
 </script>
 

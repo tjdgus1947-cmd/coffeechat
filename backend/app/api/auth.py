@@ -1,20 +1,19 @@
 # backend/app/api/auth.py
-# (최종 수정본: 멘토/멘티 API 분리)
+# (ERD v2 최종 수정본: 3-table insert 버그 수정)
 
 from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from app.core.config import supabase
+import uuid
 
 router = APIRouter()
 
 # --- 멘토 회원가입 (JSON 방식) ---
-
-# 1. 멘토 폼(JSON)에 맞는 Pydantic 모델
 class MentorSignUp(BaseModel):
     email: EmailStr
     password: str
-    name: str # 👈 'full_name' 대신 'name'
+    name: str 
     company: Optional[str] = None
     team: Optional[str] = None
     experienceYears: Optional[int] = 0
@@ -25,17 +24,17 @@ class MentorSignUp(BaseModel):
 def sign_up_mentor(mentor_data: MentorSignUp):
     """
     멘토 회원가입 (JSON 방식)
-    wbs.md 3.1[cite: wbs.md], 3.2[cite: wbs.md]
+    새로운 ERD에 맞춰 3개 테이블(auth.users[cite: image_075159.png], public.users, mentor_profiles[cite: setup_v2.sql])에 저장
     """
     try:
-        # 1. Supabase Auth로 회원가입
+        # 1. Supabase Auth (auth.users[cite: image_075159.png])에 유저 생성
         response = supabase.auth.sign_up({
             "email": mentor_data.email,
             "password": mentor_data.password,
             "options": {
                 "data": {
-                    "role": "mentor", # 👈 역할(role) 저장
-                    "full_name": mentor_data.name # 👈 auth.users[cite: image_075159.png]에도 이름 저장
+                    "role": "mentor", 
+                    "full_name": mentor_data.name 
                 }
             }
         })
@@ -45,24 +44,27 @@ def sign_up_mentor(mentor_data: MentorSignUp):
 
         new_user_id = response.user.id
             
-        # 2. mentor_profiles 테이블[cite: image_9f2523.png]에 프로필 생성
-        # (AI 임베딩에 사용할 career_info를 조합)
-        career_info_text = f"""
-        회사: {mentor_data.company}, 
-        직무: {mentor_data.team}, 
-        경력: {mentor_data.experienceYears}년, 
-        전문분야: {mentor_data.topics}, 
-        소개: {mentor_data.introduction}
-        """
-        
-        profile_response = supabase.table('mentor_profiles').insert({
-            "id": str(new_user_id),
+        # 2. (새로운 ERD) public.users 테이블[cite: setup_v2.sql]에 공통 프로필 생성
+        user_profile_response = supabase.table('users').insert({
+            "id": str(new_user_id), 
             "full_name": mentor_data.name,
-            "career_info": career_info_text # 👈 AI 매칭용 원본 텍스트
+            "role": "mentor"
+        }).execute()
+        
+        if not user_profile_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create user profile in public.users")
+        
+        # 3. (새로운 ERD) mentor_profiles[cite: setup_v2.sql] 테이블에 상세 프로필 생성
+        career_info_text = f"회사: {mentor_data.company}, 직무: {mentor_data.team}, 경력: {mentor_data.experienceYears}년, 전문분야: {mentor_data.topics}, 소개: {mentor_data.introduction}"
+        
+        # 🚨 (수정) ERD에 맞게 'full_name' 컬럼 제거
+        mentor_profile_response = supabase.table('mentor_profiles').insert({
+            "user_id": str(new_user_id), 
+            "career_info": career_info_text 
         }).execute()
             
-        if not profile_response.data:
-            raise HTTPException(status_code=500, detail="Failed to create mentor profile")
+        if not mentor_profile_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create mentor_profiles[cite: setup_v2.sql] entry")
                 
         return response.user
 
@@ -73,33 +75,25 @@ def sign_up_mentor(mentor_data: MentorSignUp):
 
 @router.post("/api/auth/register/mentee")
 def sign_up_mentee(
-    # 멘티 폼(FormData)의 필드와 1:1 매칭
     email: str = Form(...),
     password: str = Form(...),
-    name: str = Form(...), # 👈 'full_name' 대신 'name'
-    situation: Optional[str] = Form(None), # 👈 'current_situation' 대신 'situation'
-    topics: Optional[str] = Form(None),      # 👈 'career_goal' 대신 'topics'
-    proofFile: Optional[UploadFile] = File(None) # 👈 'proof_file' 대신 'proofFile'
+    name: str = Form(...), 
+    situation: Optional[str] = Form(None), 
+    topics: Optional[str] = Form(None),      
+    proofFile: Optional[UploadFile] = File(None) 
 ):
     """
-    멘티 회원가입 (FormData 방식, 파일 업로드 포함)
-    wbs.md 3.1[cite: wbs.md], 3.2[cite: wbs.md], 3.3[cite: wbs.md]
+    멘티 회원가입 (FormData 방식)
+    새로운 ERD에 맞춰 3개 테이블(auth.users[cite: image_075159.png], public.users, mentee_profiles[cite: setup_v2.sql])에 저장
     """
-    
-    # (참고: proofFile을 Supabase Storage에 업로드하는 로직은 
-    #  wbs.md 3.3[cite: wbs.md]에 따라 별도 API로 분리하는 것이 좋습니다. 
-    #  지금은 텍스트만 저장하여 500 에러[cite: image_1cf5c0.png]를 해결합니다.)
-    
-    # print(f"Received file: {proofFile.filename}") # 파일 수신 확인 (터미널)
-
     try:
-        # 1. Supabase Auth로 회원가입
+        # 1. Supabase Auth (auth.users[cite: image_075159.png])에 유저 생성
         response = supabase.auth.sign_up({
             "email": email,
             "password": password,
             "options": {
                 "data": {
-                    "role": "mentee", # 👈 역할(role) 저장
+                    "role": "mentee",
                     "full_name": name
                 }
             }
@@ -110,16 +104,26 @@ def sign_up_mentee(
 
         new_user_id = response.user.id
 
-        # 2. mentee_profiles 테이블[cite: image_9f251a.png]에 프로필 생성
-        profile_response = supabase.table('mentee_profiles').insert({
-            "id": str(new_user_id),
+        # 2. (새로운 ERD) public.users 테이블[cite: setup_v2.sql]에 공통 프로필 생성
+        user_profile_response = supabase.table('users').insert({
+            "id": str(new_user_id), 
             "full_name": name,
-            "current_situation": situation, # 👈 DB 컬럼명과 일치
-            "career_goal": topics           # 👈 'topics'를 'career_goal' 컬럼에 저장
+            "role": "mentee"
+        }).execute()
+        
+        if not user_profile_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create user profile in public.users")
+
+        # 3. (새로운 ERD) mentee_profiles[cite: setup_v2.sql] 테이블에 상세 프로필 생성
+        # 🚨 (수정) ERD에 맞게 'full_name' 컬럼 제거
+        mentee_profile_response = supabase.table('mentee_profiles').insert({
+            "user_id": str(new_user_id), 
+            "current_situation": situation,
+            "career_goal": topics 
         }).execute()
 
-        if not profile_response.data:
-            raise HTTPException(status_code=500, detail="Failed to create mentee profile")
+        if not mentee_profile_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create mentee_profiles[cite: setup_v2.sql] entry")
 
         return response.user
 
@@ -128,17 +132,12 @@ def sign_up_mentee(
 
 
 # --- 로그인 (공통) ---
-
 class UserSignIn(BaseModel):
     email: EmailStr
     password: str
 
 @router.post("/api/auth/login")
 def sign_in(user_data: UserSignIn):
-    """
-    Supabase Auth를 사용하여 로그인을 수행하고 JWT 토큰을 반환합니다.
-    (wbs.md 3.1)[cite: wbs.md]
-    """
     try:
         response = supabase.auth.sign_in_with_password({
             "email": user_data.email,

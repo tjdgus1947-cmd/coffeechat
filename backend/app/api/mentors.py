@@ -1,8 +1,8 @@
 # backend/app/api/mentors.py
+# (ERD v2 - AI 매칭 임계값 수정)
 
 from fastapi import APIRouter, HTTPException
-# 4단계에서 설정한 config.py에서 supabase 클라이언트를 가져옵니다.
-from app.core.config import supabase 
+from app.core.config import supabase
 import uuid
 
 router = APIRouter()
@@ -10,44 +10,66 @@ router = APIRouter()
 @router.get("/api/mentors/")
 def get_mentor_list():
     """
-    모든 멘토 목록을 조회합니다. (5단계 RLS 정책에 따라 공개됨)
+    (수정됨) 새로운 ERD에 맞춰 public.users[cite: setup_v2.sql]와 mentor_profiles[cite: setup_v2.sql]를 JOIN하여
+    모든 멘토 목록을 조회합니다.
     """
     try:
-        response = supabase.table('mentor_profiles').select('*').execute()
+        response = supabase.table('users') \
+                           .select('id, full_name, mentor_profiles(id, career_info, profile_image_url, location, verification_status)') \
+                           .eq('role', 'mentor') \
+                           .execute()
         
         if response.data:
             return response.data
-        return [] # 데이터가 없으면 빈 리스트 반환
+        return []
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/api/mentors/recommended/{mentee_id}")
-def get_recommended_mentors(mentee_id: str): # UUID 대신 str로 받아도 좋습니다.
+def get_recommended_mentors(mentee_id: str):
     """
     AI 매칭: 멘티 ID를 기반으로 추천 멘토 목록을 반환합니다.
-    (WBS 4.2 / 6단계에서 만든 SQL 함수 사용) [cite: wbs.md]
+    (IndexError 버그 수정)
     """
     try:
-        # 1. (수정) .single() 대신 .limit(1)을 사용하여 더 안전하게 멘티 프로필 조회
-        mentee_response = supabase.table('mentee_profiles').select('embedding').eq('id', mentee_id).limit(1).execute()
-        
-        # .limit(1)은 배열(list)을 반환하므로, 첫 번째 요소를 확인합니다.
-        if not mentee_response.data or not mentee_response.data[0].get('embedding'):
-            raise HTTPException(status_code=404, detail="Mentee profile or embedding not found")
-        
-        mentee_embedding = mentee_response.data[0]['embedding']
+        print(f"AI 추천 API 수신: 멘티 ID {mentee_id}") 
 
-        # 2. 6단계에서 만든 'match_mentors' SQL 함수를 호출합니다. [cite: wbs.md]
+        # 1. 멘티의 임베딩 벡터 조회
+        mentee_response = supabase.table('mentee_profiles') \
+                                  .select('embedding') \
+                                  .eq('user_id', mentee_id) \
+                                  .limit(1) \
+                                  .execute()
+        
+        if not mentee_response.data:
+            print(f"오류: 멘티 프로필을 찾을 수 없습니다 (ID: {mentee_id})")
+            raise HTTPException(status_code=404, detail=f"Mentee profile not found for this user_id: {mentee_id}")
+        
+        mentee_profile = mentee_response.data[0]
+        
+        if not mentee_profile.get('embedding'):
+            print(f"오류: 멘티 임베딩이 NULL입니다 (ID: {mentee_id})")
+            raise HTTPException(status_code=404, detail="Mentee embedding is NULL. Please generate embedding first.")
+        
+        mentee_embedding = mentee_profile['embedding']
+        print(f"멘티 임베딩 로드 성공 (ID: {mentee_id})")
+
+        # 2. 'match_mentors' SQL 함수 호출
+        # 🚨 (수정) 임계값을 0.5에서 0.1로 낮춤
         match_response = supabase.rpc('match_mentors', {
-            'query_embedding': mentee_embedding, # 멘티의 임베딩
-            'match_threshold': 0.5,              # 최소 유사도 (0.0 ~ 1.0)
-            'match_count': 5                     # 상위 5명 (WBS 4.2 Top-K) [cite: wbs.md]
+            'query_embedding': mentee_embedding,
+            'match_threshold': 0.1, # 👈 50% -> 10%
+            'match_count': 5 
         }).execute()
 
         if match_response.data:
+            print(f"AI 매칭 성공: {len(match_response.data)}명의 멘토 반환")
             return match_response.data
+        
+        print("AI 매칭 결과: 추천할 멘토 없음 (빈 배열 반환)")
         return []
 
     except Exception as e:
+        print(f"심각한 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
