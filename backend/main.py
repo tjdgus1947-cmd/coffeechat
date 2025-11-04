@@ -8,6 +8,7 @@ from app.api import mentors # 8.1에서 만든 mentors.py 임포트
 from app.api import auth # 9단계에서 방금 추가함
 from app.api import matching
 from app.api import location
+from app.api import availability
 
 app = FastAPI()
 
@@ -31,6 +32,8 @@ app.include_router(mentors.router)
 app.include_router(auth.router)
 app.include_router(matching.router)
 app.include_router(location.router)
+app.include_router(availability.router)
+
 # (다른 라우터들도 포함)
 # app.include_router(auth.router)
 # ...

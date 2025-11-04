@@ -14,7 +14,7 @@ class MentorSignUp(BaseModel):
     email: EmailStr
     password: str
     name: str 
-    company: Optional[str] = None
+    company: Optional[str] = None   
     team: Optional[str] = None
     experienceYears: Optional[int] = 0
     topics: Optional[str] = None

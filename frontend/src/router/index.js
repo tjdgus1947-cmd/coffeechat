@@ -30,13 +30,13 @@ const routes = [
     component: NetworkView,
     meta: { requiresAuth: true } // 5. 이 페이지는 '인증이 필요함'
   },
-  // (wbs_detail.md) 마이페이지 (4단계에서 추가)
-  // {
-  //   path: '/mypage',
-  //   name: 'mypage',
-  //   component: () => import('@/views/MyPageView.vue'),
-  //   meta: { requiresAuth: true } // 인증 필요
-  // }
+ 
+  {
+    path: '/mypage',
+    name: 'mypage',
+    component: () => import('@/views/MyPageView.vue'),
+    meta: { requiresAuth: true } // 인증 필요
+  }
 ];
 
 const router = createRouter({
