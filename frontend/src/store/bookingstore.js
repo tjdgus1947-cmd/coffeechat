@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useAuthStore } from './auth';
 import api from '@/services/api'; 
 
-const MOCK_DATA = true;
+const MOCK_DATA = false;
 
 export const useBookingStore = defineStore('booking', () => {
   // --- State ---

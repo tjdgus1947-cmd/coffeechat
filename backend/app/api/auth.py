@@ -6,8 +6,38 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from app.core.config import supabase
 import uuid
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from gotrue.errors import AuthApiError
+from gotrue.types import User
+
 
 router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    try:
+        response = supabase.auth.get_user(token)
+        user = response.user
+
+        if not user:
+                raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+        return user
+
+    except AuthApiError as e:
+        raise HTTPException(status_code=401, detail=f"Authentication error: {e.message}")
+
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")
+
+
+def get_current_user_id(current_user: User = Depends(get_current_user)) -> str:
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    return str(current_user.id)
+
 
 # --- 멘토 회원가입 (JSON 방식) ---
 class MentorSignUp(BaseModel):
@@ -146,3 +176,4 @@ def sign_in(user_data: UserSignIn):
         return response
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")
+    

@@ -9,7 +9,7 @@ from app.api import auth # 9단계에서 방금 추가함
 from app.api import matching
 from app.api import location
 from app.api import availability
-
+from app.api import bookings
 app = FastAPI()
 
 # 2. origins 목록에 Vue.js 서버 주소를 추가합니다.
@@ -33,7 +33,7 @@ app.include_router(auth.router)
 app.include_router(matching.router)
 app.include_router(location.router)
 app.include_router(availability.router)
-
+app.include_router(bookings.router)
 # (다른 라우터들도 포함)
 # app.include_router(auth.router)
 # ...

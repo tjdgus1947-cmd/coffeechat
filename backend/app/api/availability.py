@@ -7,7 +7,8 @@ from typing import List
 from datetime import datetime
 from app.core.config import supabase
 import uuid
-
+from .auth import get_current_user_id 
+from fastapi import Depends
 router = APIRouter()
 
 # --- 1. 멘토가 "가능한 시간"을 등록/수정/삭제하는 API ---
@@ -30,7 +31,7 @@ def create_availability_slot(slot: AvailabilitySlot):
             "start_time": slot.start_time.isoformat(),
             "end_time": slot.end_time.isoformat(),
             "is_booked": False
-        }).select().execute()
+        }).execute()
         
         if not response.data:
             raise HTTPException(status_code=500, detail="Failed to create availability slot")
@@ -41,7 +42,31 @@ def create_availability_slot(slot: AvailabilitySlot):
         raise HTTPException(status_code=500, detail=str(e))
 
 # (wbs.md 6.1[cite: wbs.md]에는 DELETE, UPDATE API도 필요하지만, 우선 GET부터 구현합니다)
-
+@router.delete("/api/availability/{slot_id}")
+def delete_availability_slot(
+    slot_id: int,
+    # (중요) 현재 로그인한 유저 ID를 가져옵니다.
+    current_user_id: str = Depends(get_current_user_id) 
+):
+    """
+    멘토가 자신의 'mentor_availability' 슬롯 1개를 삭제합니다.
+    본인의 슬롯만 삭제할 수 있습니다.
+    """
+    try:
+        # ⭐️ 보안: 'id'와 'mentor_id'가 둘 다 일치하는 항목만 삭제
+        response = supabase.table('mentor_availability') \
+                           .delete() \
+                           .eq('id', slot_id) \
+                           .eq('mentor_id', current_user_id) \
+                           .execute()
+        
+        if response.count == 0:
+            raise HTTPException(status_code=404, detail="Slot not found or you do not have permission to delete it")
+        
+        return {"message": f"Slot {slot_id} deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # --- 2. 멘티가 "가능한 시간"을 조회하는 API ---
 
 @router.get("/api/availability/{mentor_id}")
@@ -67,3 +92,5 @@ def get_mentor_availability(mentor_id: uuid.UUID):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    

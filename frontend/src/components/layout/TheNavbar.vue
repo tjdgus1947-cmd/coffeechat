@@ -3,7 +3,9 @@
 <template>
   <nav class="navbar">
     <div class="logo">
-      <router-link to="/">CoffeeChat</router-link>
+      <<router-link to="/">
+        <img :src="logoUrl" alt="CoffeeChat 로고" class="logo-image">
+      </router-link>
     </div>
 
     <div class="nav-actions">
@@ -25,6 +27,8 @@
 <script setup>
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
+import logoUrl from '@/assets/images/logo.png';
+
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -51,11 +55,17 @@ const handleLogout = () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 .logo a {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #6d28d9;
-  text-decoration: none;
+ text-decoration: none;
+ display: flex; 
+ align-items: center;
 }
+
+/* 6. ⭐️ (추가) 로고 이미지 크기 조절 (Canvas 버전) */
+.logo-image {
+  height: 50px; /* 로고 높이 (Navbar 높이(60px)보다 작게) */
+  width: auto; /* 가로 비율 자동 */
+}
+
 
 /* --- 주요 변경 사항 --- */
 
