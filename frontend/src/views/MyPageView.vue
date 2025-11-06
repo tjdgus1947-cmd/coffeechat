@@ -19,13 +19,13 @@
         <button class="edit-button">프로필 수정 (구현 필요)</button>
       </div>
     </div>
+    
+    <LocationUpdater />
 
     <div class="requests-card card" v-if="authStore.userRole === 'mentee'">
       <h2>커피챗 신청 목록</h2>
       <p>내가 멘토에게 보낸 신청 현황입니다.</p>
-      <!-- (BookingList 컴포넌트가 없어서 임시 주석 처리) -->
-      <!-- <BookingList /> -->
-    </div>
+                </div>
     
     <div class="requests-card card" v-if="authStore.userRole === 'mentor'">
       <h2>받은 커피챗 신청</h2>
@@ -37,6 +37,8 @@
 
 <script setup>
 import { useAuthStore } from '@/store/auth';
+// ⭐️ 1.3 추가: 임포트
+import LocationUpdater from '@/components/profile/LocationUpdater.vue'; 
 // import BookingList from '@/components/profile/BookingList.vue';
 
 const authStore = useAuthStore();
@@ -47,7 +49,7 @@ const authStore = useAuthStore();
   max-width: 800px;
   margin: 0 auto;
 }
-
+/* ... (나머지 스타일은 동일) */
 h1 {
   margin-bottom: 20px;
 }

@@ -1,69 +1,101 @@
-# backend/app/api/availability.py
-# (wbs.md 6.1[cite: wbs.md] 멘토 일정 관리 API)
+# File: tjdgus1947-cmd/coffeechat/coffeechat-db-ksh/backend/app/api/availability.py
 
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, status
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.core.config import supabase
 import uuid
+# jsonable_encoder 임포트 추가
+from fastapi.encoders import jsonable_encoder 
 
 router = APIRouter()
 
-# --- 1. 멘토가 "가능한 시간"을 등록/수정/삭제하는 API ---
-
+# --- 스키마 정의 ---
 class AvailabilitySlot(BaseModel):
-    mentor_id: uuid.UUID # (ERD: mentor_profiles.id[cite: setup_v2.sql])
+    mentor_id: uuid.UUID
     start_time: datetime
     end_time: datetime
 
+class AvailabilityUpdate(BaseModel):
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+
+# --- 1. 생성 (POST) API ---
 @router.post("/api/availability/")
 def create_availability_slot(slot: AvailabilitySlot):
-    """
-    멘토가 "커피챗 가능한 시간" 1개를 DB에 등록합니다.
-    (wbs.md 6.1)[cite: wbs.md]
-    (참고: '수민'님의 캘린더 UI에는 아직 이 API를 호출하는 폼이 없습니다.)
-    """
     try:
         response = supabase.table('mentor_availability').insert({
             "mentor_id": str(slot.mentor_id),
             "start_time": slot.start_time.isoformat(),
             "end_time": slot.end_time.isoformat(),
             "is_booked": False
-        }).select().execute()
+        }).execute()
         
         if not response.data:
-            raise HTTPException(status_code=500, detail="Failed to create availability slot")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve inserted data")
             
-        return response.data[0]
+        return jsonable_encoder(response.data[0])
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-# (wbs.md 6.1[cite: wbs.md]에는 DELETE, UPDATE API도 필요하지만, 우선 GET부터 구현합니다)
-
-# --- 2. 멘티가 "가능한 시간"을 조회하는 API ---
-
+# --- 2. 조회 (GET) API ---
 @router.get("/api/availability/{mentor_id}")
 def get_mentor_availability(mentor_id: uuid.UUID):
-    """
-    '수민'님의 BookingCalendar.vue가 호출할 API입니다.
-    특정 멘토의 "예약되지 않은(is_booked = false)" 모든 시간 슬롯을 반환합니다.
-    (wbs.md 6.1)[cite: wbs.md]
-    """
     try:
         response = supabase.table('mentor_availability') \
-                           .select("id, start_time, end_time") \
+                           .select("*") \
                            .eq('mentor_id', str(mentor_id)) \
                            .eq('is_booked', False) \
                            .gte('start_time', datetime.now().isoformat()) \
                            .order('start_time', desc=False) \
                            .execute()
         
-        # (참고: BookingCalendar.vue는 {'2025-11-18': ['14:00', '15:00']} 형식을 기대하지만,
-        #  우선 DB 데이터를 그대로 반환하고, '수민'님이 프론트엔드에서 가공합니다.)
-        
-        return response.data
+        return jsonable_encoder(response.data)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+# --- 3. 수정 (PUT) API ---
+@router.put("/api/availability/{slot_id}") 
+def update_availability_slot(slot_id: uuid.UUID, update_data: AvailabilityUpdate):
+    try:
+        update_payload = update_data.model_dump(exclude_none=True)
+        
+        if not update_payload:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
+            
+        response = supabase.table('mentor_availability') \
+                           .update(update_payload) \
+                           .eq("id", str(slot_id)) \
+                           .execute()
+        
+        if response.count == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Availability slot not found or update failed")
+            
+        # ⭐️ 최종 방어: 응답 dict를 jsonable_encoder로 감싸서 반환합니다. ⭐️
+        return jsonable_encoder({"message": f"Slot {slot_id} updated successfully"})
+    
+    except Exception as e:
+        print(f"🔥 PUT /api/availability/{slot_id} Error: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+# --- 4. 삭제 (DELETE) API ---
+@router.delete("/api/availability/{slot_id}")
+def delete_availability_slot(slot_id: uuid.UUID):
+    try:
+        response = supabase.table('mentor_availability') \
+                           .delete() \
+                           .eq("id", str(slot_id)) \
+                           .execute()
+        
+        if response.count == 0:
+             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Availability slot not found")
+            
+        # ⭐️ 최종 방어: 응답 dict를 jsonable_encoder로 감싸서 반환합니다. ⭐️
+        return jsonable_encoder({"message": f"Slot {slot_id} deleted successfully"})
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
