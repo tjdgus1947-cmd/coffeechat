@@ -1,5 +1,5 @@
 # File: backend/app/api/location.py
-# (WBS 5.2 - GIS 500 Internal Error 완전 해결 버전)
+# (WBS 5.2 - GIS 500 Internal Error 완전 해결 버전 + 주소 검색 기능 추가)
 
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
@@ -7,6 +7,7 @@ import uuid
 from app.core.config import supabase 
 from typing import List, Optional
 import re
+import httpx
 
 # shapely 임포트
 try:
@@ -17,6 +18,9 @@ except ImportError:
     print
 
 router = APIRouter()
+
+# 카카오 REST API 키
+KAKAO_REST_API_KEY = "b4e796a3939f594ac47aa74e9f74dbfa"
 
 # --- 스키마 ---
 class LocationUpdateRequest(BaseModel):
@@ -78,6 +82,30 @@ def parse_location(location_data) -> Optional[tuple[float, float]]:
     return None
 
 # --- API 엔드포인트 ---
+
+# ⭐️ 새로 추가: 주소 검색 엔드포인트
+@router.get("/api/locations/search-address")
+async def search_address(query: str):
+    """
+    카카오 Local API를 사용하여 주소를 검색하고 좌표를 반환합니다.
+    CORS 문제를 피하기 위해 백엔드에서 API를 호출합니다.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://dapi.kakao.com/v2/local/search/address.json",
+                params={"query": query},
+                headers={"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPError as e:
+        print(f"🔥 카카오 API 호출 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail="주소 검색에 실패했습니다.")
+    except Exception as e:
+        print(f"🔥 주소 검색 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"주소 검색 중 오류가 발생했습니다: {str(e)}")
+
 @router.post("/api/location/update")
 def update_user_location(request: LocationUpdateRequest):
     try:

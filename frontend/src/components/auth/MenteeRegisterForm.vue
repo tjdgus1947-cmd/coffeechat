@@ -21,8 +21,8 @@
       <input type="text" v-model="form.topics" placeholder="예: CPA, 재무, 회계">
     </div>
     <div class="form-group">
-      <label>증빙 서류 (재직/재학증명서, 4대보험 등)</label>
-      <FileUploader @file-changed="handleFileUpdate" />
+      <label>자기 소개 (AI매칭에 사용됩니다)</label>
+      <textarea v-model="form.introduction" rows="4" placeholder="자신의 관심사, 목표, 멘토에게 배우고 싶은 점을 자유롭게 작성해주세요."></textarea>
     </div>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -36,7 +36,6 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
-import FileUploader from '@/components/common/FileUploader.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -47,35 +46,17 @@ const form = ref({
   name: '',
   situation: '',
   topics: '',
-  proofFile: null,
+  introduction: '',
 });
 const isLoading = ref(false);
 const errorMessage = ref('');
 
-const handleFileUpdate = (file) => {
-  form.value.proofFile = file;
-};
-
 const handleSubmit = async () => {
-  if (!form.value.proofFile) {
-    errorMessage.value = '증빙 서류를 업로드해주세요.';
-    return;
-  }
-  
   isLoading.value = true;
   errorMessage.value = '';
 
   try {
-    // 3-4 단계: auth.js 스토어에 실제 API를 호출하는
-    // registerMentee 액션을 구현할 예정입니다.
-    
-    // FormData를 사용해 파일과 텍스트를 함께 전송
-    const formData = new FormData();
-    Object.keys(form.value).forEach(key => {
-      formData.append(key, form.value[key]);
-    });
-
-    await authStore.registerMentee(formData);
+    await authStore.registerMentee(form.value);
     
     alert('회원가입이 완료되었습니다. 로그인을 진행해주세요.');
     router.push({ name: 'login' });
@@ -90,11 +71,31 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-/* LoginForm.vue와 스타일 공유 (CSS 모듈화로 개선 가능) */
 .form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
-.error { color: red; font-size: 14px; }
-button { width: 100%; padding: 10px; background-color: #6d28d9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:disabled { background-color: #ccc; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group textarea { 
+  width: 100%; 
+  padding: 8px; 
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.form-group textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+.error { color: red; font-size: 14px; margin-top: 10px; }
+button { 
+  width: 100%; 
+  padding: 10px; 
+  background-color: #6d28d9; 
+  color: white; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+}
+button:hover:not(:disabled) { background-color: #5b21b6; }
+button:disabled { background-color: #ccc; cursor: not-allowed; }
 </style>
