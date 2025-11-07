@@ -17,7 +17,9 @@
 
     <BookingModal
       :show="isModalOpen"
-      :mentor-id="mentorForBooking?.id"
+      
+      :mentor-id="mentorForBooking?.user_id" 
+      
       :mentor-name="mentorForBooking?.name"
       @close="closeBookingModal"
       @booking-confirmed="closeBookingModal"
@@ -86,6 +88,7 @@ const closeBookingModal = () => {
 </script>
 
 <style scoped>
+/* (기존 스타일과 동일) */
 .network-view-container {
   display: flex; /* 그래프와 사이드바를 가로로 배치 */
   width: 100%;
@@ -101,9 +104,5 @@ const closeBookingModal = () => {
 .sidebar-panel {
   flex-shrink: 0; /* 사이드바 크기 고정 (300px) */
   height: 100%;
-  /* v-if로 컴포넌트가 사라질 때 부드러운 효과를 원한다면
-    transform: translateX(100%) 와 transition을 사용합니다.
-    (지금은 v-if로 간단하게 구현)
-  */
 }
 </style>

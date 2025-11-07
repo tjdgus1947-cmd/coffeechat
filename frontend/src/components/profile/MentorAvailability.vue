@@ -60,14 +60,18 @@ const newSlotTime = ref('10:00'); // 기본 선택 시간
 // --- 1. (GET) 내 슬롯 불러오기 ---
 // 이 컴포넌트가 마운트되면, 내 ID로 등록된 슬롯을 불러옵니다.
 async function fetchMySlots() {
-  if (!authStore.userId) return;
+  if (!authStore.userId) {
+      console.warn("로그인된 유저 ID가 없습니다.");
+      return;
+  }
   isLoading.value = true;
   try {
-    // ⭐️ (GET) /api/availability/{mentor_id} (내 ID 사용)
     const response = await api.get(`/availability/${authStore.userId}`);
+    console.log("내 슬롯 로드 성공:", response.data); // ⭐️ 로그 확인용
     mySlots.value = response.data;
   } catch (error) {
     console.error("내 슬롯 로딩 실패:", error);
+    // 혹시 500 에러가 계속 난다면 터미널의 백엔드 로그를 확인해야 합니다.
   } finally {
     isLoading.value = false;
   }

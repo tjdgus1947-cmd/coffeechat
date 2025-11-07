@@ -1,5 +1,5 @@
 # backend/app/api/auth.py
-# (ERD v2 최종 수정본: 3-table insert 버그 수정)
+# (수정) sign_in 함수 내부에 잘못 복사된 get_current_user 함수 삭제
 
 from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
 from pydantic import BaseModel, EmailStr
@@ -16,6 +16,9 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    """
+    (올바른 위치) 토큰을 기반으로 현재 Supabase 유저를 가져옵니다.
+    """
     try:
         response = supabase.auth.get_user(token)
         user = response.user
@@ -54,10 +57,10 @@ class MentorSignUp(BaseModel):
 def sign_up_mentor(mentor_data: MentorSignUp):
     """
     멘토 회원가입 (JSON 방식)
-    새로운 ERD에 맞춰 3개 테이블(auth.users[cite: image_075159.png], public.users, mentor_profiles[cite: setup_v2.sql])에 저장
+    새로운 ERD에 맞춰 3개 테이블(auth.users, public.users, mentor_profiles)에 저장
     """
     try:
-        # 1. Supabase Auth (auth.users[cite: image_075159.png])에 유저 생성
+        # 1. Supabase Auth (auth.users)에 유저 생성
         response = supabase.auth.sign_up({
             "email": mentor_data.email,
             "password": mentor_data.password,
@@ -74,7 +77,7 @@ def sign_up_mentor(mentor_data: MentorSignUp):
 
         new_user_id = response.user.id
             
-        # 2. (새로운 ERD) public.users 테이블[cite: setup_v2.sql]에 공통 프로필 생성
+        # 2. (새로운 ERD) public.users 테이블에 공통 프로필 생성
         user_profile_response = supabase.table('users').insert({
             "id": str(new_user_id), 
             "full_name": mentor_data.name,
@@ -84,17 +87,16 @@ def sign_up_mentor(mentor_data: MentorSignUp):
         if not user_profile_response.data:
             raise HTTPException(status_code=500, detail="Failed to create user profile in public.users")
         
-        # 3. (새로운 ERD) mentor_profiles[cite: setup_v2.sql] 테이블에 상세 프로필 생성
+        # 3. (새로운 ERD) mentor_profiles 테이블에 상세 프로필 생성
         career_info_text = f"회사: {mentor_data.company}, 직무: {mentor_data.team}, 경력: {mentor_data.experienceYears}년, 전문분야: {mentor_data.topics}, 소개: {mentor_data.introduction}"
         
-        # 🚨 (수정) ERD에 맞게 'full_name' 컬럼 제거
         mentor_profile_response = supabase.table('mentor_profiles').insert({
             "user_id": str(new_user_id), 
             "career_info": career_info_text 
         }).execute()
             
         if not mentor_profile_response.data:
-            raise HTTPException(status_code=500, detail="Failed to create mentor_profiles[cite: setup_v2.sql] entry")
+            raise HTTPException(status_code=500, detail="Failed to create mentor_profiles entry")
                 
         return response.user
 
@@ -114,10 +116,10 @@ def sign_up_mentee(
 ):
     """
     멘티 회원가입 (FormData 방식)
-    새로운 ERD에 맞춰 3개 테이블(auth.users[cite: image_075159.png], public.users, mentee_profiles[cite: setup_v2.sql])에 저장
+    새로운 ERD에 맞춰 3개 테이블(auth.users, public.users, mentee_profiles)에 저장
     """
     try:
-        # 1. Supabase Auth (auth.users[cite: image_075159.png])에 유저 생성
+        # 1. Supabase Auth (auth.users)에 유저 생성
         response = supabase.auth.sign_up({
             "email": email,
             "password": password,
@@ -134,7 +136,7 @@ def sign_up_mentee(
 
         new_user_id = response.user.id
 
-        # 2. (새로운 ERD) public.users 테이블[cite: setup_v2.sql]에 공통 프로필 생성
+        # 2. (새로운 ERD) public.users 테이블에 공통 프로필 생성
         user_profile_response = supabase.table('users').insert({
             "id": str(new_user_id), 
             "full_name": name,
@@ -144,8 +146,7 @@ def sign_up_mentee(
         if not user_profile_response.data:
             raise HTTPException(status_code=500, detail="Failed to create user profile in public.users")
 
-        # 3. (새로운 ERD) mentee_profiles[cite: setup_v2.sql] 테이블에 상세 프로필 생성
-        # 🚨 (수정) ERD에 맞게 'full_name' 컬럼 제거
+        # 3. (새로운 ERD) mentee_profiles 테이블에 상세 프로필 생성
         mentee_profile_response = supabase.table('mentee_profiles').insert({
             "user_id": str(new_user_id), 
             "current_situation": situation,
@@ -153,7 +154,7 @@ def sign_up_mentee(
         }).execute()
 
         if not mentee_profile_response.data:
-            raise HTTPException(status_code=500, detail="Failed to create mentee_profiles[cite: setup_v2.sql] entry")
+            raise HTTPException(status_code=500, detail="Failed to create mentee_profiles entry")
 
         return response.user
 
@@ -177,3 +178,4 @@ def sign_in(user_data: UserSignIn):
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")
     
+    # ⭐️ (수정) 여기에 있던 잘못된 코드를 삭제했습니다.
