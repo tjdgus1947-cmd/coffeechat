@@ -86,9 +86,55 @@ const handleSubmit = async () => {
 <style scoped>
 /* LoginForm.vue와 스타일 공유 */
 .form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-.error { color: red; font-size: 14px; }
-button { width: 100%; padding: 10px; background-color: #6d28d9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:disabled { background-color: #ccc; }
+.form-group label { 
+  display: block; 
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #374151;
+}
+.form-group input, .form-group textarea { 
+  width: 100%; 
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.form-group input:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: #6d28d9;
+  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1);
+}
+.form-group input::placeholder, .form-group textarea::placeholder {
+  color: #9ca3af;
+}
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+.error { 
+  color: #ef4444; 
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+button { 
+  width: 100%; 
+  padding: 12px; 
+  background-color: #6d28d9; 
+  color: white; 
+  border: none; 
+  border-radius: 6px; 
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background-color 0.2s;
+}
+button:hover:not(:disabled) {
+  background-color: #5b21b6;
+}
+button:disabled { 
+  background-color: #d1d5db;
+  cursor: not-allowed;
+}
 </style>

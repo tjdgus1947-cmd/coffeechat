@@ -1,34 +1,108 @@
 <!-- 앱의 모든 페이지 상단에 공통으로 표시될 메뉴바 -->
 
 <template>
-  <nav class="navbar">
-    <div class="logo">
-      <<router-link to="/">
-        <img :src="logoUrl" alt="CoffeeChat 로고" class="logo-image">
-      </router-link>
-    </div>
+  <header class="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+    <div class="container mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <!-- Logo -->
+        <router-link to="/" class="flex items-center">
+          <img :src="logoUrl" alt="CoffeeChat 로고" class="h-16 w-auto">
+        </router-link>
 
-    <div class="nav-actions">
-      <template v-if="authStore.isAuthenticated">
-        <router-link to="/network" class="nav-link">네트워크</router-link>
-        <router-link to="/mypage" class="nav-link">마이페이지</router-link>
-        <button @click="handleLogout" class="nav-link logout-link">
-          로그아웃
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center gap-8">
+          <a href="#" class="text-gray-600 hover:text-gray-900 transition">멘토 찾기</a>
+          <a href="#" class="text-gray-600 hover:text-gray-900 transition">후기</a>
+          <router-link v-if="authStore.isAuthenticated" to="/network" class="text-gray-600 hover:text-gray-900 transition">
+            네트워크
+          </router-link>
+        </nav>
+
+        <!-- Desktop Auth Buttons -->
+        <div class="hidden md:flex items-center gap-4">
+          <template v-if="authStore.isAuthenticated">
+            <router-link to="/mypage" class="text-gray-600 hover:text-gray-900 transition font-medium">
+              마이페이지
+            </router-link>
+            <button 
+              @click="handleLogout" 
+              class="px-4 py-2 text-gray-600 hover:text-gray-900 transition font-medium"
+            >
+              로그아웃
+            </button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="px-4 py-2 text-gray-600 hover:text-gray-900 transition font-medium">
+              로그인
+            </router-link>
+            <router-link 
+              to="/register" 
+              class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
+            >
+              시작하기
+            </router-link>
+          </template>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button 
+          @click="toggleMobileMenu" 
+          class="md:hidden p-2 text-gray-600 hover:text-gray-900"
+        >
+          <svg v-if="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
-      </template>
-      <template v-else>
-        <router-link to="/login" class="nav-link">로그인</router-link>
-        <router-link to="/register" class="cta-button">회원가입</router-link>
-      </template>
+      </div>
+
+      <!-- Mobile Menu -->
+      <div v-if="mobileMenuOpen" class="md:hidden mt-4 pb-4 flex flex-col gap-4 border-t pt-4">
+        <a href="#" class="text-gray-600 hover:text-gray-900 transition">멘토 찾기</a>
+        <a href="#" class="text-gray-600 hover:text-gray-900 transition">후기</a>
+        <router-link v-if="authStore.isAuthenticated" to="/network" class="text-gray-600 hover:text-gray-900 transition">
+          네트워크
+        </router-link>
+        
+        <div class="flex flex-col gap-2 pt-2">
+          <template v-if="authStore.isAuthenticated">
+            <router-link to="/mypage" class="w-full px-4 py-2 text-center text-gray-600 hover:bg-gray-100 rounded-lg transition">
+              마이페이지
+            </router-link>
+            <button 
+              @click="handleLogout" 
+              class="w-full px-4 py-2 text-center text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            >
+              로그아웃
+            </button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="w-full px-4 py-2 text-center text-gray-600 hover:bg-gray-100 rounded-lg transition">
+              로그인
+            </router-link>
+            <router-link to="/register" class="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg font-medium transition-all">
+              시작하기
+            </router-link>
+          </template>
+        </div>
+      </div>
     </div>
-  </nav>
+  </header>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
-import logoUrl from '@/assets/images/logo.png';
+import logoUrl from '@/assets/images/logo-purple.png';
 
+const mobileMenuOpen = ref(false);
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value;
+};
 
 const authStore = useAuthStore();
 const router = useRouter();

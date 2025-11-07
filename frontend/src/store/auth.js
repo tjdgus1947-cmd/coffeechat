@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import api from '@/services/api'; 
-import router from '@/router'; 
+import api from '@/services/api'; 
+import router from '@/router'; 
 
-const MOCK_LOGIN = false; 
+const MOCK_LOGIN = false; 
 
 export const useAuthStore = defineStore('auth', () => {
   // --- State ---
@@ -92,24 +92,25 @@ export const useAuthStore = defineStore('auth', () => {
   // --- 앱 초기화 ---
   updateApiHeaders();
   
-  if (MOCK_LOGIN && !token.value) {
-    console.warn('!!! MOCK LOGIN 활성 상태 !!!');
-    const mockUser = {
-      id: 'mentee-kim-fake-id', 
-      name: '김멘티 (테스트)',
-      role: 'mentee',
-    };
-    const mockToken = 'fake-jwt-token-for-development';
+  if (MOCK_LOGIN && !token.value) {
+    console.warn('!!! MOCK LOGIN 활성 상태 !!!');
+    const mockUser = {
+      id: 'mentee-kim-fake-id', 
+      user_metadata: {
+        full_name: '김멘티 (테스트)',
+        role: 'mentee',
+      }
+    };
+    const mockToken = 'fake-jwt-token-for-development';
 
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    localStorage.setItem('token', mockToken);
-    
-    user.value = mockUser;
-    token.value = mockToken;
-    
-    updateApiHeaders();
-  }
-
+    localStorage.setItem('user', JSON.stringify(mockUser));
+    localStorage.setItem('token', mockToken);
+    
+    user.value = mockUser;
+    token.value = mockToken;
+    
+    updateApiHeaders();
+  }
   return { 
     user, 
     token, 
