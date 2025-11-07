@@ -14,7 +14,7 @@ try:
     SHAPELY_AVAILABLE = True
 except ImportError:
     SHAPELY_AVAILABLE = False
-    print("경고: 'shapely' 라이브러리가 없습니다. pip install shapely 실행 필요")
+    print
 
 router = APIRouter()
 
@@ -78,7 +78,7 @@ def parse_location(location_data) -> Optional[tuple[float, float]]:
     return None
 
 # --- API 엔드포인트 ---
-@router.post("/location/update")
+@router.post("/api/location/update")
 def update_user_location(request: LocationUpdateRequest):
     try:
         table_name = ""
