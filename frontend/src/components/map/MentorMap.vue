@@ -67,7 +67,7 @@ export default {
       }
       
       const script = document.createElement('script');
-      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=a37ab17958bf71b653513edd08f31fac&autoload=false';
+      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=3c005bd93775ae264f4ebee3343038d2&autoload=false';
       script.onload = () => {
         window.kakao.maps.load(() => {
           this.$nextTick(() => this.initializeMap());
