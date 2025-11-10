@@ -14,9 +14,14 @@ app = FastAPI()
 
 # 2. origins 목록에 Vue.js 서버 주소를 추가합니다.
 origins = [
-    "http://localhost:5173", # 👈 '수민'님의 Vue.js 주소 (포트 확인!)
-    "[http://127.0.0.1:5173](http://127.0.0.1:5173)",
-    # (만약 '수민'님 Vue.js가 5174 등 다른 포트라면 그것도 추가)
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+    "http://localhost:5176",
+    "http://127.0.0.1:5176",
 ]
 
 app.add_middleware(
