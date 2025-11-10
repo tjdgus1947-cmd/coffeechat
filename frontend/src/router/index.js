@@ -36,6 +36,12 @@ const routes = [
     name: 'mypage',
     component: () => import('@/views/MyPageView.vue'),
     meta: { requiresAuth: true } // 인증 필요
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true } // 인증 필요
   }
 ];
 

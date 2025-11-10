@@ -20,26 +20,33 @@
       </div>
     </div>
 
-    <div class="requests-card card" v-if="authStore.userRole === 'mentee'">
-      <h2>커피챗 신청 목록</h2>
-      <p>내가 멘토에게 보낸 신청 현황입니다.</p>
+    <div class="requests-card card" v-if="authStore.userRole === 'mentee'">
+      <h2>커피챗 신청 목록</h2>
+      <p>내가 멘토에게 보낸 신청 현황입니다.</p>
       <BookingList />
-                </div>
-    
-      <div class="requests-card card" v-if="authStore.userRole === 'mentor'">
-      <h2>받은 커피챗 신청</h2>
-      <p>멘티들이 나에게 보낸 신청 현황입니다.</p>
-      
-            <MentorRequestList />
-    </div>
-  <div class="schedule-card card" v-if="authStore.userRole === 'mentor'">
+    </div>
+
+    <!-- 위치 정보 설정 (멘티만) -->
+    <div class="location-card card" v-if="authStore.userRole === 'mentee'">
+      <LocationUpdater />
+    </div>
+    
+    <div class="requests-card card" v-if="authStore.userRole === 'mentor'">
+      <h2>받은 커피챗 신청</h2>
+      <p>멘티들이 나에게 보낸 신청 현황입니다.</p>
+      <MentorRequestList />
+    </div>
+
+    <!-- 위치 정보 설정 (멘토만) -->
+    <div class="location-card card" v-if="authStore.userRole === 'mentor'">
+      <LocationUpdater />
+    </div>
+
+    <div class="schedule-card card" v-if="authStore.userRole === 'mentor'">
       <h2>내 일정 관리 (WIP)</h2>
       <p>멘티가 예약할 수 있는 시간을 등록/관리합니다.</p>
       <MentorAvailability />
-      
-      </div>
-
-  </div>
+    </div>  </div>
 </template>
 <script setup>
 import { ref } from 'vue';
@@ -47,9 +54,11 @@ import { useAuthStore } from '@/store/auth';
 
 import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 import BookingList from '@/components/profile/BookingList.vue';
+import MentorAvailability from '@/components/profile/MentorAvailability.vue';
+import LocationUpdater from '@/components/profile/LocationUpdater.vue';
+
 const authStore = useAuthStore();
 const isProfileModalOpen = ref(false);
-import MentorAvailability from '@/components/profile/MentorAvailability.vue';
 </script>
 
 <style scoped>
@@ -96,6 +105,10 @@ h1 {
 }
 
 .requests-card {
+  margin-top: 20px;
+}
+
+.location-card {
   margin-top: 20px;
 }
 

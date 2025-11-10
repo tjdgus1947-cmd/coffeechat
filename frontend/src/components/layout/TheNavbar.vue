@@ -13,6 +13,9 @@
         <nav class="hidden md:flex items-center gap-8">
           <a href="#" class="text-gray-600 hover:text-gray-900 transition">멘토 찾기</a>
           <a href="#" class="text-gray-600 hover:text-gray-900 transition">후기</a>
+          <router-link v-if="authStore.isAuthenticated" to="/dashboard" class="text-gray-600 hover:text-gray-900 transition">
+            대시보드
+          </router-link>
           <router-link v-if="authStore.isAuthenticated" to="/network" class="text-gray-600 hover:text-gray-900 transition">
             네트워크
           </router-link>
@@ -62,6 +65,9 @@
       <div v-if="mobileMenuOpen" class="md:hidden mt-4 pb-4 flex flex-col gap-4 border-t pt-4">
         <a href="#" class="text-gray-600 hover:text-gray-900 transition">멘토 찾기</a>
         <a href="#" class="text-gray-600 hover:text-gray-900 transition">후기</a>
+        <router-link v-if="authStore.isAuthenticated" to="/dashboard" class="text-gray-600 hover:text-gray-900 transition">
+          대시보드
+        </router-link>
         <router-link v-if="authStore.isAuthenticated" to="/network" class="text-gray-600 hover:text-gray-900 transition">
           네트워크
         </router-link>

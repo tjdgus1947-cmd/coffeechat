@@ -1,20 +1,91 @@
 <template>
-  <div class="network-view-container">
-    
-    <NetworkGraph
-      :nodes="networkStore.nodes"
-      :edges="networkStore.edges"
-      @node-click="handleNodeClick"
-      class="graph-panel"
-    />
+  <div class="min-h-screen bg-gray-50">
+    <main class="container mx-auto px-4 py-8">
+      <!-- Welcome Section -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">멘토 네트워크 🌐</h1>
+        <p class="text-gray-600">
+          나의 멘토 네트워크를 시각적으로 확인하고 새로운 연결을 만들어보세요
+        </p>
+      </div>
 
+      <!-- Stats Overview -->
+      <div class="mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">연결된 멘토</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ connectedMentorsCount }}</p>
+              </div>
+              <div class="bg-blue-100 p-3 rounded-lg">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">총 노드</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ totalNodesCount }}</p>
+              </div>
+              <div class="bg-green-100 p-3 rounded-lg">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-600 text-sm font-medium">네트워크 연결</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ totalEdgesCount }}</p>
+              </div>
+              <div class="bg-purple-100 p-3 rounded-lg">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Graph Section -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold">네트워크 그래프</h2>
+            <div class="flex gap-2">
+              <span class="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">멘토</span>
+              <span class="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">키워드</span>
+              <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">나</span>
+            </div>
+          </div>
+        </div>
+        <div class="graph-container">
+          <NetworkGraph
+            :nodes="networkStore.nodes"
+            :edges="networkStore.edges"
+            @node-click="handleNodeClick"
+          />
+        </div>
+      </div>
+    </main>
+
+    <!-- 멘토 사이드바 -->
     <MentorSidebar
       :mentor="selectedMentor"
       @close="closeSidebar"
       @book="openBookingModal"
-      class="sidebar-panel"
     />
 
+    <!-- 예약 모달 -->
     <BookingModal
       :show="isModalOpen"
       :mentor-id="mentorForBooking?.id"
@@ -26,58 +97,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useNetworkStore } from '@/store/network'; // 1, 3-5단계
+import { ref, computed, onMounted } from 'vue';
+import { useNetworkStore } from '@/store/network';
 
-// 4. 컴포넌트 3개 모두 임포트
-import NetworkGraph from '@/components/graph/NetworkGraph.vue'; // 2단계
-import MentorSidebar from '@/components/profile/MentorSidebar.vue'; // 4-1단계
-import BookingModal from '@/components/calendar/BookingModal.vue'; // 4-2단계
+import NetworkGraph from '@/components/graph/NetworkGraph.vue';
+import MentorSidebar from '@/components/profile/MentorSidebar.vue';
+import BookingModal from '@/components/calendar/BookingModal.vue';
 
-// 5. Pinia 스토어 사용
 const networkStore = useNetworkStore();
 
-// 6. ⭐️ 사이드바와 모달을 제어할 내부 상태(ref) ⭐️
-const selectedMentor = ref(null); // 사이드바에 보여줄 멘토 정보 (null이면 닫힘)
-const mentorForBooking = ref(null); // 예약 모달에 넘겨줄 멘토 정보
-const isModalOpen = ref(false); // 모달 열림/닫힘 상태
+const selectedMentor = ref(null);
+const mentorForBooking = ref(null);
+const isModalOpen = ref(false);
 
-// 7. (기존) 페이지 로드 시 가짜 그래프 데이터 불러오기
+// 통계 계산
+const connectedMentorsCount = computed(() => {
+  return networkStore.nodes.filter(node => node.data?.type === 'mentor').length;
+});
+
+const totalNodesCount = computed(() => {
+  return networkStore.nodes.length;
+});
+
+const totalEdgesCount = computed(() => {
+  return networkStore.edges.length;
+});
+
 onMounted(() => {
   networkStore.fetchNetworkData();
 });
 
-// 8. ⭐️ (수정) 노드 클릭 이벤트 핸들러 ⭐️
 const handleNodeClick = (node) => {
-  // 3-5단계 network.js의 가짜 데이터(data.type)를 확인합니다.
   if (node.data?.type === 'mentor') {
-    // 클릭된 노드가 '멘토' 타입이면,
-    // selectedMentor에 멘토 데이터(node.data)를 저장합니다.
-    // 이로 인해 MentorSidebar가 '짠'하고 나타납니다.
     selectedMentor.value = node.data;
     console.log('멘토 노드 클릭:', node.data);
   } else {
-    // 멘토 외 다른 노드(키워드, 멘티)를 클릭하면,
-    // selectedMentor를 null로 만들어 사이드바를 닫습니다.
     selectedMentor.value = null;
     console.log('비-멘토 노드 클릭:', node.label);
   }
 };
 
-// 9. ⭐️ (신규) 사이드바 닫기 버튼 핸들러 ⭐️
 const closeSidebar = () => {
   selectedMentor.value = null;
 };
 
-// 10. ⭐️ (신규) '커피챗 예약하기' 버튼 핸들러 ⭐️
 const openBookingModal = (mentorData) => {
-  // MentorSidebar가 @book 이벤트와 함께 멘토 객체를 전달해줍니다.
-  mentorForBooking.value = mentorData; // 예약할 멘토 정보 저장
-  isModalOpen.value = true; // BookingModal을 '짠'하고 띄웁니다.
+  // 상세보기 모달 먼저 닫기
+  selectedMentor.value = null;
+  
+  // 예약 모달 열기
+  mentorForBooking.value = mentorData;
+  isModalOpen.value = true;
   console.log('예약 모달 열기:', mentorData.name);
 };
 
-// 11. ⭐️ (신규) 모달 닫기 핸들러 ⭐️
 const closeBookingModal = () => {
   isModalOpen.value = false;
   mentorForBooking.value = null;
@@ -86,24 +159,9 @@ const closeBookingModal = () => {
 </script>
 
 <style scoped>
-.network-view-container {
-  display: flex; /* 그래프와 사이드바를 가로로 배치 */
+.graph-container {
+  height: 600px;
   width: 100%;
-  /* App.vue의 padding(20px * 2)을 뺀 높이 */
-  height: calc(100vh - 40px); 
-  position: relative;
-  overflow: hidden; /* 페이지 스크롤 방지 */
-}
-.graph-panel {
-  flex-grow: 1; /* 남은 공간을 모두 차지 */
-  height: 100%;
-}
-.sidebar-panel {
-  flex-shrink: 0; /* 사이드바 크기 고정 (300px) */
-  height: 100%;
-  /* v-if로 컴포넌트가 사라질 때 부드러운 효과를 원한다면
-    transform: translateX(100%) 와 transition을 사용합니다.
-    (지금은 v-if로 간단하게 구현)
-  */
+  background: linear-gradient(to bottom, #f8fafc, #ffffff);
 }
 </style>
