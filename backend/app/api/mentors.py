@@ -1,23 +1,24 @@
 # backend/app/api/mentors.py
-# (ERD v2 - AI 매칭 임계값 수정)
+# (json.loads를 제거한 최종 수정본)
 
 from fastapi import APIRouter, HTTPException
 from app.core.config import supabase
 import uuid
+import json  # ⭐️ json 임포트는 그냥 놔둬도 됩니다.
 
 router = APIRouter()
 
 @router.get("/api/mentors/")
 def get_mentor_list():
     """
-    (수정됨) 새로운 ERD에 맞춰 public.users[cite: setup_v2.sql]와 mentor_profiles[cite: setup_v2.sql]를 JOIN하여
+    (수정됨) 새로운 ERD에 맞춰 public.users와 mentor_profiles를 JOIN하여
     모든 멘토 목록을 조회합니다.
     """
     try:
         response = supabase.table('users') \
-                           .select('id, full_name, mentor_profiles(id, career_info, profile_image_url, location, verification_status)') \
-                           .eq('role', 'mentor') \
-                           .execute()
+                            .select('id, full_name, mentor_profiles(id, career_info, profile_image_url, location, verification_status)') \
+                            .eq('role', 'mentor') \
+                            .execute()
         
         if response.data:
             return response.data
@@ -30,17 +31,16 @@ def get_mentor_list():
 def get_recommended_mentors(mentee_id: str):
     """
     AI 매칭: 멘티 ID를 기반으로 추천 멘토 목록을 반환합니다.
-    (IndexError 버그 수정)
     """
     try:
         print(f"AI 추천 API 수신: 멘티 ID {mentee_id}") 
 
         # 1. 멘티의 임베딩 벡터 조회
         mentee_response = supabase.table('mentee_profiles') \
-                                  .select('embedding') \
-                                  .eq('user_id', mentee_id) \
-                                  .limit(1) \
-                                  .execute()
+                                    .select('embedding') \
+                                    .eq('user_id', mentee_id) \
+                                    .limit(1) \
+                                    .execute()
         
         if not mentee_response.data:
             print(f"오류: 멘티 프로필을 찾을 수 없습니다 (ID: {mentee_id})")
@@ -52,14 +52,14 @@ def get_recommended_mentors(mentee_id: str):
             print(f"오류: 멘티 임베딩이 NULL입니다 (ID: {mentee_id})")
             raise HTTPException(status_code=404, detail="Mentee embedding is NULL. Please generate embedding first.")
         
-        mentee_embedding = mentee_profile['embedding']
+        # ⭐️ 2. 임베딩 "문자열(str)"을 그대로 가져옵니다. (json.loads 안 함!)
+        mentee_embedding_str = mentee_profile['embedding']
         print(f"멘티 임베딩 로드 성공 (ID: {mentee_id})")
 
-        # 2. 'match_mentors' SQL 함수 호출
-        # 🚨 (수정) 임계값을 0.5에서 0.1로 낮춤
+        # 3. 'match_mentors' SQL 함수 호출
         match_response = supabase.rpc('match_mentors', {
-            'query_embedding': mentee_embedding,
-            'match_threshold': 0.1, # 👈 50% -> 10%
+            'query_embedding': mentee_embedding_str, # ⭐️ 4. "문자열"을 그대로 전달
+            'match_threshold': 0.1,
             'match_count': 5 
         }).execute()
 

@@ -23,14 +23,14 @@
 
     <!-- 3. 지도 뷰 (v-show로 제어) -->
     <div v-show="currentView === 'map'" class="map-panel-wrapper">
-      <!-- 2단계에서 만든 맵 컴포넌트 -->
       <MentorMap />
     </div>
 
-    <!-- 사이드바는 그래프 뷰일 때만 보이도록 수정 -->
+    <!-- 🔥 수정: currentUserId props 추가 -->
     <MentorSidebar
-      v-if="currentView === 'graph'"
+      v-if="currentView === 'graph' && selectedMentor"
       :mentor="selectedMentor"
+      :currentUserId="currentUserId"
       @close="closeSidebar"
       @book="openBookingModal"
       class="sidebar-panel"
@@ -53,23 +53,44 @@ import { useNetworkStore } from '@/store/network';
 import NetworkGraph from '@/components/graph/NetworkGraph.vue';
 import MentorSidebar from '@/components/profile/MentorSidebar.vue';
 import BookingModal from '@/components/calendar/BookingModal.vue';
-// 4. (신규) 맵 컴포넌트 임포트
 import MentorMap from '@/components/map/MentorMap.vue';
+
+// 🔥 Supabase Auth에서 현재 사용자 정보 가져오기
+import { supabase } from '@/supabaseClient'; // 경로는 프로젝트에 맞게 수정
 
 const networkStore = useNetworkStore();
 const selectedMentor = ref(null);
 const mentorForBooking = ref(null);
 const isModalOpen = ref(false);
+const currentView = ref('graph');
 
-// 5. (신규) 현재 뷰 상태 (graph 또는 map)
-const currentView = ref('graph'); // 기본값 'graph'
+// 🔥 신규: 현재 로그인한 사용자 ID
+const currentUserId = ref('');
 
-onMounted(() => {
-  // 그래프 뷰에 필요한 데이터는 미리 로드
+onMounted(async () => {
+  // 그래프 데이터 로드
   networkStore.fetchNetworkData();
+
+  // 🔥 현재 로그인한 사용자 정보 가져오기
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('사용자 정보 조회 실패:', error);
+      return;
+    }
+
+    if (user) {
+      currentUserId.value = user.id;
+      console.log('✅ 현재 사용자 ID:', user.id);
+    } else {
+      console.warn('⚠️ 로그인된 사용자가 없습니다.');
+    }
+  } catch (err) {
+    console.error('Auth 에러:', err);
+  }
 });
 
-// (이하 핸들러 함수들은 동일)
 const handleNodeClick = (node) => {
   if (node.data?.type === 'mentor') {
     selectedMentor.value = node.data;
@@ -77,13 +98,16 @@ const handleNodeClick = (node) => {
     selectedMentor.value = null;
   }
 };
+
 const closeSidebar = () => {
   selectedMentor.value = null;
 };
+
 const openBookingModal = (mentorData) => {
   mentorForBooking.value = mentorData;
   isModalOpen.value = true;
 };
+
 const closeBookingModal = () => {
   isModalOpen.value = false;
   mentorForBooking.value = null;
@@ -94,12 +118,11 @@ const closeBookingModal = () => {
 .network-view-container {
   display: flex;
   width: 100%;
-  height: calc(100vh - 100px); /* 탭 높이 등을 고려하여 조정 */
+  height: calc(100vh - 100px);
   position: relative;
-  flex-direction: column; /* ⭐️ 탭 버튼을 위해 수직으로 변경 */
+  flex-direction: column;
 }
 
-/* 6. (신규) 탭 버튼 스타일 */
 .view-switcher {
   display: flex;
   border-bottom: 1px solid #ccc;
@@ -119,30 +142,25 @@ const closeBookingModal = () => {
   color: #6d28d9;
 }
 
-/* 7. (신규) 뷰 래퍼 스타일 */
 .graph-panel-wrapper,
 .map-panel-wrapper {
-  flex-grow: 1; /* 남은 공간을 모두 차지 */
+  flex-grow: 1;
   height: 100%;
   position: relative;
 }
 
-/* 8. (수정) 그래프/맵 패널 스타일 */
 .graph-panel,
 .map-panel-wrapper {
   width: 100%;
   height: 100%;
 }
 
-/* 사이드바는 이제 absolute 포지션을 사용해야
-   그래프/맵 뷰 위에 겹쳐집니다.
-*/
 .sidebar-panel {
   position: absolute;
   right: 0;
-  top: 48px; /* 탭 버튼 높이만큼 내리기 */
+  top: 48px;
   bottom: 0;
-  height: auto; /* 높이 100% 대신 auto */
+  height: auto;
   width: 300px;
   background-color: #ffffff;
   border-left: 1px solid #e0e0e0;

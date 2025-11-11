@@ -8,11 +8,21 @@
       <p class="mentor-company">{{ mentor.company }}</p>
     </div>
 
+    <!-- 🔥 수정된 부분: 실시간 매칭도 표시 -->
     <div class="matching-score">
       <span>AI 매칭도</span>
-      <strong>{{ mentor.matchingScore }}%</strong>
+      <strong v-if="!loadingScore">{{ realMatchScore }}%</strong>
+      <strong v-else style="color: #999;">계산 중...</strong>
       <div class="progress-bar">
-        <div class="progress" :style="{ width: mentor.matchingScore + '%' }"></div>
+        <div class="progress" :style="{ width: realMatchScore + '%' }"></div>
+      </div>
+      
+      <!-- 🆕 상세 정보 표시 (선택사항) -->
+      <div v-if="matchDetails && !loadingScore" class="match-details">
+        <small style="color: #666;">
+          텍스트 유사도: {{ matchDetails.text_similarity }}% / 
+          거리: {{ matchDetails.distance_km }}km
+        </small>
       </div>
     </div>
 
@@ -40,20 +50,90 @@
 </template>
 
 <script setup>
-// defineProps는 import할 필요 없습니다.
-defineProps({
+import { ref, watch, onMounted } from 'vue';
+
+const props = defineProps({
   mentor: {
     type: Object,
-    default: null, // null이면 v-if="mentor"에 의해 숨겨짐
+    default: null,
   },
+  // 🆕 현재 로그인한 사용자 ID (멘티)
+  currentUserId: {
+    type: String,
+    required: true
+  }
 });
 
-// defineEmits도 import할 필요 없습니다.
 defineEmits(['close', 'book']);
+
+// 🔥 실시간 매칭도 계산
+const realMatchScore = ref(0);
+const loadingScore = ref(true);
+const matchDetails = ref(null);
+
+// API 호출 함수
+async function fetchMatchingScore() {
+  if (!props.mentor || !props.currentUserId) {
+    realMatchScore.value = 0;
+    loadingScore.value = false;
+    return;
+  }
+
+  loadingScore.value = true;
+
+  try {
+    // 백엔드 API 호출
+    const response = await fetch(
+      `http://localhost:8000/api/matching/find-matches?user_id=${props.currentUserId}&role=mentee&limit=50`
+    );
+
+    if (!response.ok) {
+      throw new Error(`API 에러: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // 현재 멘토의 매칭 점수 찾기
+    const matchedMentor = data.matches.find(
+      m => m.user_id === props.mentor.user_id || m.user_id === props.mentor.id
+    );
+
+    if (matchedMentor) {
+      realMatchScore.value = matchedMentor.final_score;
+      matchDetails.value = {
+        text_similarity: matchedMentor.text_similarity,
+        distance_km: matchedMentor.distance_km,
+        distance_score: matchedMentor.distance_score
+      };
+    } else {
+      // 매칭 안됨
+      realMatchScore.value = 0;
+      matchDetails.value = null;
+      console.warn('이 멘토의 매칭 점수를 찾을 수 없습니다.');
+    }
+  } catch (error) {
+    console.error('매칭 점수 조회 실패:', error);
+    realMatchScore.value = 0;
+    matchDetails.value = null;
+  } finally {
+    loadingScore.value = false;
+  }
+}
+
+// 멘토가 변경될 때마다 매칭도 계산
+watch(() => props.mentor, () => {
+  if (props.mentor) {
+    fetchMatchingScore();
+  }
+}, { immediate: true });
+
+// 컴포넌트 마운트 시 실행
+onMounted(() => {
+  fetchMatchingScore();
+});
 </script>
 
 <style scoped>
-/* 데모 이미지와 유사한 스타일 */
 .sidebar-container {
   width: 300px;
   background-color: #ffffff;
@@ -63,7 +143,7 @@ defineEmits(['close', 'book']);
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow-y: auto; /* 내용이 길어지면 스크롤 */
+  overflow-y: auto;
   box-shadow: -2px 0 5px rgba(0,0,0,0.05);
 }
 .close-button {
@@ -113,6 +193,12 @@ defineEmits(['close', 'book']);
 .progress {
   background-color: #6d28d9;
   height: 100%;
+  transition: width 0.3s ease; /* 🆕 부드러운 애니메이션 */
+}
+/* 🆕 상세 정보 스타일 */
+.match-details {
+  margin-top: 8px;
+  font-size: 12px;
 }
 .mentor-details h3 {
   font-size: 14px;
@@ -148,7 +234,7 @@ defineEmits(['close', 'book']);
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  margin-top: 24px; /* 위쪽과 여백 */
+  margin-top: 24px;
   transition: background-color 0.2s;
 }
 .book-button:hover {

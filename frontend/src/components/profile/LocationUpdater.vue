@@ -117,6 +117,27 @@ const isUpdating = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
+// ⭐️ 카카오맵 APP KEY (MentorMap.vue에서 가져옴)
+const KAKAO_APP_KEY = 'a37ab17958bf71b653513edd08f31fac';
+
+// ⭐️ 1. Kakao 맵 스크립트 로드 (Geocoder 라이브러리 포함)
+const loadKakaoMapScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.kakao && window.kakao.maps) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    // ⭐️ 주소 검색을 위해 &libraries=services 추가
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`;
+    script.onload = () => {
+      window.kakao.maps.load(() => resolve());
+    };
+    script.onerror = () => reject(new Error('카카오맵 스크립트 로드 실패'));
+    document.head.appendChild(script);
+  });
+};
+
 // Daum 우편번호 스크립트 로드
 const loadDaumPostcodeScript = () => {
   return new Promise((resolve) => {
@@ -131,11 +152,17 @@ const loadDaumPostcodeScript = () => {
   });
 };
 
-onMounted(() => {
-  loadDaumPostcodeScript();
+onMounted(async () => {
+  try {
+    // ⭐️ 두 스크립트를 모두 로드
+    await loadDaumPostcodeScript();
+    await loadKakaoMapScript();
+  } catch (error) {
+    errorMessage.value = "지도 서비스 로드에 실패했습니다.";
+  }
 });
 
-// 우편번호 팝업
+// 우편번호 팝업 (기존 코드와 동일)
 const openDaumPostcode = () => {
   if (!window.daum || !window.daum.Postcode) {
     errorMessage.value = '우편번호 검색 서비스를 로드 중입니다. 잠시 후 다시 시도해주세요.';
@@ -147,9 +174,9 @@ const openDaumPostcode = () => {
     oncomplete: (data) => {
       let addr = '';
       if (data.userSelectedType === 'R') {
-        addr = data.roadAddress; // 도로명
+        addr = data.roadAddress;
       } else {
-        addr = data.jibunAddress; // 지번
+        addr = data.jibunAddress;
       }
       searchAddress.value = addr;
       searchLocation(); // 자동 검색
@@ -164,10 +191,14 @@ const testLocationName = computed(() => {
   return '';
 });
 
-// 주소 → 좌표 검색
+// ⭐️ 2. 주소 → 좌표 검색 (백엔드 대신 카카오 Geocoder 사용)
 const searchLocation = async () => {
   if (!searchAddress.value.trim()) {
     errorMessage.value = '주소를 입력해주세요.';
+    return;
+  }
+  if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+    errorMessage.value = '카카오맵 서비스가 로드되지 않았습니다. 페이지를 새로고침해주세요.';
     return;
   }
 
@@ -176,11 +207,24 @@ const searchLocation = async () => {
   searchResults.value = [];
 
   try {
-    const response = await axios.get('http://localhost:8000/api/locations/search-address', {
-      params: { query: searchAddress.value },
+    // ⭐️ 카카오 Geocoder 생성
+    const geocoder = new window.kakao.maps.services.Geocoder();
+
+    // ⭐️ Geocoder는 콜백 기반이므로 Promise로 변환
+    const searchPromise = () => new Promise((resolve, reject) => {
+      geocoder.addressSearch(searchAddress.value, (result, status) => {
+        if (status === window.kakao.maps.services.Status.OK) {
+          resolve(result); // result는 주소 객체 배열
+        } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+           resolve([]); // 검색 결과가 없는 경우 빈 배열 반환
+        } else {
+          reject(new Error('주소 검색 실패'));
+        }
+      });
     });
 
-    const docs = Array.isArray(response.data?.documents) ? response.data.documents : [];
+    const docs = await searchPromise(); // ⭐️ axios.get 대신 Kakao API 호출
+
     if (docs.length === 0) {
       errorMessage.value = '검색 결과가 없습니다. 주소를 다시 확인해주세요.';
     } else {
@@ -188,7 +232,7 @@ const searchLocation = async () => {
     }
   } catch (error) {
     console.error('주소 검색 실패:', error);
-    errorMessage.value = '주소 검색에 실패했습니다. 다시 시도해주세요.';
+    errorMessage.value = '주소 검색에 실패했습니다. (카카오 API 오류)';
   } finally {
     isSearching.value = false;
   }
@@ -196,6 +240,7 @@ const searchLocation = async () => {
 
 // 검색 결과 선택
 const selectAddress = (result) => {
+  // ⭐️ 카카오 Geocoder는 x, y를 문자열로 줍니다. float으로 변환.
   latitude.value = parseFloat(result.y);
   longitude.value = parseFloat(result.x);
 
@@ -207,7 +252,7 @@ const selectAddress = (result) => {
   }, 3000);
 };
 
-// 위치 업데이트
+// 위치 업데이트 (기존 코드와 동일)
 const updateLocation = async () => {
   if (!latitude.value || !longitude.value) {
     errorMessage.value = '위도와 경도를 입력해주세요.';
@@ -223,6 +268,7 @@ const updateLocation = async () => {
   successMessage.value = '';
 
   try {
+    // ⭐️ 이 API는 백엔드 API가 맞습니다! (location.py에 존재함)
     const response = await axios.post('http://localhost:8000/api/location/update', {
       user_id: authStore.userId,
       role: authStore.userRole,

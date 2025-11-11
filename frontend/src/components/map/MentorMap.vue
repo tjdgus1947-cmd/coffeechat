@@ -1,41 +1,48 @@
 <template>
-  <div class="mentor-map-container">
-    <div id="kakao-map" class="kakao-map"></div>
-
+  <div class="map-container">
+    <!-- 로딩 중 -->
     <div v-if="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <p>지도 로딩 중...</p>
+      <p>지도를 불러오는 중...</p>
     </div>
 
-    <div v-if="error" class="error-banner">
-      ⚠️ {{ error }}
+    <!-- 에러 메시지 -->
+    <div v-if="error" class="error-message">
+      <p>⚠️ {{ error }}</p>
+      <button @click="initializeMap" class="retry-button">다시 시도</button>
     </div>
 
+    <!-- 카카오맵 컨테이너 -->
+    <div id="kakao-map" class="kakao-map"></div>
+
+    <!-- 지도 위 정보 패널 -->
+    <div v-if="!loading && !error" class="info-panel">
+      <div class="info-item">
+        <span class="info-icon">📍</span>
+        <span class="info-text">내 위치</span>
+      </div>
+      <div class="info-item">
+        <span class="info-icon">☕</span>
+        <span class="info-text">{{ userRole === 'mentee' ? '멘토' : '멘티' }}: {{ otherUserCount }}명</span>
+      </div>
+    </div>
+
+    <!-- 내 위치로 이동 버튼 -->
     <button
-      v-if="!loading && currentUserLocation"
+      v-if="!loading && !error && currentUserLocation"
       @click="moveToMyLocation"
-      class="my-location-btn"
-      :class="userRole === 'mentor' ? 'mentor-btn' : 'mentee-btn'"
+      class="my-location-button"
       title="내 위치로 이동"
     >
-      👤
+      🎯
     </button>
-
-    <div class="map-legend">
-      <div class="legend-item">
-        <span class="legend-icon mentee">🔵</span>
-        <span>{{ userRole === 'mentor' ? '멘티' : '나의 위치' }}</span>
-      </div>
-      <div class="legend-item">
-        <span class="legend-icon mentor">🟢</span>
-        <span>{{ userRole === 'mentor' ? '나의 위치' : '멘토' }} ({{ otherUserCount }}명)</span>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth';
+import { mapState } from 'pinia';
 
 export default {
   name: 'MentorMap',
@@ -46,18 +53,16 @@ export default {
       polylines: [],
       loading: true,
       error: null,
-      userId: null,
-      userRole: null,
       otherUserCount: 0,
       currentUserLocation: null,
     };
   },
 
-  mounted() {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    this.userId = userData.id;
-    this.userRole = userData.role;
+  computed: {
+    ...mapState(useAuthStore, ['userId', 'userRole'])
+  },
 
+  mounted() {
     if (!this.userId) {
       this.error = '로그인이 필요합니다.';
       this.loading = false;
@@ -293,68 +298,142 @@ export default {
 </script>
 
 <style scoped>
-.mentor-map-container {
+.map-container {
   position: relative;
   width: 100%;
-  height: calc(100vh - 60px);
-  overflow: hidden;
-  background: #f5f5f5;
+  height: 100%;
+  background-color: #f0f0f0;
 }
-.kakao-map { width: 100%; height: 100%; }
-.loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
-.spinner { border: 4px solid #f3f3f3; border-top: 4px solid #6c5ce7; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.loading-overlay p { margin-top: 20px; font-size: 15px; color: #666; font-weight: 500; }
-.error-banner { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #ff6b6b; color: white; padding: 14px 28px; border-radius: 10px; box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3); z-index: 1000; font-size: 14px; font-weight: 500; max-width: 90%; }
 
-/* 버튼 기본 스타일 (박스 그림자 제거, 역할별 보더색 분리) */
-.my-location-btn {
+.kakao-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* 로딩 오버레이 */
+.loading-overlay {
   position: absolute;
-  bottom: 120px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #6d28d9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-overlay p {
+  margin-top: 16px;
+  font-size: 16px;
+  color: #666;
+}
+
+/* 에러 메시지 */
+.error-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  text-align: center;
+  z-index: 1000;
+}
+
+.error-message p {
+  color: #e53e3e;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.retry-button {
+  background-color: #6d28d9;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.retry-button:hover {
+  background-color: #5b21b6;
+}
+
+/* 정보 패널 */
+.info-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-icon {
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+.info-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 내 위치 버튼 */
+.my-location-button {
+  position: absolute;
+  bottom: 80px;
   right: 20px;
   width: 50px;
   height: 50px;
   background: white;
-  border-width: 3px;
-  border-style: solid;
+  border: 2px solid #6d28d9;
   border-radius: 50%;
   font-size: 24px;
-  font-weight: normal;
-  color: #333;
   cursor: pointer;
-  z-index: 500;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  transition: transform 0.2s, background-color 0.2s;
 }
 
-/* 역할별 테두리 색 */
-.my-location-btn.mentee-btn { border-color: #4A90E2; }
-.my-location-btn.mentor-btn { border-color: #27AE60; }
-
-/* 호버 */
-.my-location-btn.mentee-btn:hover {
+.my-location-button:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.3);
-  background: #4A90E2;
-  color: white;
-}
-.my-location-btn.mentor-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(39, 174, 96, 0.3);
-  background: #27AE60;
-  color: white;
+  background-color: #f0ebff;
 }
 
-.map-legend { position: absolute; bottom: 30px; left: 20px; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); z-index: 500; font-size: 14px; }
-.legend-item { display: flex; align-items: center; margin-bottom: 8px; }
-.legend-item:last-child { margin-bottom: 0; }
-.legend-icon { font-size: 20px; margin-right: 10px; width: 24px; text-align: center; }
-
-@media (max-width: 768px) {
-  .map-legend { bottom: 20px; left: 10px; padding: 12px; font-size: 12px; }
-  .legend-icon { font-size: 18px; margin-right: 8px; }
-  .my-location-btn { bottom: 100px; right: 15px; width: 45px; height: 45px; font-size: 20px; }
+.my-location-button:active {
+  transform: scale(0.95);
 }
 </style>

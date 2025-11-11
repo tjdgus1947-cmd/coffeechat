@@ -4,19 +4,21 @@
 """
 from typing import List, Dict, Tuple
 import math
+import re  # ⭐️ 1. re 임포트 추가
 from app.services.ml_service import calculate_match_score
-# ml_service.py에 calculate_match_score 함수가 추가되었습니다
+
+# ⭐️ 2. shapely 임포트 시도
+try:
+    from shapely import wkb
+    SHAPELY_AVAILABLE = True
+except ImportError:
+    SHAPELY_AVAILABLE = False
+    print("⚠️ 경고: shapely 라이브러리가 없습니다. 'pip install shapely'를 실행하세요.")
+
 
 def calculate_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
     두 좌표 간의 거리 계산 (Haversine 공식, km 단위)
-    
-    Args:
-        lat1, lon1: 첫 번째 지점의 위도, 경도
-        lat2, lon2: 두 번째 지점의 위도, 경도
-    
-    Returns:
-        float: 두 지점 간의 직선 거리 (km)
     """
     R = 6371  # 지구 반지름 (km)
     
@@ -39,28 +41,12 @@ def calculate_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) ->
 def distance_to_score(distance_km: float, max_distance: float = 50.0) -> float:
     """
     거리를 0~100 점수로 변환
-    
-    Args:
-        distance_km: 실제 거리 (km)
-        max_distance: 최대 거리 기준 (기본값: 50km)
-    
-    Returns:
-        float: 0~100 사이의 거리 점수
-        - 0km = 100점 (가장 가까움)
-        - max_distance 이상 = 0점 (너무 멀음)
-    
-    Examples:
-        distance_to_score(0) -> 100.0
-        distance_to_score(25) -> 50.0  (50km 기준 시)
-        distance_to_score(50) -> 0.0
-        distance_to_score(100) -> 0.0
     """
     if distance_km <= 0:
         return 100.0
     if distance_km >= max_distance:
         return 0.0
     
-    # 선형적으로 감소
     score = 100 * (1 - distance_km / max_distance)
     return round(score, 2)
 
@@ -72,28 +58,12 @@ def calculate_final_match_score(
     lon1: float,
     lat2: float,
     lon2: float,
-    text_weight: float = 0.7,      # 자기소개 가중치 70%
-    distance_weight: float = 0.3,  # 거리 가중치 30%
-    max_distance: float = 50.0     # 최대 거리 기준 (km)
+    text_weight: float = 0.7,
+    distance_weight: float = 0.3,
+    max_distance: float = 50.0
 ) -> Dict[str, float]:
     """
     최종 매칭 점수 계산 (자기소개 70% + 거리 30%)
-    
-    Args:
-        text_embedding1, text_embedding2: 각 사용자의 텍스트 임베딩
-        lat1, lon1: 첫 번째 사용자의 위도, 경도
-        lat2, lon2: 두 번째 사용자의 위도, 경도
-        text_weight: 텍스트 유사도 가중치 (기본값: 0.7)
-        distance_weight: 거리 점수 가중치 (기본값: 0.3)
-        max_distance: 거리 점수 계산 시 최대 거리 (기본값: 50km)
-    
-    Returns:
-        Dict containing:
-        - text_similarity: 자기소개 유사도 점수 (0~100)
-        - distance_km: 실제 거리 (km)
-        - distance_score: 거리 점수 (0~100)
-        - final_score: 최종 매칭 점수 (0~100)
-        - breakdown: 점수 구성 상세 정보
     """
     # 1. 텍스트 유사도 계산 (0~100)
     text_similarity = calculate_match_score(text_embedding1, text_embedding2)
@@ -119,12 +89,13 @@ def calculate_final_match_score(
     }
 
 
-def extract_coordinates_from_geography(geography_point: str) -> Tuple[float, float]:
+# ⭐️⭐️⭐️ 3. 여기가 핵심 수정 ⭐️⭐️⭐️
+def extract_coordinates_from_geography(geography_data: str) -> Tuple[float, float]:
     """
-    PostGIS Geography 포인트에서 위도/경도 추출
+    PostGIS Geography (WKB 또는 WKT)에서 위도/경도 추출
     
     Args:
-        geography_point: PostGIS Point 형식 (예: "POINT(127.0276 37.4979)")
+        geography_data: PostGIS Point (WKB: "0101000..." 또는 WKT: "POINT(127 37)")
     
     Returns:
         Tuple[float, float]: (latitude, longitude)
@@ -132,11 +103,27 @@ def extract_coordinates_from_geography(geography_point: str) -> Tuple[float, flo
     Raises:
         ValueError: 잘못된 형식의 geography 데이터인 경우
     """
+    if not geography_data:
+        raise ValueError("Location data is empty or None")
+
     try:
-        # "POINT(경도 위도)" 형식 파싱
-        coords = geography_point.replace("POINT(", "").replace(")", "").split()
-        longitude = float(coords[0])
-        latitude = float(coords[1])
-        return latitude, longitude
+        # 1순위: WKB(16진수) 처리 (DB에서 직접 온 경우)
+        if SHAPELY_AVAILABLE and re.match(r"^[0-9A-Fa-f]+$", geography_data):
+            point = wkb.loads(geography_data, hex=True)
+            # PostGIS는 (경도, 위도) 순서
+            return (point.y, point.x) # (위도, 경도) 순서로 반환
+
+        # 2순위: WKT(텍스트) 처리 (예: "POINT(127.0276 37.4979)")
+        match = re.search(
+            r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)", geography_data, re.IGNORECASE
+        )
+        if match:
+            longitude = float(match.group(1))
+            latitude = float(match.group(2))
+            return (latitude, longitude) # (위도, 경도) 순서로 반환
+            
+        # 둘 다 실패
+        raise ValueError(f"Unknown format, not WKB or WKT: {geography_data[:50]}...")
+
     except Exception as e:
-        raise ValueError(f"Invalid geography format: {geography_point}") from e
+        raise ValueError(f"Invalid geography format: {geography_data[:50]}...") from e
