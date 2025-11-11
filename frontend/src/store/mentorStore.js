@@ -53,10 +53,35 @@ async function fetchReceivedBookings() {
       }
     }
   }
+
+
+async function updateBookingStatus(bookingId, newStatus) {
+    isLoading.value = true;
+    try {
+      // 백엔드에 PUT 요청 전송 ('approved' or 'rejected')
+      await api.put(`/bookings/${bookingId}/status`, {
+        status: newStatus
+      });
+      
+      // 성공 시 목록 새로고침 (가장 확실한 방법)
+      await fetchReceivedBookings();
+      alert(newStatus === 'approved' ? '승인되었습니다.' : '거절되었습니다.');
+
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      alert('처리 중 오류가 발생했습니다.');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
 return {
     receivedBookings,
     isLoading,
-    fetchReceivedBookings
+    fetchReceivedBookings,
+    updateBookingStatus
   };
 });
-// ... (store의 나머지 부분)
+// ... (store의 나머지 부분)smm

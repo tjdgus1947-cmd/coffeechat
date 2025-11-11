@@ -5,17 +5,19 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api import mentors # 8.1에서 만든 mentors.py 임포트
 # (wbs_detail.md의 다른 라우터들도 임포트)
 # from app.api import auth, mentees, matching, network 
+from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth # 9단계에서 방금 추가함
 from app.api import matching
 from app.api import location
 from app.api import availability
 from app.api import bookings
+
 app = FastAPI()
 
 # 2. origins 목록에 Vue.js 서버 주소를 추가합니다.
 origins = [
     "http://localhost:5173", # 👈 '수민'님의 Vue.js 주소 (포트 확인!)
-    "[http://127.0.0.1:5173](http://127.0.0.1:5173)",
+    "http://127.0.0.1:5173",
     # (만약 '수민'님 Vue.js가 5174 등 다른 포트라면 그것도 추가)
 ]
 
@@ -34,6 +36,7 @@ app.include_router(matching.router)
 app.include_router(location.router)
 app.include_router(availability.router)
 app.include_router(bookings.router)
+  
 # (다른 라우터들도 포함)
 # app.include_router(auth.router)
 # ...
