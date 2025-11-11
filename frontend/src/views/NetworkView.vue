@@ -1,20 +1,42 @@
 <template>
   <div class="network-view-container">
     
-    <NetworkGraph
-      :nodes="networkStore.nodes"
-      :edges="networkStore.edges"
-      @node-click="handleNodeClick"
-      class="graph-panel"
-    />
+    <!-- 1. 탭 버튼 UI -->
+    <div class="view-switcher">
+      <button @click="currentView = 'graph'" :class="{ active: currentView === 'graph' }">
+        네트워크 뷰
+      </button>
+      <button @click="currentView = 'map'" :class="{ active: currentView === 'map' }">
+        지도 뷰 (WBS 5.2)
+      </button>
+    </div>
 
+    <!-- 2. 그래프 뷰 (v-show로 제어) -->
+    <div v-show="currentView === 'graph'" class="graph-panel-wrapper">
+      <NetworkGraph
+        :nodes="networkStore.nodes"
+        :edges="networkStore.edges"
+        @node-click="handleNodeClick"
+        class="graph-panel"
+      />
+    </div>
+
+    <!-- 3. 지도 뷰 (v-show로 제어) -->
+    <div v-show="currentView === 'map'" class="map-panel-wrapper">
+      <!-- 2단계에서 만든 맵 컴포넌트 -->
+      <MentorMap />
+    </div>
+
+    <!-- 사이드바는 그래프 뷰일 때만 보이도록 수정 -->
     <MentorSidebar
+      v-if="currentView === 'graph'"
       :mentor="selectedMentor"
       @close="closeSidebar"
       @book="openBookingModal"
       class="sidebar-panel"
     />
 
+    <!-- 예약 모달은 공통 사용 -->
     <BookingModal
       :show="isModalOpen"
       
@@ -29,80 +51,108 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useNetworkStore } from '@/store/network'; // 1, 3-5단계
+import { useNetworkStore } from '@/store/network';
+import NetworkGraph from '@/components/graph/NetworkGraph.vue';
+import MentorSidebar from '@/components/profile/MentorSidebar.vue';
+import BookingModal from '@/components/calendar/BookingModal.vue';
+// 4. (신규) 맵 컴포넌트 임포트
+import MentorMap from '@/components/map/MentorMap.vue';
 
-// 4. 컴포넌트 3개 모두 임포트
-import NetworkGraph from '@/components/graph/NetworkGraph.vue'; // 2단계
-import MentorSidebar from '@/components/profile/MentorSidebar.vue'; // 4-1단계
-import BookingModal from '@/components/calendar/BookingModal.vue'; // 4-2단계
-
-// 5. Pinia 스토어 사용
 const networkStore = useNetworkStore();
+const selectedMentor = ref(null);
+const mentorForBooking = ref(null);
+const isModalOpen = ref(false);
 
-// 6. ⭐️ 사이드바와 모달을 제어할 내부 상태(ref) ⭐️
-const selectedMentor = ref(null); // 사이드바에 보여줄 멘토 정보 (null이면 닫힘)
-const mentorForBooking = ref(null); // 예약 모달에 넘겨줄 멘토 정보
-const isModalOpen = ref(false); // 모달 열림/닫힘 상태
+// 5. (신규) 현재 뷰 상태 (graph 또는 map)
+const currentView = ref('graph'); // 기본값 'graph'
 
-// 7. (기존) 페이지 로드 시 가짜 그래프 데이터 불러오기
 onMounted(() => {
+  // 그래프 뷰에 필요한 데이터는 미리 로드
   networkStore.fetchNetworkData();
 });
 
-// 8. ⭐️ (수정) 노드 클릭 이벤트 핸들러 ⭐️
+// (이하 핸들러 함수들은 동일)
 const handleNodeClick = (node) => {
-  // 3-5단계 network.js의 가짜 데이터(data.type)를 확인합니다.
   if (node.data?.type === 'mentor') {
-    // 클릭된 노드가 '멘토' 타입이면,
-    // selectedMentor에 멘토 데이터(node.data)를 저장합니다.
-    // 이로 인해 MentorSidebar가 '짠'하고 나타납니다.
     selectedMentor.value = node.data;
-    console.log('멘토 노드 클릭:', node.data);
   } else {
-    // 멘토 외 다른 노드(키워드, 멘티)를 클릭하면,
-    // selectedMentor를 null로 만들어 사이드바를 닫습니다.
     selectedMentor.value = null;
-    console.log('비-멘토 노드 클릭:', node.label);
   }
 };
-
-// 9. ⭐️ (신규) 사이드바 닫기 버튼 핸들러 ⭐️
 const closeSidebar = () => {
   selectedMentor.value = null;
 };
-
-// 10. ⭐️ (신규) '커피챗 예약하기' 버튼 핸들러 ⭐️
 const openBookingModal = (mentorData) => {
-  // MentorSidebar가 @book 이벤트와 함께 멘토 객체를 전달해줍니다.
-  mentorForBooking.value = mentorData; // 예약할 멘토 정보 저장
-  isModalOpen.value = true; // BookingModal을 '짠'하고 띄웁니다.
-  console.log('예약 모달 열기:', mentorData.name);
+  mentorForBooking.value = mentorData;
+  isModalOpen.value = true;
 };
-
-// 11. ⭐️ (신규) 모달 닫기 핸들러 ⭐️
 const closeBookingModal = () => {
   isModalOpen.value = false;
   mentorForBooking.value = null;
-  console.log('예약 모달 닫기');
 };
 </script>
 
 <style scoped>
 /* (기존 스타일과 동일) */
 .network-view-container {
-  display: flex; /* 그래프와 사이드바를 가로로 배치 */
+  display: flex;
   width: 100%;
-  /* App.vue의 padding(20px * 2)을 뺀 높이 */
-  height: calc(100vh - 40px); 
+  height: calc(100vh - 100px); /* 탭 높이 등을 고려하여 조정 */
   position: relative;
-  overflow: hidden; /* 페이지 스크롤 방지 */
+  flex-direction: column; /* ⭐️ 탭 버튼을 위해 수직으로 변경 */
 }
-.graph-panel {
+
+/* 6. (신규) 탭 버튼 스타일 */
+.view-switcher {
+  display: flex;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 10px;
+}
+.view-switcher button {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-bottom: 3px solid transparent;
+}
+.view-switcher button.active {
+  border-bottom: 3px solid #6d28d9;
+  font-weight: bold;
+  color: #6d28d9;
+}
+
+/* 7. (신규) 뷰 래퍼 스타일 */
+.graph-panel-wrapper,
+.map-panel-wrapper {
   flex-grow: 1; /* 남은 공간을 모두 차지 */
   height: 100%;
+  position: relative;
 }
-.sidebar-panel {
-  flex-shrink: 0; /* 사이드바 크기 고정 (300px) */
+
+/* 8. (수정) 그래프/맵 패널 스타일 */
+.graph-panel,
+.map-panel-wrapper {
+  width: 100%;
   height: 100%;
+<<<<<<< HEAD
+=======
+}
+
+/* 사이드바는 이제 absolute 포지션을 사용해야
+   그래프/맵 뷰 위에 겹쳐집니다.
+*/
+.sidebar-panel {
+  position: absolute;
+  right: 0;
+  top: 48px; /* 탭 버튼 높이만큼 내리기 */
+  bottom: 0;
+  height: auto; /* 높이 100% 대신 auto */
+  width: 300px;
+  background-color: #ffffff;
+  border-left: 1px solid #e0e0e0;
+  z-index: 10;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+>>>>>>> origin/db-ksh
 }
 </style>

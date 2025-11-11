@@ -22,7 +22,7 @@
     </div>
     <div class="form-group">
       <label>총 경력 (년)</label>
-      <input type="number" v-model="form.experienceYears">
+      <input type="number" v-model="form.experienceYears" min="0">
     </div>
     <div class="form-group">
       <label>전문 분야 (쉼표로 구분)</label>
@@ -30,8 +30,13 @@
     </div>
     <div class="form-group">
       <label>자기 소개 (멘티에게 보여집니다)</label>
-      <textarea v-model="form.introduction" rows="3"></textarea>
+      <textarea v-model="form.introduction" rows="4" placeholder="경력, 전문성, 멘티에게 도움 줄 수 있는 내용을 작성해주세요."></textarea>
     </div>
+    <div class="form-group">
+      <label>증빙 서류 (재직/재학증명서, 4대보험 등)</label>
+      <FileUploader @file-changed="handleFileUpdate" />
+    </div>
+
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     <button type="submit" :disabled="isLoading">
       {{ isLoading ? '가입 중...' : '멘토로 가입하기' }}
@@ -43,9 +48,9 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
-// import api from '@/services/api'; // (wbs_detail.md) /api/auth/register
+import FileUploader from '@/components/common/FileUploader.vue';
 
-const authStore = useAuthStore(); // (wbs_detail.md) 스토어에 멘토 등록 액션 추가 필요
+const authStore = useAuthStore();
 const router = useRouter();
 
 const form = ref({
@@ -57,38 +62,73 @@ const form = ref({
   experienceYears: 0,
   topics: '',
   introduction: '',
+  proofFile: null,
 });
 const isLoading = ref(false);
 const errorMessage = ref('');
 
-const handleSubmit = async () => {
-  isLoading.value = true;
-  errorMessage.value = '';
-  try {
-    // (수정) 님의 백엔드 API를 실제로 호출합니다.
-    // 님의 auth.js 스토어가 이 'form.value' (JSON)를
-    // /api/auth/register/mentor로 보내도록 이미 수정되었습니다.
-    await authStore.registerMentor(form.value);  
-    
-    // (수정) API가 성공한 후에 알림창을 띄웁니다.
-    alert('멘토 가입 신청이 완료되었습니다. 관리자 승인 후 활동 가능합니다.');
-    router.push({ name: 'login' });
+const handleFileUpdate = (file) => {
+  form.value.proofFile = file;
+};
 
-  } catch (error) {
-    console.error('멘토 가입 실패:', error);
-    errorMessage.value = '가입에 실패했습니다: ' + (error.response?.data?.detail || error.message);
-  } finally {
-    isLoading.value = false;
-  }
+const handleSubmit = async () => {
+  if (!form.value.proofFile) {
+    errorMessage.value = '증빙 서류를 업로드해주세요.';
+    return;
+  }
+
+  isLoading.value = true;
+  errorMessage.value = '';
+  
+  try {
+    // FormData를 사용해 파일과 텍스트를 함께 전송
+    const formData = new FormData();
+    Object.keys(form.value).forEach(key => {
+      if (form.value[key] !== null) {
+        formData.append(key, form.value[key]);
+      }
+    });
+
+    await authStore.registerMentor(formData);
+    
+    alert('멘토 가입 신청이 완료되었습니다. 관리자 승인 후 활동 가능합니다.');
+    router.push({ name: 'login' });
+
+  } catch (error) {
+    console.error('멘토 가입 실패:', error);
+    errorMessage.value = '가입에 실패했습니다: ' + (error.response?.data?.detail || error.message);
+  } finally {
+    isLoading.value = false;
+  }
 };
 </script>
 
 <style scoped>
-/* LoginForm.vue와 스타일 공유 */
 .form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-.error { color: red; font-size: 14px; }
-button { width: 100%; padding: 10px; background-color: #6d28d9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:disabled { background-color: #ccc; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group textarea { 
+  width: 100%; 
+  padding: 8px; 
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.form-group textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+.error { color: red; font-size: 14px; margin-top: 10px; }
+button { 
+  width: 100%; 
+  padding: 10px; 
+  background-color: #6d28d9; 
+  color: white; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+}
+button:hover:not(:disabled) { background-color: #5b21b6; }
+button:disabled { background-color: #ccc; cursor: not-allowed; }
 </style>

@@ -1,25 +1,33 @@
 <template>
+<<<<<<< HEAD
 <div class="mypage-container">
     <h1>마이페이지</h1>
+=======
+  <div class="mypage-container">
+    <h1>마이페이지</h1>
+>>>>>>> origin/db-ksh
 
-    <div class="profile-card card">
-      <h2>내 프로필</h2>
-      <div v-if="authStore.user">
-        <div class="profile-item" v-if="authStore.userName"> 
-          <strong>이름:</strong> 
-          {{ authStore.userName }}
-        </div>
-        <div class="profile-item" v-if="authStore.userRole">
-          <strong>역할:</strong> 
-          {{ authStore.userRole === 'mentee' ? '멘티' : '멘토' }}
-        </div>
-        <div class="profile-item">
-          <strong>아이디(Test):</strong> {{ authStore.userId }}
-        </div>
-        <button class="edit-button">프로필 수정 (구현 필요)</button>
-      </div>
-    </div>
+    <!-- 내 프로필 -->
+    <div class="profile-card card">
+      <h2>내 프로필</h2>
+      <div v-if="authStore.user">
+        <div class="profile-item" v-if="authStore.userName">
+          <strong>이름:</strong>
+          {{ authStore.userName }}
+        </div>
+        <div class="profile-item" v-if="authStore.userRole">
+          <strong>역할:</strong>
+          {{ authStore.userRole === 'mentee' ? '멘티' : '멘토' }}
+        </div>
+        <div class="profile-item">
+          <strong>아이디(Test):</strong>
+          {{ authStore.userId }}
+        </div>
+        <button class="edit-button">프로필 수정 (구현 필요)</button>
+      </div>
+    </div>
 
+<<<<<<< HEAD
     <div class="requests-card card" v-if="authStore.userRole === 'mentee'">
       <h2>커피챗 신청 목록</h2>
       <p>내가 멘토에게 보낸 신청 현황입니다.</p>
@@ -38,12 +46,34 @@
       <MentorAvailability />
       
       </div>
+=======
+    <!-- 위치 설정 -->
+    <LocationUpdater />
+>>>>>>> origin/db-ksh
 
-  </div>
+    <!-- 멘토 일정 관리 -->
+    <ScheduleManager v-if="authStore.userRole === 'mentor'" />
+
+    <!-- 멘티용 -->
+    <div class="requests-card card" v-if="authStore.userRole === 'mentee'">
+      <h2>커피챗 신청 목록</h2>
+      <p>내가 멘토에게 보낸 신청 현황입니다.</p>
+    </div>
+
+    <!-- 멘토용 -->
+    <div class="requests-card card" v-if="authStore.userRole === 'mentor'">
+      <h2>받은 커피챗 신청</h2>
+      <p>멘티들이 나에게 보낸 신청 현황입니다.</p>
+    </div>
+  </div>
 </template>
 <script setup>
 import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
+<<<<<<< HEAD
+=======
+import LocationUpdater from '@/components/profile/LocationUpdater.vue';
+>>>>>>> origin/db-ksh
 
 import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 import BookingList from '@/components/profile/BookingList.vue';
@@ -98,6 +128,7 @@ h1 {
 .requests-card {
   margin-top: 20px;
 }
+<<<<<<< HEAD
 
 .schedule-card {
   margin-top: 20px;
@@ -105,3 +136,6 @@ h1 {
 
 
 </style>
+=======
+</style>
+>>>>>>> origin/db-ksh
