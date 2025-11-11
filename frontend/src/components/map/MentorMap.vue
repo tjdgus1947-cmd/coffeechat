@@ -1,28 +1,34 @@
 <template>
   <div class="mentor-map-container">
     <div id="kakao-map" class="kakao-map"></div>
-    
+
     <div v-if="loading" class="loading-overlay">
       <div class="spinner"></div>
       <p>지도 로딩 중...</p>
     </div>
-    
+
     <div v-if="error" class="error-banner">
       ⚠️ {{ error }}
     </div>
-    
-    <button v-if="!loading && menteeLocation" @click="moveToMyLocation" class="my-location-btn" title="내 위치로 이동">
-      📍
+
+    <button
+      v-if="!loading && currentUserLocation"
+      @click="moveToMyLocation"
+      class="my-location-btn"
+      :class="userRole === 'mentor' ? 'mentor-btn' : 'mentee-btn'"
+      title="내 위치로 이동"
+    >
+      👤
     </button>
-    
+
     <div class="map-legend">
       <div class="legend-item">
         <span class="legend-icon mentee">🔵</span>
-        <span>나의 위치</span>
+        <span>{{ userRole === 'mentor' ? '멘티' : '나의 위치' }}</span>
       </div>
       <div class="legend-item">
         <span class="legend-icon mentor">🟢</span>
-        <span>멘토 ({{ mentorCount }}명)</span>
+        <span>{{ userRole === 'mentor' ? '나의 위치' : '멘토' }} ({{ otherUserCount }}명)</span>
       </div>
     </div>
   </div>
@@ -41,31 +47,33 @@ export default {
       loading: true,
       error: null,
       userId: null,
-      mentorCount: 0,
-      menteeLocation: null
+      userRole: null,
+      otherUserCount: 0,
+      currentUserLocation: null,
     };
   },
-  
+
   mounted() {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     this.userId = userData.id;
-    
+    this.userRole = userData.role;
+
     if (!this.userId) {
       this.error = '로그인이 필요합니다.';
       this.loading = false;
       return;
     }
-    
+
     this.loadKakaoMapScript();
   },
-  
+
   methods: {
     loadKakaoMapScript() {
       if (window.kakao && window.kakao.maps) {
         this.$nextTick(() => this.initializeMap());
         return;
       }
-      
+
       const script = document.createElement('script');
       script.src = '//dapi.kakao.com/v2/maps/sdk.js?appkey=a37ab17958bf71b653513edd08f31fac&autoload=false';
       script.onload = () => {
@@ -79,110 +87,109 @@ export default {
       };
       document.head.appendChild(script);
     },
-    
+
     async initializeMap() {
       try {
         const container = document.getElementById('kakao-map');
         if (!container) {
-          this.error = "지도 DOM 요소를 찾는 데 실패했습니다.";
+          this.error = '지도 DOM 요소를 찾는 데 실패했습니다.';
           this.loading = false;
           return;
         }
 
-        const response = await axios.get(
-          `http://localhost:8000/api/locations/map-data/${this.userId}`
-        );
-        
-        this.loading = false; 
-        
-        const { mentee_location, mentor_locations } = response.data;
-        
-        this.menteeLocation = mentee_location;
-        this.mentorCount = mentor_locations?.length || 0;
-        
+        const res = await axios.get(`http://localhost:8000/api/locations/map-data/${this.userId}`);
+        this.loading = false;
+
+        const { mentee_location, mentor_locations } = res.data;
+
+        this.currentUserLocation = mentee_location;
+        this.otherUserCount = mentor_locations?.length || 0;
+
         const centerLat = mentee_location?.lat || 37.5665;
         const centerLon = mentee_location?.lon || 126.9780;
-        
+
         const options = {
           center: new window.kakao.maps.LatLng(centerLat, centerLon),
-          level: 8
+          level: 8,
         };
-        
+
         this.map = new window.kakao.maps.Map(container, options);
-        
+
         const zoomControl = new window.kakao.maps.ZoomControl();
         this.map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
-        
+
         const mapTypeControl = new window.kakao.maps.MapTypeControl();
         this.map.addControl(mapTypeControl, window.kakao.maps.ControlPosition.TOPRIGHT);
 
         window.kakao.maps.event.addListener(this.map, 'click', () => {
           this.markers.forEach(({ infowindow }) => infowindow.close());
         });
-        
-        if (mentee_location) {
+
+        if (this.currentUserLocation) {
           this.addMarker(
-            mentee_location.lat,
-            mentee_location.lon,
-            mentee_location.name,
-            'mentee'
+            this.currentUserLocation.lat,
+            this.currentUserLocation.lon,
+            this.currentUserLocation.name,
+            this.currentUserLocation.role
           );
         }
-        
+
         if (mentor_locations && mentor_locations.length > 0) {
-          mentor_locations.forEach(mentor => {
-            this.addMarker(mentor.lat, mentor.lon, mentor.name, 'mentor');
+          mentor_locations.forEach((user) => {
+            this.addMarker(user.lat, user.lon, user.name, user.role);
           });
         }
-        
-        this.drawMentorLines(mentee_location, mentor_locations);
-        
+
+        this.drawMentorLines(this.currentUserLocation, mentor_locations);
       } catch (err) {
         console.error('지도 데이터 로드 실패:', err);
-        this.loading = false; 
+        this.loading = false;
         if (err instanceof TypeError && err.message.includes('currentStyle')) {
-            this.error = '지도 DOM 로딩 중 오류가 발생했습니다. 페이지를 새로고침 해주세요.';
+          this.error = '지도 DOM 로딩 중 오류가 발생했습니다. 페이지를 새로고침 해주세요.';
         } else {
-            this.error = err.response?.data?.detail || '위치 데이터를 불러올 수 없습니다.';
+          this.error = err.response?.data?.detail || '위치 데이터를 불러올 수 없습니다.';
         }
       }
     },
-    
+
     addMarker(lat, lon, name, role) {
       const position = new window.kakao.maps.LatLng(lat, lon);
-      
-      // 마커 생성
+
+      const isMentee = role === 'mentee';
+      const bgColor = isMentee ? '#4A90E2' : '#27AE60';
+      const icon = isMentee ? '📍' : '☕';
+      const isCurrentUser = this.userRole === role;
+
       const content = document.createElement('div');
       content.style.cssText = `
-        width: 36px;
-        height: 36px;
+        width: ${isCurrentUser ? '40px' : '36px'};
+        height: ${isCurrentUser ? '40px' : '36px'};
         border-radius: 50%;
-        background-color: ${role === 'mentee' ? '#4A90E2' : '#27AE60'};
-        border: 3px solid white;
+        background-color: ${bgColor};
+        border: ${isCurrentUser ? '4px solid #fff' : '3px solid white'};
         box-shadow: 0 3px 10px rgba(0,0,0,0.3);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: ${isCurrentUser ? '20px' : '18px'};
         transition: transform 0.2s;
+        z-index: ${isCurrentUser ? 10 : 1};
       `;
-      content.innerHTML = role === 'mentee' ? '📍' : '☕';
-      
+      content.innerHTML = icon;
+
       const overlay = new window.kakao.maps.CustomOverlay({
-        position: position,
-        content: content,
-        yAnchor: 1
+        position,
+        content,
+        yAnchor: 1,
       });
-      
       overlay.setMap(this.map);
-      
-      // 이름 라벨 (항상 표시)
+
       const labelContent = document.createElement('div');
       labelContent.style.cssText = `
         padding: 6px 12px;
         background: white;
-        border: 2px solid ${role === 'mentee' ? '#4A90E2' : '#27AE60'};
+        border: 2px solid ${bgColor};
         border-radius: 20px;
         font-size: 13px;
         font-weight: 600;
@@ -192,32 +199,30 @@ export default {
         text-align: center;
       `;
       labelContent.textContent = name;
-      
+
       const labelOverlay = new window.kakao.maps.CustomOverlay({
-        position: position,
+        position,
         content: labelContent,
-        yAnchor: 2.3
+        yAnchor: isCurrentUser ? 2.5 : 2.3,
       });
-      
       labelOverlay.setMap(this.map);
-      
-      // 호버 시 상세 정보 창
-      const roleText = role === 'mentee' ? '나의 위치' : '멘토';
+
+      const roleText = isCurrentUser ? '나의 위치' : isMentee ? '멘티' : '멘토';
       const infowindow = new window.kakao.maps.InfoWindow({
-        position: position, 
-        content: `<div style="padding:12px 16px; font-size:14px; background:white; border-radius:12px; min-width: 120px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                      <span style="font-size: 20px; margin-right: 8px;">${role === 'mentee' ? '📍' : '☕'}</span>
-                      <strong style="color: ${role === 'mentee' ? '#4A90E2' : '#27AE60'}; font-size: 15px;">
-                        ${roleText}
-                      </strong>
-                    </div>
-                    <div style="color: #333; font-weight: 600; font-size: 14px;">${name}</div>
-                    ${role === 'mentor' ? '<div style="color: #888; font-size: 12px; margin-top: 4px;">클릭하여 연결</div>' : ''}
-                  </div>`,
-        removable: false
+        position,
+        content: `
+          <div style="padding:12px 16px; font-size:14px; background:white; border-radius:12px; min-width:120px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+            <div style="display:flex; align-items:center; margin-bottom:6px;">
+              <span style="font-size:20px; margin-right:8px;">${icon}</span>
+              <strong style="color:${bgColor}; font-size:15px;">${roleText}</strong>
+            </div>
+            <div style="color:#333; font-weight:600; font-size:14px;">${name}</div>
+            ${!isCurrentUser ? '<div style="color:#888; font-size:12px; margin-top:4px;">클릭하여 연결</div>' : ''}
+          </div>
+        `,
+        removable: false,
       });
-      
+
       const openInfoWindow = () => {
         this.markers.forEach(({ infowindow: iw }) => iw.close());
         infowindow.open(this.map);
@@ -235,61 +240,55 @@ export default {
         this.map.setLevel(4);
         this.map.panTo(position);
       });
-      
+
       this.markers.push({ overlay, labelOverlay, infowindow });
     },
 
-    drawMentorLines(mentee, mentors) {
-      if (!mentee || !mentors || mentors.length === 0 || !this.map) {
-        return;
-      }
+    drawMentorLines(currentUser, otherUsers) {
+      if (!currentUser || !otherUsers || otherUsers.length === 0 || !this.map) return;
 
-      const menteePosition = new window.kakao.maps.LatLng(mentee.lat, mentee.lon);
+      const currentUserPosition = new window.kakao.maps.LatLng(currentUser.lat, currentUser.lon);
 
-      mentors.forEach(mentor => {
-        const mentorPosition = new window.kakao.maps.LatLng(mentor.lat, mentor.lon);
-        const linePath = [menteePosition, mentorPosition];
+      otherUsers.forEach((user) => {
+        const userPosition = new window.kakao.maps.LatLng(user.lat, user.lon);
         const polyline = new window.kakao.maps.Polyline({
-          path: linePath,
+          path: [currentUserPosition, userPosition],
           strokeWeight: 2,
           strokeColor: '#6c5ce7',
           strokeOpacity: 0.6,
-          strokeStyle: 'dash'
+          strokeStyle: 'dash',
         });
         polyline.setMap(this.map);
         this.polylines.push(polyline);
       });
     },
-    
+
     moveToMyLocation() {
-      if (!this.menteeLocation || !this.map) return;
-      
+      if (!this.currentUserLocation || !this.map) return;
+
       const moveLatLon = new window.kakao.maps.LatLng(
-        this.menteeLocation.lat,
-        this.menteeLocation.lon
+        this.currentUserLocation.lat,
+        this.currentUserLocation.lon
       );
-      
+
       this.map.panTo(moveLatLon);
-      
+
       setTimeout(() => {
         this.map.setLevel(5);
       }, 300);
-    }
+    },
   },
-  
+
   beforeUnmount() {
     this.markers.forEach(({ overlay, labelOverlay }) => {
       overlay.setMap(null);
       if (labelOverlay) labelOverlay.setMap(null);
     });
     this.markers = [];
-    this.polylines.forEach(line => line.setMap(null));
+    this.polylines.forEach((line) => line.setMap(null));
     this.polylines = [];
-    
-    if (this.map) {
-      this.map = null; 
-    }
-  }
+    if (this.map) this.map = null;
+  },
 };
 </script>
 
@@ -307,12 +306,52 @@ export default {
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .loading-overlay p { margin-top: 20px; font-size: 15px; color: #666; font-weight: 500; }
 .error-banner { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #ff6b6b; color: white; padding: 14px 28px; border-radius: 10px; box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3); z-index: 1000; font-size: 14px; font-weight: 500; max-width: 90%; }
-.my-location-btn { position: absolute; bottom: 120px; right: 20px; width: 50px; height: 50px; background: white; border: 2px solid #4A90E2; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 500; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
-.my-location-btn:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(74, 144, 226, 0.3); background: #4A90E2; }
+
+/* 버튼 기본 스타일 (박스 그림자 제거, 역할별 보더색 분리) */
+.my-location-btn {
+  position: absolute;
+  bottom: 120px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-width: 3px;
+  border-style: solid;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: normal;
+  color: #333;
+  cursor: pointer;
+  z-index: 500;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 역할별 테두리 색 */
+.my-location-btn.mentee-btn { border-color: #4A90E2; }
+.my-location-btn.mentor-btn { border-color: #27AE60; }
+
+/* 호버 */
+.my-location-btn.mentee-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.3);
+  background: #4A90E2;
+  color: white;
+}
+.my-location-btn.mentor-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(39, 174, 96, 0.3);
+  background: #27AE60;
+  color: white;
+}
+
 .map-legend { position: absolute; bottom: 30px; left: 20px; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); z-index: 500; font-size: 14px; }
 .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
 .legend-item:last-child { margin-bottom: 0; }
 .legend-icon { font-size: 20px; margin-right: 10px; width: 24px; text-align: center; }
+
 @media (max-width: 768px) {
   .map-legend { bottom: 20px; left: 10px; padding: 12px; font-size: 12px; }
   .legend-icon { font-size: 18px; margin-right: 8px; }
