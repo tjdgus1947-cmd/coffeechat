@@ -1,4 +1,5 @@
 # backend/app/api/bookings.py
+# (수정: 조인 문법 및 디버깅 강화)
 
 from fastapi import APIRouter, HTTPException, Depends
 from app.core.config import supabase
@@ -11,23 +12,22 @@ from datetime import datetime
 router = APIRouter()
 
 # =========================================
-# ⬇️ Pydantic 모델 정의 (안전한 버전)
+# Pydantic 모델 정의
 # =========================================
 
 class UserSimple(BaseModel):
-    full_name: Optional[str] = "알 수 없음" # 👈 데이터가 없어도 죽지 않도록 Optional 처리
+    full_name: Optional[str] = "알 수 없음"
 
 class BookingReceived(BaseModel):
-    id: int
+    id: str  # 👈 UUID는 문자열
     status: str
-    # ⬇️ 멘티 정보가 없는 경우(탈퇴 등)에도 에러가 나지 않도록 Optional 적용
     mentee: Optional[UserSimple] = None 
-    start_time: datetime  # 👈 추가: 예약 시작 시간
+    start_time: datetime
     end_time: datetime
-    created_at: Optional[str] = None # 디버깅용
+    created_at: Optional[str] = None
 
 class BookingSent(BaseModel):
-    id: int
+    id: str  # 👈 UUID는 문자열
     status: str
     mentor: Optional[UserSimple] = None
     created_at: Optional[str] = None
@@ -40,100 +40,110 @@ class BookingStatusUpdate(BaseModel):
     status: str 
 
 # =========================================
-# ⬇️ API 라우트 함수 정의
+# API 라우트
 # =========================================
 
 @router.get("/api/bookings/received/me", response_model=List[BookingReceived])
 def get_received_bookings_for_mentor(
     mentor_id: str = Depends(get_current_user_id)
 ):
+    """
+    멘토가 받은 커피챗 신청 목록 조회
+    """
     try:
-        print(f"DEBUG: 멘토({mentor_id})의 받은 예약 조회 시도") # 👈 터미널 로그 확인용
-
-        # 1. 쿼리 시도 (조인 문법이 맞는지 확인 필요)
+        print(f"🔍 DEBUG: 멘토 ID = {mentor_id}")
+        
+        # 1단계: 기본 쿼리 (조인 없이)
+        print("📊 1단계: 기본 데이터 조회 시도...")
+        basic_response = supabase.table('coffee_chats') \
+            .select('*') \
+            .eq('mentor_id', mentor_id) \
+            .execute()
+        
+        print(f"✅ 기본 쿼리 결과: {len(basic_response.data) if basic_response.data else 0}건")
+        print(f"📋 원본 데이터: {basic_response.data}")
+        
+        # 2단계: 조인 쿼리
+        print("📊 2단계: 멘티 정보 조인 시도...")
+        
+        # ⭐ Supabase 조인 문법 수정
         response = supabase.table('coffee_chats') \
-            .select('id, status, start_time, end_time,created_at, mentee:users!mentee_id(full_name)') \
+            .select('id, status, start_time, end_time, created_at, mentee_id, users!coffee_chats_mentee_id_fkey(full_name)') \
             .eq('mentor_id', mentor_id) \
             .order('created_at', desc=True) \
             .execute()
         
-        # 2. 데이터 확인
+        print(f"✅ 조인 쿼리 결과: {response.data}")
+        
         if response.data:
-            print(f"DEBUG: DB 응답 데이터: {response.data}") # 👈 실제 DB에서 온 데이터 모양 확인
-            return response.data
+            # 데이터 변환 (Supabase 조인 결과 구조에 맞춤)
+            transformed_data = []
+            for item in response.data:
+                transformed_item = {
+                    'id': item['id'],
+                    'status': item['status'],
+                    'start_time': item['start_time'],
+                    'end_time': item['end_time'],
+                    'created_at': item['created_at'],
+                    'mentee': {
+                        'full_name': item['users']['full_name'] if item.get('users') else '알 수 없음'
+                    }
+                }
+                transformed_data.append(transformed_item)
+            
+            print(f"✅ 변환된 데이터: {transformed_data}")
+            return transformed_data
+        
+        print("⚠️ 데이터 없음")
         return []
 
     except Exception as e:
-        # ⭐️ 터미널에서 이 에러 메시지를 꼭 확인하세요!
-        print(f"❌ Error fetching received bookings: {e}") 
-        # Pydantic 모델 에러인지, DB 쿼리 에러인지 구분하기 위해 상세 출력
-        raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
+        print(f"❌ 심각한 오류: {type(e).__name__}")
+        print(f"❌ 오류 메시지: {str(e)}")
+        import traceback
+        print(f"❌ 전체 스택: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
 
 @router.get("/api/bookings/me", response_model=List[BookingSent])
 def get_sent_bookings_for_mentee(
     mentee_id: str = Depends(get_current_user_id)
 ):
     try:
+        print(f"🔍 멘티 예약 조회: {mentee_id}")
+        
         response = supabase.table('coffee_chats') \
-            .select('id, status, created_at, mentor:users!mentor_id(full_name)') \
+            .select('id, status, created_at, mentor_id, users!coffee_chats_mentor_id_fkey(full_name)') \
             .eq('mentee_id', mentee_id) \
             .order('created_at', desc=True) \
             .execute()
+        
+        if response.data:
+            transformed_data = []
+            for item in response.data:
+                transformed_data.append({
+                    'id': item['id'],
+                    'status': item['status'],
+                    'created_at': item['created_at'],
+                    'mentor': {
+                        'full_name': item['users']['full_name'] if item.get('users') else '알 수 없음'
+                    }
+                })
+            return transformed_data
             
-        return response.data if response.data else []
+        return []
     except Exception as e:
-        print(f"Error fetching sent bookings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.put("/api/bookings/{booking_id}/status")
-def update_booking_status(
-    booking_id: int,
-    update_data: BookingStatusUpdate,
-    current_mentor_id: str = Depends(get_current_user_id)
-):
-    try:
-        # 본인의 예약인지 확인
-        check_response = supabase.table('coffee_chats') \
-            .select('id') \
-            .eq('id', booking_id) \
-            .eq('mentor_id', current_mentor_id) \
-            .execute()
-            
-        if not check_response.data:
-             raise HTTPException(status_code=404, detail="예약을 찾을 수 없거나 권한이 없습니다.")
-
-        # 상태 업데이트
-        update_response = supabase.table('coffee_chats') \
-            .update({'status': update_data.status}) \
-            .eq('id', booking_id) \
-            .select() \
-            .execute()
-
-        if not update_response.data:
-             raise HTTPException(status_code=500, detail="상태 업데이트 실패")
-             
-        return {"message": f"예약 상태가 '{update_data.status}'로 변경되었습니다."}
-
-    except Exception as e:
-        print(f"Status Update Error: {str(e)}")
+        print(f"❌ 멘티 예약 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-
-
-
-
-
-
-# ... (나머지 create_booking, update_booking_status는 기존과 동일하게 유지)
 @router.post("/api/bookings/create")
 def create_booking(
     request: BookingCreateRequest,
     mentee_id: str = Depends(get_current_user_id) 
 ):
     try:
-        # 1. 해당 슬롯이 '예약 가능' 상태인지 확인하고 '예약됨(True)'으로 변경
+        # 슬롯 예약
         slot_response = supabase.table('mentor_availability') \
             .update({'is_booked': True}) \
             .eq('id', request.availability_slot_id) \
@@ -146,7 +156,7 @@ def create_booking(
         
         updated_slot = slot_response.data[0]
 
-        # 2. coffee_chats 테이블에 예약 정보 생성
+        # 예약 생성
         chat_response = supabase.table('coffee_chats') \
             .insert({
                 'mentee_id': mentee_id,
@@ -164,44 +174,46 @@ def create_booking(
         return chat_response.data[0]
 
     except Exception as e:
-        print(f"Booking Error: {str(e)}")
+        print(f"❌ 예약 생성 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-class BookingStatusUpdate(BaseModel):
-    status: str # 'approved' 또는 'rejected'
 
-@router.put("/bookings/{booking_id}/status")
+@router.put("/api/bookings/{booking_id}/status")
 def update_booking_status(
-    booking_id: int,
+    booking_id: str,  # 👈 UUID는 문자열
     update_data: BookingStatusUpdate,
-    mentor_id: str = Depends(get_current_user_id) # ⭐️ 현재 로그인한 멘토 ID
+    current_mentor_id: str = Depends(get_current_user_id)
 ):
     """
-    (멘토용) 멘토가 멘티의 신청(coffee_chat) 상태를
-    'approved' 또는 'rejected'로 업데이트합니다.
+    멘토가 예약 상태를 승인/거절
     """
-    if update_data.status not in ['approved', 'rejected']:
-        raise HTTPException(status_code=400, detail="Invalid status value")
-
     try:
-        # ⭐️ (보안)
-        # 1. 'coffee_chats.id'가 booking_id와 일치하고
-        # 2. 'coffee_chats.mentor_id'가 현재 로그인한 멘토의 ID와 일치하는 항목만
-        # 3. 'status'를 'pending'에서 'approved' 또는 'rejected'로 변경합니다.
+        print(f"🔄 상태 업데이트 시도: booking_id={booking_id}, status={update_data.status}")
         
-        response = supabase.table('coffee_chats') \
-                           .update({'status': update_data.status}) \
-                           .eq('id', booking_id) \
-                           .eq('mentor_id', mentor_id) \
-                           .eq('status', 'pending').execute()
+        # 권한 확인
+        check_response = supabase.table('coffee_chats') \
+            .select('id, status') \
+            .eq('id', booking_id) \
+            .eq('mentor_id', current_mentor_id) \
+            .execute()
+            
+        if not check_response.data:
+            raise HTTPException(status_code=404, detail="예약을 찾을 수 없거나 권한이 없습니다.")
 
-        if response.count == 0:
-            # 'pending' 상태가 아니거나, 내 예약이 아님
-            raise HTTPException(status_code=404, detail="Booking not found, not pending, or permission denied.")
+        print(f"✅ 권한 확인 완료: {check_response.data}")
+
+        # 상태 업데이트
+        update_response = supabase.table('coffee_chats') \
+            .update({'status': update_data.status}) \
+            .eq('id', booking_id) \
+            .execute()
+
+        if not update_response.data:
+            raise HTTPException(status_code=500, detail="상태 업데이트 실패")
         
-        print(f"예약 {booking_id} 상태 변경됨: {update_data.status}")
-        return response.data[0]
+        print(f"✅ 상태 업데이트 성공: {update_response.data}")
+        return {"message": f"예약 상태가 '{update_data.status}'로 변경되었습니다."}
 
     except Exception as e:
-        print(f"심각한 오류 (예약 상태 변경): {str(e)}")
+        print(f"❌ 상태 업데이트 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
