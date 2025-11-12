@@ -107,7 +107,7 @@ const topMentors = computed(() => {
     .slice(0, 5)
     .map(mentor => ({
       ...mentor,
-      matchingScore: parseFloat(mentor.matchingScore || 0).toFixed(1),
+      final_score: parseFloat(mentor.matchingScore || 0).toFixed(1),
       textSimilarity: mentor.textSimilarity ? parseFloat(mentor.textSimilarity).toFixed(1) : '0.0',
       distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined
     }));

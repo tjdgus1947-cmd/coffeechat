@@ -48,7 +48,9 @@
     <!-- 예약 모달은 공통 사용 -->
     <BookingModal
       :show="isModalOpen"
-      :mentor-id="mentorForBooking?.id"
+      
+      :mentor-id="mentorForBooking?.user_id" 
+      
       :mentor-name="mentorForBooking?.name"
       @close="closeBookingModal"
       @booking-confirmed="closeBookingModal"
@@ -139,6 +141,7 @@ const closeBookingModal = () => {
 </script>
 
 <style scoped>
+/* (기존 스타일과 동일) */
 .network-view-container {
   display: flex;
   width: 100%;

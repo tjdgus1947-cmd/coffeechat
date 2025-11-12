@@ -1,11 +1,16 @@
+/* src/style.css (수정본) */
+
+/* 1. Vite/Vue의 기본 스타일을 유지하되, 
+     레이아웃을 강제하는 스타일은 제거합니다. 
+*/
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light; /* 다크 모드를 우선 비활성화 (필요시 'light dark') */
+  color: #213547;
+  background-color: #ffffff; /* 기본 배경색 */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,21 +18,36 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 2. body에서 display:flex, place-items:center를 제거 
+     App.vue가 레이아웃을 제어하도록 합니다.
+*/
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* 3. #app에서 중앙 정렬 및 padding을 제거
+     Vue가 마운트되는 '뿌리' 역할만 하도록 합니다.
+*/
+#app {
+  /* 'display: contents'는 #app 요소를 
+    시각적으로는 없는 것처럼 만들어,
+    자식 요소(#app-container)가 body의 
+    직계 자식처럼 동작하게 합니다.
+    (레이아웃 충돌을 막는 좋은 방법입니다)
+  */
+  display: contents; 
+}
+
+/* --- (기존 스타일 중 일부 유지) --- */
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #6d28d9; /* 프로젝트 메인 컬러로 변경 (선택) */
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  color: #5b21b6;
 }
 
 h1 {
@@ -42,38 +62,10 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f9f9f9;
   cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  border-color: #6d28d9;
 }
