@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from .auth import get_current_user_id
 import uuid
 from datetime import datetime 
-
+import traceback
 router = APIRouter()
 
 # =========================================
@@ -140,42 +140,79 @@ def get_sent_bookings_for_mentee(
 @router.post("/api/bookings/create")
 def create_booking(
     request: BookingCreateRequest,
-    mentee_id: str = Depends(get_current_user_id) 
+    mentee_id: str = Depends(get_current_user_id)
 ):
+    
     try:
-        # 슬롯 예약
-        slot_response = supabase.table('mentor_availability') \
-            .update({'is_booked': True}) \
-            .eq('id', request.availability_slot_id) \
-            .eq('mentor_id', request.mentor_id) \
-            .eq('is_booked', False) \
-            .execute()
-        
-        if not slot_response.data:
-            raise HTTPException(status_code=409, detail="이미 예약되었거나 유효하지 않은 시간입니다.")
-        
-        updated_slot = slot_response.data[0]
+        print(f"🧾 예약 시도: mentor_id={request.mentor_id}, slot_id={request.availability_slot_id}, mentee_id={mentee_id}")
 
-        # 예약 생성
-        chat_response = supabase.table('coffee_chats') \
+        # 1️⃣ 해당 슬롯 조회
+        slot_check = supabase.table('mentor_availability') \
+            .select('*') \
+            .eq('id', request.availability_slot_id) \
+            .execute()
+
+        # 1-A. (수정) 슬롯이 존재하는지 확인
+        if not slot_check.data:
+            print(f"⚠️ 슬롯 ID {request.availability_slot_id}를 찾을 수 없음.")
+            raise HTTPException(status_code=404, detail="예약 가능한 슬롯을 찾을 수 없습니다.")
+
+        # 1-B. (수정) 리스트에서 첫 번째 항목(딕셔너리)을 꺼냄
+        slot = slot_check.data[0]
+
+        # 1-C. (수정) 딕셔너리에서 'is_booked' 키로 확인
+        if slot['is_booked']:
+            print(f"⚠️ 슬롯 {request.availability_slot_id}는 이미 예약됨 (is_booked=True).")
+            raise HTTPException(status_code=409, detail="이미 예약된 시간 슬롯입니다.")
+
+        # 2️⃣ 'coffee_chats' 테이블에 이미 같은 슬롯으로 예약된 내역이 있는지 체크
+        #    (이중 안전장치)
+        existing = supabase.table('coffee_chats') \
+            .select('id') \
+            .eq('availability_id', request.availability_slot_id) \
+            .execute()
+
+        if existing.data:
+            print(f"⚠️ 'coffee_chats' 테이블에 이미 {request.availability_slot_id} 슬롯 ID가 존재함.")
+            raise HTTPException(status_code=409, detail="이미 해당 슬롯에 예약이 존재합니다.")
+        
+        # 'slot' 변수는 1-B 단계에서 이미 정의되었으므로 여기서는 필요 없음
+        
+        # 3️⃣ coffee_chats에 예약 정보 삽입
+        chat_response = supabase.table('coffee_chats')\
             .insert({
+                'id': str(uuid.uuid4()),
                 'mentee_id': mentee_id,
                 'mentor_id': request.mentor_id,
                 'availability_id': request.availability_slot_id,
                 'status': 'pending',
-                'start_time': updated_slot['start_time'],
-                'end_time': updated_slot['end_time']
-            }) \
+                'start_time': slot['start_time'], # 1-B에서 정의한 slot 변수 사용
+                'end_time': slot['end_time']   # 1-B에서 정의한 slot 변수 사용
+            }).execute()
+        
+        if not chat_response.data:
+             raise HTTPException(status_code=500, detail="예약 정보 삽입에 실패했습니다.")
+            
+        # 4️⃣ mentor_availability 테이블에서 예약 완료 처리
+        supabase.table('mentor_availability') \
+            .update({'is_booked': True}) \
+            .eq('id', request.availability_slot_id) \
             .execute()
 
-        if not chat_response.data:
-            raise HTTPException(status_code=500, detail="예약 생성에 실패했습니다.")
-
+        print(f"✅ 예약 생성 성공: {chat_response.data}")
         return chat_response.data[0]
 
+    except HTTPException as he:
+        # FastAPI의 HTTPException은 그대로 다시 발생시킴
+        raise he
     except Exception as e:
-        print(f"❌ 예약 생성 실패: {e}")
+        # 그 외 모든 예외 처리
+        print(f"❌ 예약 생성 중 예외 발생: {e}")
+        print(f"❌ 전체 스택: {traceback.format_exc()}") # 오류 스택 추적
         raise HTTPException(status_code=500, detail=str(e))
+
+# ... (다른 함수들) ...
+
 
 
 @router.put("/api/bookings/{booking_id}/status")

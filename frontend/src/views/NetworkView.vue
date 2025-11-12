@@ -135,8 +135,6 @@ const closeBookingModal = () => {
 .map-panel-wrapper {
   width: 100%;
   height: 100%;
-<<<<<<< HEAD
-=======
 }
 
 /* 사이드바는 이제 absolute 포지션을 사용해야
@@ -153,6 +151,5 @@ const closeBookingModal = () => {
   border-left: 1px solid #e0e0e0;
   z-index: 10;
   box-shadow: -2px 0 5px rgba(0,0,0,0.05);
->>>>>>> origin/db-ksh
 }
 </style>

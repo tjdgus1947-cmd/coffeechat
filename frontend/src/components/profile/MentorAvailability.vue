@@ -90,7 +90,12 @@ async function addSlot() {
   try {
     // ⭐️ (POST) /api/availability/
     await api.post('/availability/', {
-      mentor_id: authStore.userId, // ⭐️ 내 ID (UUID)
+      // ❌ 틀린 부분
+      // mentor_id: authStore.userId, 
+      
+      // ✅ 수정된 부분
+      user_id: authStore.userId, // ⭐️ 내 ID (UUID)
+      
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString()
     });
@@ -103,7 +108,6 @@ async function addSlot() {
     isSubmitting.value = false;
   }
 }
-
 // --- 3. (DELETE) 슬롯 삭제하기 ---
 async function deleteSlot(slotId) {
   if (!confirm("이 슬롯을 삭제하시겠습니까? 멘티가 예약했다면 취소될 수 있습니다.")) return;
