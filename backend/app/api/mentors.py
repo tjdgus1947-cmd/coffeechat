@@ -60,7 +60,7 @@ def get_recommended_mentors(mentee_id: str):
         match_response = supabase.rpc('match_mentors', {
             'query_embedding': mentee_embedding_str, # ⭐️ 4. "문자열"을 그대로 전달
             'match_threshold': 0.1,
-            'match_count': 5 
+            'match_count': 1000
         }).execute()
 
         if match_response.data:

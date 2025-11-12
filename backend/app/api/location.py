@@ -103,7 +103,6 @@ def update_user_location(request: LocationUpdateRequest):
             supabase.table(table_name)
             .update({"location": location_point})
             .eq("user_id", user_id_str) # ⭐️ .eq()는 update/post에선 잘 작동함
-            .select("user_id")
             .execute()
         )
 

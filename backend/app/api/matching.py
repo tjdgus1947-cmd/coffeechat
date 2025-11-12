@@ -56,7 +56,6 @@ def create_embedding_and_update(request: EmbeddingRequest):
         response = supabase.table(table_name) \
                             .update({"embedding": embedding}) \
                             .eq("user_id", user_id_str) \
-                            .select("user_id") \
                             .execute()
         
         if not response.data:
@@ -79,7 +78,6 @@ def update_user_location(request: LocationMatchRequest):
         response = supabase.table(table_name) \
                             .update({"location": geography_point}) \
                             .eq("user_id", user_id_str) \
-                            .select("user_id") \
                             .execute()
         
         if not response.data:

@@ -1,3 +1,4 @@
+<!-- NetworkView.vue -->
 <template>
   <div class="network-view-container">
     
@@ -18,6 +19,14 @@
         :edges="networkStore.edges"
         @node-click="handleNodeClick"
         class="graph-panel"
+      />
+      
+      <!-- 🔥 신규: AI 매칭도 TOP 5 패널 -->
+      <TopMentorsPanel
+        :mentors="topMentorsList"
+        :loading="networkStore.isLoading"
+        @select-mentor="handleTopMentorClick"
+        class="top-mentors-floating"
       />
     </div>
 
@@ -48,12 +57,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useNetworkStore } from '@/store/network';
 import NetworkGraph from '@/components/graph/NetworkGraph.vue';
 import MentorSidebar from '@/components/profile/MentorSidebar.vue';
 import BookingModal from '@/components/calendar/BookingModal.vue';
 import MentorMap from '@/components/map/MentorMap.vue';
+import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue'; // 🔥 신규 임포트
 
 // 🔥 Supabase Auth에서 현재 사용자 정보 가져오기
 import { supabase } from '@/supabaseClient'; // 경로는 프로젝트에 맞게 수정
@@ -66,6 +76,15 @@ const currentView = ref('graph');
 
 // 🔥 신규: 현재 로그인한 사용자 ID
 const currentUserId = ref('');
+
+// 🔥 신규: TOP 5 멘토 리스트 계산
+const topMentorsList = computed(() => {
+  // nodes에서 멘토만 필터링
+  return networkStore.nodes
+    .filter(node => node.data?.type === 'mentor')
+    .map(node => node.data)
+    .filter(Boolean);
+});
 
 onMounted(async () => {
   // 그래프 데이터 로드
@@ -97,6 +116,11 @@ const handleNodeClick = (node) => {
   } else {
     selectedMentor.value = null;
   }
+};
+
+// 🔥 신규: TOP 5 패널에서 멘토 클릭 시
+const handleTopMentorClick = (mentor) => {
+  selectedMentor.value = mentor;
 };
 
 const closeSidebar = () => {
@@ -166,5 +190,15 @@ const closeBookingModal = () => {
   border-left: 1px solid #e0e0e0;
   z-index: 10;
   box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+}
+
+/* 🔥 신규: TOP 5 패널 스타일 */
+.top-mentors-floating {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 5;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
 }
 </style>
