@@ -61,33 +61,41 @@ export const useNetworkStore = defineStore('network', () => {
           style: { background: '#6d28d9', color: 'white', width: '80px', height: '80px', borderRadius: '50%' }
         };
 
-        const mentorNodes = recommendedMentors.map((mentor, index) => {
+        const mentorNodes = recommendedMentors.map((mentor, index) => {
           const parsedInfo = parseCareerInfo(mentor.career_info);
+          
+          // API 응답 데이터 구조 확인 및 파싱
+          const finalScore = mentor.final_score || mentor.similarity || 0;
+          const textSimilarity = mentor.text_similarity || 0;
+          const distanceKm = mentor.distance_km || 0;
+          const distanceScore = mentor.distance_score || 0;
+          
           return {
-            id: mentor.id, 
+            id: String(mentor.id || mentor.user_id), 
             type: 'output',
-            label: mentor.full_name, 
+            label: mentor.full_name || mentor.name || '이름 없음', 
             position: { 
               x: 400 + Math.cos((index / recommendedMentors.length) * 2 * Math.PI) * 300,
               y: 300 + Math.sin((index / recommendedMentors.length) * 2 * Math.PI) * 300,
             },
             data: { 
               type: 'mentor',
-              id: mentor.id,
+              id: mentor.id || mentor.user_id,
               user_id: mentor.user_id,
-              name: mentor.full_name,
-              matchingScore: (mentor.similarity * 100).toFixed(1),
+              name: mentor.full_name || mentor.name,
+              matchingScore: Number(finalScore),
+              textSimilarity: Number(textSimilarity),
+              distanceKm: Number(distanceKm),
+              distanceScore: Number(distanceScore),
               company: parsedInfo.company,      
               team: parsedInfo.team,            
               experienceYears: parsedInfo.experienceYears,
-              tags: parsedInfo.topics.split(',').map(t => t.trim()),
+              tags: parsedInfo.topics ? parsedInfo.topics.split(',').map(t => t.trim()).filter(Boolean) : [],
               introduction: parsedInfo.introduction,
             },
             style: { background: '#22c55e', color: 'black', border: '2px solid #16a34a' } 
           };
-        });
-
-        const mentorEdges = recommendedMentors.map(mentor => ({
+        });        const mentorEdges = recommendedMentors.map(mentor => ({
           id: `e-m-${mentor.id}`,
           source: menteeNode.id,
           target: mentor.id,

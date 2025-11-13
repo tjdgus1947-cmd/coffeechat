@@ -45,18 +45,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function registerMentee(formData) {
-    try {
-      await api.post('/auth/register/mentee', formData, { 
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-    } catch (error) {
-      console.error('멘티 회원가입 실패:', error);
-      throw error; 
-    }
-  }
+  async function registerMentee(menteeData) {
+    try {
+      await api.post('/auth/register/mentee', menteeData);
+    } catch (error) {
+      console.error('멘티 회원가입 실패:', error);
+      throw error; 
+    }
+  }
 
   async function registerMentor(mentorData) {
     try {

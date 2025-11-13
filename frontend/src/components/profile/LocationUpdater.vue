@@ -103,7 +103,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
-import axios from 'axios';
+import api from '@/services/api';
 
 const authStore = useAuthStore();
 
@@ -176,7 +176,7 @@ const searchLocation = async () => {
   searchResults.value = [];
 
   try {
-    const response = await axios.get('http://localhost:8000/api/locations/search-address', {
+    const response = await api.get('/locations/search-address', {
       params: { query: searchAddress.value },
     });
 
@@ -188,7 +188,8 @@ const searchLocation = async () => {
     }
   } catch (error) {
     console.error('주소 검색 실패:', error);
-    errorMessage.value = '주소 검색에 실패했습니다. 다시 시도해주세요.';
+    const detail = error.response?.data?.detail;
+    errorMessage.value = detail ? `주소 검색 실패: ${detail}` : '주소 검색에 실패했습니다. 다시 시도해주세요.';
   } finally {
     isSearching.value = false;
   }
@@ -223,7 +224,7 @@ const updateLocation = async () => {
   successMessage.value = '';
 
   try {
-    const response = await axios.post('http://localhost:8000/api/location/update', {
+    const response = await api.post('/location/update', {
       user_id: authStore.userId,
       role: authStore.userRole,
       lat: latitude.value,

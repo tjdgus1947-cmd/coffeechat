@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <MentorDashboardView v-if="authStore.userRole === 'mentor'" />
+  <div v-else class="min-h-screen bg-gray-50">
     <main class="container mx-auto px-4 py-8">
       <!-- Welcome Section -->
       <div class="mb-8">
@@ -136,6 +137,7 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import MentorMap from '@/components/map/MentorMap.vue';
 import axios from 'axios';
+import MentorDashboardView from '@/views/MentorDashboardView.vue';
 
 const authStore = useAuthStore();
 

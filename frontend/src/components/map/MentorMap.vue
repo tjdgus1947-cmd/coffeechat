@@ -42,7 +42,8 @@ export default {
       error: null,
       userId: null,
       mentorCount: 0,
-      menteeLocation: null
+      menteeLocation: null,
+      mapTypeChangeHandler: null
     };
   },
   
@@ -60,6 +61,29 @@ export default {
   },
   
   methods: {
+    requestRelayout() {
+      if (!this.map || !window.kakao?.maps) return;
+
+      const center = this.map.getCenter();
+      const level = this.map.getLevel();
+
+      const restoreView = () => {
+        this.map.setLevel(level);
+        this.map.setCenter(center);
+      };
+
+      window.requestAnimationFrame(() => {
+        this.map.relayout();
+        restoreView();
+
+        // 지도 타일이 갱신되는 타이밍에 한번 더 재계산
+        setTimeout(() => {
+          this.map.relayout();
+          restoreView();
+        }, 120);
+      });
+    },
+
     loadKakaoMapScript() {
       if (window.kakao && window.kakao.maps) {
         this.$nextTick(() => this.initializeMap());
@@ -67,7 +91,7 @@ export default {
       }
       
       const script = document.createElement('script');
-      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=3c005bd93775ae264f4ebee3343038d2&autoload=false';
+      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=a37ab17958bf71b653513edd08f31fac&autoload=false';
       script.onload = () => {
         window.kakao.maps.load(() => {
           this.$nextTick(() => this.initializeMap());
@@ -116,6 +140,14 @@ export default {
         const mapTypeControl = new window.kakao.maps.MapTypeControl();
         this.map.addControl(mapTypeControl, window.kakao.maps.ControlPosition.TOPRIGHT);
 
+        this.mapTypeChangeHandler = () => {
+          this.requestRelayout();
+        };
+
+        window.kakao.maps.event.addListener(this.map, 'maptypeid_changed', this.mapTypeChangeHandler);
+
+        window.addEventListener('resize', this.requestRelayout);
+
         window.kakao.maps.event.addListener(this.map, 'click', () => {
           this.markers.forEach(({ infowindow }) => infowindow.close());
         });
@@ -156,14 +188,6 @@ export default {
       content.style.cssText = `
         width: 36px;
         height: 36px;
-        border-radius: 50%;
-        background-color: ${role === 'mentee' ? '#4A90E2' : '#27AE60'};
-        border: 3px solid white;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         font-size: 18px;
         transition: transform 0.2s;
       `;
@@ -286,6 +310,12 @@ export default {
     this.polylines.forEach(line => line.setMap(null));
     this.polylines = [];
     
+    window.removeEventListener('resize', this.requestRelayout);
+
+    if (this.map && this.mapTypeChangeHandler) {
+      window.kakao?.maps?.event.removeListener?.(this.map, 'maptypeid_changed', this.mapTypeChangeHandler);
+    }
+
     if (this.map) {
       this.map = null; 
     }

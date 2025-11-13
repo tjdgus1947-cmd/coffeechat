@@ -21,8 +21,8 @@
       <input type="text" v-model="form.topics" placeholder="예: CPA, 재무, 회계">
     </div>
     <div class="form-group">
-      <label>증빙 서류 (재직/재학증명서, 4대보험 등)</label>
-      <FileUploader @file-changed="handleFileUpdate" />
+      <label>자기 소개 (AI 매칭에 활용됩니다)</label>
+      <textarea v-model="form.introduction" rows="4" placeholder="관심사, 경력 목표, 멘토에게 배우고 싶은 점 등을 자유롭게 작성해주세요."></textarea>
     </div>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -36,7 +36,6 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
-import FileUploader from '@/components/common/FileUploader.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -47,35 +46,17 @@ const form = ref({
   name: '',
   situation: '',
   topics: '',
-  proofFile: null,
+  introduction: '',
 });
 const isLoading = ref(false);
 const errorMessage = ref('');
 
-const handleFileUpdate = (file) => {
-  form.value.proofFile = file;
-};
-
 const handleSubmit = async () => {
-  if (!form.value.proofFile) {
-    errorMessage.value = '증빙 서류를 업로드해주세요.';
-    return;
-  }
-  
   isLoading.value = true;
   errorMessage.value = '';
 
   try {
-    // 3-4 단계: auth.js 스토어에 실제 API를 호출하는
-    // registerMentee 액션을 구현할 예정입니다.
-    
-    // FormData를 사용해 파일과 텍스트를 함께 전송
-    const formData = new FormData();
-    Object.keys(form.value).forEach(key => {
-      formData.append(key, form.value[key]);
-    });
-
-    await authStore.registerMentee(formData);
+    await authStore.registerMentee(form.value);
     
     alert('회원가입이 완료되었습니다. 로그인을 진행해주세요.');
     router.push({ name: 'login' });
@@ -98,7 +79,7 @@ const handleSubmit = async () => {
   font-weight: 500;
   color: #374151;
 }
-.form-group input { 
+.form-group input, .form-group textarea { 
   width: 100%; 
   padding: 10px 12px;
   box-sizing: border-box;
@@ -106,14 +87,21 @@ const handleSubmit = async () => {
   border-radius: 6px;
   font-size: 14px;
   transition: all 0.2s;
+  font-family: inherit;
 }
-.form-group input:focus {
+.form-group input:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: #6d28d9;
   box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1);
 }
-.form-group input::placeholder {
+.form-group input::placeholder,
+.form-group textarea::placeholder {
   color: #9ca3af;
+}
+.form-group textarea {
+  resize: vertical;
+  min-height: 110px;
 }
 .error { 
   color: #ef4444; 

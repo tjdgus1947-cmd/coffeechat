@@ -15,6 +15,7 @@ class UserSimple(BaseModel):
     Join을 통해 가져올 최소한의 유저 정보 (멘토 또는 멘티)
     """
     full_name: str
+    avatar_url: str | None = None
     # (필요시) email: str | None = None
 
 class BookingReceived(BaseModel):
@@ -56,8 +57,8 @@ def get_received_bookings_for_mentor(
         #  거기에 '멘티id'에 해당하는 'users' 테이블의 'full_name'을 
         #  'mentee'라는 이름의 객체로 붙여줘"
         response = supabase.table('coffee_chats') \
-            .select('id, status, mentee:users(full_name)') \
-            .eq('멘토id', mentor_id) \
+            .select('id, status, mentee:users!coffee_chats_mentee_id_fkey(full_name, avatar_url)') \
+            .eq('mentor_id', mentor_id) \
             .order('created_at', desc=True) \
             .execute()
 
@@ -95,8 +96,8 @@ def get_sent_bookings_for_mentee(
         #  거기에 '멘토id'에 해당하는 'users' 테이블의 'full_name'을 
         #  'mentor'라는 이름의 객체로 붙여줘"
         response = supabase.table('coffee_chats') \
-            .select('id, status, mentor:users(full_name)') \
-            .eq('멘티id', mentee_id) \
+            .select('id, status, mentor:users!coffee_chats_mentor_id_fkey(full_name, avatar_url)') \
+            .eq('mentee_id', mentee_id) \
             .order('created_at', desc=True) \
             .execute()
 

@@ -27,9 +27,39 @@
           <!-- AI 매칭도 -->
           <div class="matching-section">
             <div class="matching-label">AI 매칭도</div>
-            <div class="matching-value">{{ mentor.matchingScore || 92 }}%</div>
+            <div class="matching-value">{{ formattedMatchingScore }}%</div>
             <div class="progress-bar">
-              <div class="progress" :style="{ width: (mentor.matchingScore || 92) + '%' }"></div>
+              <div class="progress" :style="{ width: formattedMatchingScore + '%' }"></div>
+            </div>
+          </div>
+
+          <!-- 텍스트 유사도 & 거리 정보 -->
+          <div v-if="hasSimilarityInsights" class="insight-grid">
+            <div class="insight-card">
+              <div class="insight-icon text-similarity-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div class="insight-content">
+                <div class="insight-label">텍스트 유사도</div>
+                <div class="insight-value">{{ formattedTextSimilarity }}%</div>
+                <div class="insight-hint">멘티 자기소개와의 유사도</div>
+              </div>
+            </div>
+            
+            <div class="insight-card">
+              <div class="insight-icon distance-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div class="insight-content">
+                <div class="insight-label">거리</div>
+                <div class="insight-value">{{ formattedDistance }}</div>
+                <div class="insight-hint">거리 점수 {{ formattedDistanceScore }}%</div>
+              </div>
             </div>
           </div>
 
@@ -37,17 +67,6 @@
           <div class="info-section">
             <h3 class="section-title">소속</h3>
             <p class="section-content company">{{ mentor.company || mentor.team || '네이버' }}</p>
-          </div>
-
-          <!-- 위치 정보 -->
-          <div class="info-section">
-            <div class="location-row">
-              <svg class="location-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span class="location-text">{{ mentor.location || '서울 강남' }}</span>
-            </div>
           </div>
 
           <!-- 평점 -->
@@ -99,8 +118,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+
 // defineProps는 import할 필요 없습니다.
-defineProps({
+const props = defineProps({
   mentor: {
     type: Object,
     default: null, // null이면 v-if="mentor"에 의해 숨겨짐
@@ -109,6 +130,37 @@ defineProps({
 
 // defineEmits도 import할 필요 없습니다.
 defineEmits(['close', 'book']);
+
+// Computed properties for formatted values
+const formattedMatchingScore = computed(() => {
+  if (!props.mentor) return 0;
+  const score = props.mentor.matchingScore || props.mentor.final_score || 0;
+  return Math.round(score);
+});
+
+const formattedTextSimilarity = computed(() => {
+  if (!props.mentor || !props.mentor.textSimilarity) return 0;
+  const similarity = props.mentor.textSimilarity * 100; // Convert to percentage
+  return Math.round(similarity * 10) / 10; // Round to 1 decimal place
+});
+
+const formattedDistance = computed(() => {
+  if (!props.mentor || !props.mentor.distanceKm) return '0km';
+  const distance = props.mentor.distanceKm;
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)}m`;
+  }
+  return `${Math.round(distance * 10) / 10}km`;
+});
+
+const formattedDistanceScore = computed(() => {
+  if (!props.mentor || !props.mentor.distanceScore) return 0;
+  return Math.round(props.mentor.distanceScore);
+});
+
+const hasSimilarityInsights = computed(() => {
+  return props.mentor && (props.mentor.textSimilarity || props.mentor.distanceKm);
+});
 </script>
 
 <style scoped>
@@ -260,24 +312,6 @@ defineEmits(['close', 'book']);
   font-weight: 500;
 }
 
-/* 위치 정보 */
-.location-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.location-icon {
-  width: 20px;
-  height: 20px;
-  color: #6b7280;
-}
-
-.location-text {
-  font-size: 15px;
-  color: #374151;
-}
-
 /* 평점 */
 .rating-row {
   display: flex;
@@ -387,6 +421,80 @@ defineEmits(['close', 'book']);
 .modal-enter-from .modal-container,
 .modal-leave-to .modal-container {
   transform: scale(0.9);
+}
+
+/* Insight Grid */
+.insight-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.insight-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.insight-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.insight-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.text-similarity-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.distance-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.insight-content {
+  flex: 1;
+}
+
+.insight-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.insight-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.insight-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1.3;
 }
 
 /* 스크롤바 스타일 */
