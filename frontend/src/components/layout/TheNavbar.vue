@@ -3,7 +3,7 @@
 <template>
   <nav class="navbar">
     <div class="logo">
-      <<router-link to="/">
+      <router-link to="/">
         <img :src="logoUrl" alt="CoffeeChat 로고" class="logo-image">
       </router-link>
     </div>
@@ -43,7 +43,7 @@ const handleLogout = () => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="css">
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -55,9 +55,9 @@ const handleLogout = () => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 .logo a {
- text-decoration: none;
- display: flex; 
- align-items: center;
+text-decoration: none;
+display: flex; 
+align-items: center;
 }
 
 /* 6. ⭐️ (추가) 로고 이미지 크기 조절 (Canvas 버전) */

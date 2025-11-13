@@ -1,4 +1,3 @@
-<!-- TopMentorsPanel.vue -->
 <template>
   <div class="top-mentors-panel">
     <div class="panel-header">
@@ -40,14 +39,21 @@
                 :style="{ width: mentor.matchingScore + '%' }"
               ></div>
             </div>
+            <!-- ⭐️ 템플릿은 수정할 필요 없습니다. computed가 'matchingScore'를 올바르게 채워줍니다. -->
             <span class="score-text">{{ mentor.matchingScore }}%</span>
           </div>
 
-          <!-- 🔥 신규: 거리 정보 -->
+          <!-- 🔥 거리 정보 -->
           <div v-if="mentor.distanceKm !== undefined" class="distance-info">
             <span class="distance-icon">📍</span>
             <span class="distance-text">{{ formatDistance(mentor.distanceKm) }}</span>
-            <span class="distance-detail">
+            
+            <!-- ⭐️ [수정] 백엔드의 breakdown 값을 사용합니다. -->
+            <span class="distance-detail" v-if="mentor.breakdown">
+              (텍스트 {{ mentor.breakdown.text_contribution.toFixed(1) }}% + 거리 {{ mentor.breakdown.distance_contribution.toFixed(1) }}%)
+            </span>
+            <!-- ⭐️ [수정] breakdown이 없을 경우를 대비한 텍스트 -->
+            <span class="distance-detail" v-else>
               (텍스트 {{ mentor.textSimilarity }}% + 거리 {{ calculateDistanceScore(mentor.distanceKm) }}%)
             </span>
           </div>
@@ -94,27 +100,36 @@ const props = defineProps({
 
 defineEmits(['select-mentor']);
 
+// ⭐️⭐️⭐️ [핵심 수정] ⭐️⭐️⭐️
 // 매칭도 순으로 정렬하여 TOP 5 추출
 const topMentors = computed(() => {
   if (!props.mentors || props.mentors.length === 0) return [];
   
   return [...props.mentors]
     .sort((a, b) => {
-      const scoreA = parseFloat(a.matchingScore) || 0;
-      const scoreB = parseFloat(b.matchingScore) || 0;
+      // ⭐️ 수정: 'matchingScore' 대신 'final_score'로 정렬합니다.
+      const scoreA = parseFloat(a.final_score) || 0;
+      const scoreB = parseFloat(b.final_score) || 0;
       return scoreB - scoreA;
     })
     .slice(0, 5)
     .map(mentor => ({
       ...mentor,
-      final_score: parseFloat(mentor.matchingScore || 0).toFixed(1),
+      // ⭐️ 수정: 템플릿에서 사용할 'matchingScore' 값을
+      // ⭐️ 백엔드의 'final_score' 값으로 덮어씁니다.
+      matchingScore: parseFloat(mentor.final_score || 0).toFixed(1),
+      
       textSimilarity: mentor.textSimilarity ? parseFloat(mentor.textSimilarity).toFixed(1) : '0.0',
-      distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined
+      distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined,
+      
+      // ⭐️ breakdown 객체도 그대로 전달
+      breakdown: mentor.breakdown 
     }));
 });
 
 // 🔥 신규: 거리를 읽기 쉬운 형식으로 변환
 function formatDistance(km) {
+  if (km === undefined || km === null) return '';
   const distance = parseFloat(km);
   if (distance < 1) {
     return `${Math.round(distance * 1000)}m`;
@@ -127,13 +142,15 @@ function formatDistance(km) {
 
 // 🔥 신규: 거리 점수 계산 (30% 가중치 반영)
 function calculateDistanceScore(km) {
+  if (km === undefined || km === null) return '0.0';
   const distance = parseFloat(km);
   const maxDistance = 50; // 최대 거리 기준
   
-  if (distance >= maxDistance) return 0;
+  if (distance >= maxDistance) return '0.0';
   
   const rawScore = 100 * (1 - distance / maxDistance);
-  const weightedScore = rawScore * 0.3; // 30% 가중치
+  // ⭐️ 수정: breakdown이 없을 때를 대비한 계산이므로 30% 가중치 적용
+  const weightedScore = rawScore * 0.3; 
   
   return weightedScore.toFixed(1);
 }
@@ -353,6 +370,7 @@ function calculateDistanceScore(km) {
   color: #6b7280;
   font-size: 10px;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 /* 화살표 아이콘 */

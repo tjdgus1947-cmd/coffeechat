@@ -1,5 +1,5 @@
 # backend/app/api/location.py
-# (WBS 5.2 - .eq() 버그를 Python으로 우회하는 최종 해결 버전)
+# (WBS 5.2 - .eq() 버그 우회 + WinError 10035 페이지네이션 해결 버전)
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -7,9 +7,14 @@ import uuid
 from app.core.config import supabase
 from typing import List, Optional, Tuple
 import re
-import unicodedata  # ⭐️ 1. unicodedata 임포트 (ID 정규화용)
+import unicodedata  # ID 정규화용
+import logging
 
-# shapely 임포트 (기존과 동일)
+# ⭐️ 로거 설정
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# shapely 임포트
 try:
     from shapely import wkb
     SHAPELY_AVAILABLE = True
@@ -19,20 +24,20 @@ except ImportError:
 
 router = APIRouter()
 
-# --- 스키마 (기존과 동일) ---
+# --- 스키마 ---
 class LocationUpdateRequest(BaseModel):
-    user_id: str # ⭐️ uuid.UUID -> str로 변경 (공식 클라이언트와 맞춤)
+    user_id: str 
     role: str
     lon: float
     lat: float
 
 class NearbyMentorsRequest(BaseModel):
-    mentee_id: str # ⭐️ uuid.UUID -> str
+    mentee_id: str 
     radius_meters: int
 
 class MapLocationInfo(BaseModel):
-    id: str # ⭐️ uuid.UUID -> str
-    user_id: str # ⭐️ uuid.UUID -> str
+    id: str 
+    user_id: str 
     name: str
     role: str
     lat: float
@@ -42,7 +47,7 @@ class MapDataResponse(BaseModel):
     mentee_location: Optional[MapLocationInfo] = None
     mentor_locations: List[MapLocationInfo] = []
 
-# --- ⭐️ 2. matching.py에서 헬퍼 함수 2개 복사 ---
+# --- .eq() 버그 우회 헬퍼 함수 ---
 
 def get_clean_user_id(user_id: str) -> str:
     """모든 user_id 문자열을 정규화하고 공백을 제거합니다."""
@@ -63,7 +68,7 @@ def find_profile_in_list(response_data: list, user_id_str: str, id_key: str = "u
                 return profile # 찾았으면 반환
     return None # 못 찾으면 None
 
-# --- 헬퍼 함수 (기존과 동일) ---
+# --- 위치 파싱 헬퍼 함수 ---
 def parse_location(location_data) -> Optional[Tuple[float, float]]:
     """
     다양한 형태의 location 값을 (lon, lat) 튜플로 파싱.
@@ -87,12 +92,12 @@ def parse_location(location_data) -> Optional[Tuple[float, float]]:
     print(f"⚠️ 알 수 없는 location 형식: {type(location_data)} - {str(location_data)[:50]}")
     return None
 
-# --- API 엔드포인트 (⭐️ 3. .eq() 로직 수정) ---
+# --- API 엔드포인트: 위치 업데이트 ---
 
 @router.post("/api/location/update")
 def update_user_location(request: LocationUpdateRequest):
     try:
-        user_id_str = get_clean_user_id(request.user_id) # ⭐️ ID 정규화
+        user_id_str = get_clean_user_id(request.user_id) # ID 정규화
         if not user_id_str:
             raise HTTPException(status_code=400, detail="Invalid User ID")
             
@@ -102,7 +107,7 @@ def update_user_location(request: LocationUpdateRequest):
         response = (
             supabase.table(table_name)
             .update({"location": location_point})
-            .eq("user_id", user_id_str) # ⭐️ .eq()는 update/post에선 잘 작동함
+            .eq("user_id", user_id_str) # update/post에선 .eq()가 잘 작동함
             .execute()
         )
 
@@ -117,13 +122,15 @@ def update_user_location(request: LocationUpdateRequest):
         print(f"🔥 Location Update Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Location update failed: {str(e)}")
 
+# --- API 엔드포인트: 주변 멘토 (RPC) ---
 
 @router.post("/api/location/nearby-mentors")
 def get_nearby_mentors(request: NearbyMentorsRequest):
     try:
-        mentee_id_str = get_clean_user_id(request.mentee_id) # ⭐️ ID 정규화
+        mentee_id_str = get_clean_user_id(request.mentee_id) # ID 정규화
         
         # ⭐️ .eq() 대신 Python 검색
+        # (참고: 이 테이블도 커지면 페이지네이션이 필요할 수 있습니다.)
         all_mentees_resp = supabase.table("mentee_profiles").select("user_id, location").execute()
         mentee_profile = find_profile_in_list(all_mentees_resp.data, mentee_id_str)
 
@@ -144,22 +151,56 @@ def get_nearby_mentors(request: NearbyMentorsRequest):
     except Exception as e:
         print(f"🔥 Nearby Mentors Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ⭐️ 4. "지도 뷰" API (핵심 수정) ⭐️
-@router.get("/api/locations/map-data/{user_id}", response_model=MapDataResponse)
-def get_all_map_locations(user_id: str): # ⭐️ uuid.UUID -> str
+    
+# --- ⭐️ [수정됨] 페이지네이션 헬퍼 함수 ---
+def fetch_all_with_pagination(table_name: str, select_query: str, chunk_size: int = 1000) -> List[dict]:
     """
-    지도 뷰에 필요한 '현재 사용자' 1명과 '다른 사용자들'의 위치 정보를 반환합니다.
-    (.eq() 버그 수정됨)
+    Supabase에서 데이터를 페이지네이션으로 모두 가져옵니다.
+    (WinError 10035 소켓 오류 해결용)
+    """
+    all_data = []
+    offset = 0
+    while True:
+        try:
+            logger.info(f"Fetching {table_name}: {offset} to {offset + chunk_size - 1}...")
+            response = supabase.table(table_name) \
+                             .select(select_query) \
+                             .range(offset, offset + chunk_size - 1) \
+                             .execute()
+            
+            if response.data:
+                all_data.extend(response.data)
+                
+                # 가져온 데이터가 chunk_size보다 적으면 마지막 페이지
+                if len(response.data) < chunk_size:
+                    logger.info(f"Finished fetching {table_name}. Total: {len(all_data)}")
+                    break
+                
+                offset += chunk_size
+            else:
+                # 데이터가 없으면 중지
+                logger.info(f"Finished fetching {table_name}. Total: {len(all_data)}")
+                break
+        except Exception as e:
+            logger.error(f"Error fetching {table_name} at offset {offset}: {e}")
+            raise e 
+            
+    return all_data
+
+# --- ⭐️ [수정됨] "지도 뷰" API (페이지네이션 적용) ---
+@router.get("/api/locations/map-data/{user_id}", response_model=MapDataResponse)
+def get_all_map_locations(user_id: str):
+    """
+    지도 뷰에 필요한 사용자 위치 정보를 반환합니다.
+    (페이지네이션으로 대용량 데이터 로드 수정됨)
     """
     try:
-        user_id_str = get_clean_user_id(user_id) # ⭐️ ID 정규화
+        user_id_str = get_clean_user_id(user_id)
         response_data = MapDataResponse()
 
-        # 1) 사용자 기본정보 조회 (⭐️ .eq() 대신 Python 검색)
-        all_users_resp = supabase.table("users").select("id, role, full_name").execute()
-        current_user = find_profile_in_list(all_users_resp.data, user_id_str, id_key="id") # ⭐️ id_key 사용
+        # 1) 사용자 기본정보 조회 (⭐️ 페이지네이션 적용)
+        all_users_data = fetch_all_with_pagination("users", "id, role, full_name")
+        current_user = find_profile_in_list(all_users_data, user_id_str, id_key="id")
         
         if not current_user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -167,9 +208,12 @@ def get_all_map_locations(user_id: str): # ⭐️ uuid.UUID -> str
         user_role = current_user["role"]
         user_name = current_user.get("full_name", "Unknown")
 
-        # --- 2) DB에서 프로필 정보 미리 다 가져오기 ---
-        all_mentee_profiles = supabase.table("mentee_profiles").select("id, user_id, location").execute().data
-        all_mentor_profiles = supabase.table("mentor_profiles").select("id, user_id, location").execute().data
+        # --- 2) DB에서 프로필 정보 미리 다 가져오기 (⭐️ 페이지네이션 적용) ---
+        logger.info("멘티 프로필 가져오기 시작...")
+        all_mentee_profiles = fetch_all_with_pagination("mentee_profiles", "id, user_id, location")
+        
+        logger.info("멘토 프로필 가져오기 시작...")
+        all_mentor_profiles = fetch_all_with_pagination("mentor_profiles", "id, user_id, location")
 
         # --- 3) 멘티 로그인 ---
         if user_role == "mentee":
@@ -189,7 +233,8 @@ def get_all_map_locations(user_id: str): # ⭐️ uuid.UUID -> str
             for mentor in all_mentor_profiles:
                 if not mentor.get("location"): continue
                 
-                mentor_user = find_profile_in_list(all_users_resp.data, mentor["user_id"], id_key="id")
+                # all_users_data (페이지네이션으로 가져온)에서 검색
+                mentor_user = find_profile_in_list(all_users_data, mentor["user_id"], id_key="id") 
                 parsed = parse_location(mentor.get("location"))
                 
                 if parsed and mentor_user:
@@ -222,7 +267,8 @@ def get_all_map_locations(user_id: str): # ⭐️ uuid.UUID -> str
             for mentee in all_mentee_profiles:
                 if not mentee.get("location"): continue
 
-                mentee_user = find_profile_in_list(all_users_resp.data, mentee["user_id"], id_key="id")
+                # all_users_data (페이지네이션으로 가져온)에서 검색
+                mentee_user = find_profile_in_list(all_users_data, mentee["user_id"], id_key="id")
                 parsed = parse_location(mentee.get("location"))
                 
                 if parsed and mentee_user:
@@ -240,7 +286,7 @@ def get_all_map_locations(user_id: str): # ⭐️ uuid.UUID -> str
         return response_data
 
     except Exception as e:
-        print(f"🔥 Map Data Fatal Error: {str(e)}")
+        logger.error(f"🔥 Map Data Fatal Error: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(
