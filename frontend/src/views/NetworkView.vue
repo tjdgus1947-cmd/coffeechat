@@ -56,10 +56,12 @@
         </div>
       </div>
 
-      <!-- Network Graph Section -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex items-center justify-between">
+      <!-- 네트워크 그래프 + 멘토 카드 분할 레이아웃 -->
+      <div class="flex bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style="min-height:600px;">
+        <!-- 네트워크 그래프: 2/3 -->
+        <div class="graph-container" style="width:66.666%; min-width:0; display:flex; flex-direction:column;">
+          <!-- 상단 제목 및 분리선 -->
+          <div style="padding:0 24px 0 24px; border-bottom:1px solid #eee; background:#fff; display:flex; align-items:center; justify-content:space-between; min-height:60px;">
             <h2 class="text-xl font-bold">네트워크 그래프</h2>
             <div class="flex gap-2">
               <span class="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">멘토</span>
@@ -67,12 +69,20 @@
               <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">나</span>
             </div>
           </div>
+          <div style="flex:1; min-height:0;">
+            <NetworkGraph
+              :nodes="networkStore.nodes"
+              :edges="networkStore.edges"
+              @node-click="handleNodeClick"
+            />
+          </div>
         </div>
-        <div class="graph-container">
-          <NetworkGraph
-            :nodes="networkStore.nodes"
-            :edges="networkStore.edges"
-            @node-click="handleNodeClick"
+        <!-- 멘토 카드: 1/3, 세로 스크롤 가능 -->
+        <div style="width:33.333%; min-width:300px; border-left:1px solid #eee; height:600px; overflow-y:auto; display:flex; align-items:flex-start; justify-content:center; padding-top:24px;">
+          <TopMentorsPanel
+            :mentors="networkStore.nodes.filter(n => n.data?.type === 'mentor').map(n => n.data)"
+            :loading="networkStore.isLoading"
+            @select-mentor="handleMentorCardClick"
           />
         </div>
       </div>
@@ -101,6 +111,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useNetworkStore } from '@/store/network';
 
 import NetworkGraph from '@/components/graph/NetworkGraph.vue';
+import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
 import MentorSidebar from '@/components/profile/MentorSidebar.vue';
 import BookingModal from '@/components/calendar/BookingModal.vue';
 
@@ -135,6 +146,12 @@ const handleNodeClick = (node) => {
     selectedMentor.value = null;
     console.log('비-멘토 노드 클릭:', node.label);
   }
+};
+
+// 멘토 카드 클릭 시 상세 정보 표시
+const handleMentorCardClick = (mentor) => {
+  selectedMentor.value = mentor;
+  console.log('멘토 카드 클릭:', mentor);
 };
 
 const closeSidebar = () => {

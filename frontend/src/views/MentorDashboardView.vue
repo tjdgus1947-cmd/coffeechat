@@ -13,19 +13,295 @@
 
       <section
         v-else-if="loadError"
-        class="space-y-4 rounded-2xl border border-red-200 bg-white p-8 text-center"
+        class="space-y-8"
       >
-        <div class="space-y-2">
-          <p class="text-lg font-semibold text-red-600">데이터를 불러오지 못했습니다</p>
-          <p class="text-sm text-gray-600">{{ errorMessage }}</p>
+        <!-- 통계 카드 -->
+        <article class="space-y-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+          <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-semibold text-purple-600">멘토 대시보드</p>
+              <h1 class="text-2xl font-semibold text-gray-900">안녕하세요, {{ mentorName }}님</h1>
+              <p class="text-sm text-gray-500">이번 달 활동 현황을 한눈에 확인해보세요.</p>
+            </div>
+            <div class="rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 text-sm text-purple-600">
+              <span class="font-semibold">0%</span> 목표 달성률 ·
+              <span class="font-semibold">0건</span> 신청 처리
+            </div>
+          </header>
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article v-for="stat in [
+              {icon: Calendar, label: '전체 신청', value: '0', color: 'bg-blue-100 text-blue-600'},
+              {icon: Clock, label: '응답 대기', value: '0', color: 'bg-yellow-100 text-yellow-600'},
+              {icon: Wallet, label: '확정된 세션', value: '0', color: 'bg-green-100 text-green-600'},
+              {icon: Users, label: '고유 멘티', value: '0', color: 'bg-purple-100 text-purple-600'}
+            ]" :key="stat.label" class="flex items-center justify-between rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <div>
+                <p class="text-sm text-gray-500">{{ stat.label }}</p>
+                <p class="mt-2 text-2xl font-semibold text-gray-900">{{ stat.value }}</p>
+              </div>
+              <div class="flex h-12 w-12 items-center justify-center rounded-xl" :class="stat.color">
+                <component :is="stat.icon" class="h-6 w-6" />
+              </div>
+            </article>
+          </div>
+        </article>
+
+        <!-- 커피챗 카드 -->
+        <div class="grid gap-8 lg:grid-cols-[2fr_1fr]">
+          <article class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">다가오는 커피챗</h2>
+                <p class="text-sm text-gray-500">확정 및 응답 대기 중인 일정입니다.</p>
+              </div>
+              <span class="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-600">
+                총 0건
+              </span>
+            </div>
+            <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">
+              <p class="font-semibold text-lg text-gray-700 mb-2">예정된 커피챗이 없습니다</p>
+              <p class="mb-1">아직 신청받은 커피챗 내역이 없습니다.</p>
+              <p class="mb-1">멘티가 신청하면 이곳에 표시됩니다.</p>
+              <p class="text-xs text-gray-400">데이터가 없을 때는 이 안내가 보입니다.</p>
+            </div>
+          </article>
+          <!-- 뱃지/레벨 카드 -->
+          <article class="space-y-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+            <div class="flex items-start justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">멘토 레벨</h2>
+                <p class="text-sm text-gray-500">활동 기반 XP와 배지를 확인하세요.</p>
+              </div>
+              <span class="rounded-full bg-purple-50 px-4 py-1 text-sm font-semibold text-purple-600">Lv. 1</span>
+            </div>
+            <div>
+              <p class="text-3xl font-semibold text-gray-900">0<span class="text-base font-medium text-gray-500"> P</span></p>
+              <p class="text-sm text-gray-500">이번 주 XP 0</p>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>다음 레벨까지</span>
+                <span>0 / 500 XP</span>
+              </div>
+              <div class="mt-2 h-2 w-full rounded-full bg-gray-200">
+                <div class="h-2 rounded-full bg-purple-500 transition-all" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-gray-700">획득한 배지 (0 / 5)</h3>
+              <div class="mt-3 grid grid-cols-2 gap-3">
+                <div class="flex items-center gap-2 rounded-xl border p-3 border-gray-200 bg-gray-50 text-gray-400">
+                  <Trophy class="h-5 w-5 text-blue-600" />
+                  <span class="text-sm font-medium">첫 수락</span>
+                </div>
+                <div class="flex items-center gap-2 rounded-xl border p-3 border-gray-200 bg-gray-50 text-gray-400">
+                  <Star class="h-5 w-5 text-yellow-500" />
+                  <span class="text-sm font-medium">완료 전문가</span>
+                </div>
+                <div class="flex items-center gap-2 rounded-xl border p-3 border-gray-200 bg-gray-50 text-gray-400">
+                  <Zap class="h-5 w-5 text-purple-500" />
+                  <span class="text-sm font-medium">빠른 응답</span>
+                </div>
+                <div class="flex items-center gap-2 rounded-xl border p-3 border-gray-200 bg-gray-50 text-gray-400">
+                  <Award class="h-5 w-5 text-green-600" />
+                  <span class="text-sm font-medium">10회 달성</span>
+                </div>
+                <div class="flex items-center gap-2 rounded-xl border p-3 border-gray-200 bg-gray-50 text-gray-400">
+                  <Crown class="h-5 w-5 text-orange-500" />
+                  <span class="text-sm font-medium">20회 달성</span>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-xl bg-gray-50 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-500">내 순위</p>
+                  <p class="text-lg font-semibold text-gray-900">데이터 없음</p>
+                  <p class="text-xs text-gray-500">포인트 0</p>
+                </div>
+                <div class="flex items-center gap-2 text-gray-400">
+                  <TrendingUp class="h-4 w-4" />
+                  <span class="text-sm font-medium">변동 없음</span>
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
-        <button
-          type="button"
-          class="inline-flex items-center justify-center rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600"
-          @click="retryFetch"
-        >
-          다시 시도
-        </button>
+
+        <!-- 리뷰 카드 -->
+        <div class="grid gap-8 lg:grid-cols-[3fr_2fr]">
+          <article class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+            <div class="mb-6 flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">최근 받은 리뷰</h2>
+                <p class="text-sm text-gray-500">멘티 피드백을 확인하세요.</p>
+              </div>
+              <div class="flex items-center gap-2 text-yellow-500">
+                <Star class="h-5 w-5 fill-yellow-500" />
+                <span class="text-2xl font-semibold text-gray-900">N/A</span>
+              </div>
+            </div>
+            <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">
+              아직 리뷰가 없습니다. 커피챗이 완료되면 멘티에게 후기를 요청해보세요.
+            </div>
+          </article>
+          <!-- 인사이트 카드 -->
+          <article class="rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-600 to-purple-600 p-6 text-white shadow-lg lg:p-8">
+            <h2 class="text-xl font-semibold">이번 주 인사이트</h2>
+            <p class="mt-1 text-sm text-white/80">데이터 기반 핵심 지표</p>
+            <div class="mt-6 space-y-4">
+              <div class="rounded-xl bg-white/10 p-4 backdrop-blur">
+                <p class="text-sm text-white/80">응답 필요한 신청</p>
+                <p class="mt-1 text-xl font-semibold">0건</p>
+                <p class="mt-1 text-xs text-white/70">빠른 응답이 필요한 요청입니다.</p>
+              </div>
+              <div class="rounded-xl bg-white/10 p-4 backdrop-blur">
+                <p class="text-sm text-white/80">확정된 세션</p>
+                <p class="mt-1 text-xl font-semibold">0건</p>
+                <p class="mt-1 text-xs text-white/70">멘티와 일정이 확정된 커피챗</p>
+              </div>
+              <div class="rounded-xl bg-white/10 p-4 backdrop-blur">
+                <p class="text-sm text-white/80">완료된 세션</p>
+                <p class="mt-1 text-xl font-semibold">0건</p>
+                <p class="mt-1 text-xs text-white/70">후기 요청이 가능한 세션</p>
+              </div>
+            </div>
+            <div class="mt-6 rounded-xl border border-white/20 bg-white/10 p-4 text-sm text-white/80">
+              상위 10% 멘토는 평균 응답 시간을 <span class="font-semibold text-white">2시간 이내</span>로 유지하고 있어요.
+            </div>
+          </article>
+        </div>
+
+        <!-- 목표/랭킹 카드 -->
+        <div class="grid gap-8 lg:grid-cols-2">
+          <article class="space-y-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">이번 달 목표</h2>
+              <p class="text-sm text-gray-500">목표 달성 진행률을 확인하세요.</p>
+            </div>
+            <div class="space-y-6">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                      <Target class="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500">이번 달 확정된 세션</p>
+                      <p class="text-base font-semibold text-gray-900">
+                        <span class="text-blue-600">0</span>
+                        <span class="text-sm font-normal text-gray-400"> / 8 건</span>
+                      </p>
+                    </div>
+                  </div>
+                  <span class="text-sm font-semibold text-gray-500">0%</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-200">
+                  <div class="h-2 rounded-full bg-blue-600" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                      <Star class="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500">이번 달 완료된 세션</p>
+                      <p class="text-base font-semibold text-gray-900">
+                        <span class="text-green-600">0</span>
+                        <span class="text-sm font-normal text-gray-400"> / 6 건</span>
+                      </p>
+                    </div>
+                  </div>
+                  <span class="text-sm font-semibold text-gray-500">0%</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-200">
+                  <div class="h-2 rounded-full bg-green-600" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                      <TrendingUp class="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-500">응답률</p>
+                      <p class="text-base font-semibold text-gray-900">
+                        <span class="text-purple-600">0</span>
+                        <span class="text-sm font-normal text-gray-400"> / 90 %</span>
+                      </p>
+                    </div>
+                  </div>
+                  <span class="text-sm font-semibold text-gray-500">0%</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-200">
+                  <div class="h-2 rounded-full bg-purple-600" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <div class="flex items-center justify-between text-sm text-gray-600">
+                <span>전체 달성률</span>
+                <span class="text-base font-semibold text-blue-600">0%</span>
+              </div>
+              <p class="mt-2 text-xs text-gray-500">이번 달 말까지 0일 남았습니다.</p>
+            </div>
+          </article>
+          <!-- 랭킹 카드 -->
+          <article class="space-y-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">멘토 랭킹</h2>
+                <p class="text-sm text-gray-500">이번 달 상위 멘토 현황</p>
+              </div>
+              <div class="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-600">
+                상위 10위까지 1200P
+              </div>
+            </div>
+            <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+              상위 멘토 데이터가 아직 준비되지 않았습니다.
+            </div>
+          </article>
+        </div>
+
+        <!-- 빠른 실행 카드 -->
+        <article class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:p-8">
+          <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-900">빠른 실행</h2>
+            <p class="text-sm text-gray-500">자주 사용하는 기능에 빠르게 접근하세요.</p>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <button
+              v-for="action in [
+                {icon: Calendar, label: '일정 관리', description: '가능한 시간 설정', color: 'bg-blue-100 text-blue-600'},
+                {icon: MessageSquare, label: '메시지', description: '멘티 답변하기', badge: null, color: 'bg-purple-100 text-purple-600'},
+                {icon: Bell, label: '알림 설정', description: '세션 알림 관리', color: 'bg-yellow-100 text-yellow-600'},
+                {icon: DollarSign, label: '정산 확인', description: '수익 내역 보기', color: 'bg-green-100 text-green-600'},
+                {icon: TrendingUp, label: '목표 설정', description: '이번 달 목표', color: 'bg-orange-100 text-orange-600'},
+                {icon: Settings, label: '설정', description: '프로필 및 환경설정', color: 'bg-gray-100 text-gray-600'}
+              ]"
+              :key="action.label"
+              type="button"
+              class="relative flex h-full flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-300 hover:shadow-md"
+            >
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="action.color">
+                <component :is="action.icon" class="h-6 w-6" />
+              </div>
+              <div class="mt-4 space-y-1">
+                <p class="text-sm font-semibold text-gray-900">{{ action.label }}</p>
+                <p class="text-xs text-gray-500">{{ action.description }}</p>
+              </div>
+              <span
+                v-if="action.badge"
+                class="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white"
+              >
+                {{ action.badge }}
+              </span>
+            </button>
+          </div>
+        </article>
       </section>
 
       <section v-else class="space-y-8">
@@ -475,7 +751,13 @@ const fetchMentorDashboard = async () => {
 
   try {
     const response = await api.get('/bookings/received/me');
-    bookings.value = Array.isArray(response.data) ? response.data : [];
+    // 404 또는 빈 배열일 때 안내 메시지 표시
+    if (response.status === 404 || (Array.isArray(response.data) && response.data.length === 0)) {
+      bookings.value = [];
+      loadError.value = { message: '신청받은 커피챗 내역이 없습니다.' };
+    } else {
+      bookings.value = Array.isArray(response.data) ? response.data : [];
+    }
   } catch (error) {
     console.error('멘토 대시보드 데이터 로딩 실패:', error);
     loadError.value = error;
@@ -501,6 +783,10 @@ const retryFetch = () => fetchMentorDashboard();
 
 const errorMessage = computed(() => {
   if (!loadError.value) return '';
+  // 안내 메시지(데이터 없음) 우선
+  if (loadError.value.message === '신청받은 커피챗 내역이 없습니다.') {
+    return '아직 신청받은 커피챗 내역이 없습니다. 멘티가 신청하면 이곳에 표시됩니다.';
+  }
   return (
     loadError.value.response?.data?.detail ||
     loadError.value.message ||

@@ -51,7 +51,7 @@ const onNodeClick = (event) => {
 <style scoped>
 /* 그래프 컴포넌트가 부모 요소(NetworkView)의 크기를 꽉 채우도록 설정 */
 .network-graph {
-  width: 100%;
+  width: 100%; /* 부모에서 2/3로 제한하므로 내부는 100% 유지 */
   height: 100%;
 }
 </style>

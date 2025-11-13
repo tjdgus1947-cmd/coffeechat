@@ -62,7 +62,7 @@ def get_recommended_mentors(mentee_id: str):
         match_response = supabase.rpc('match_mentors', {
             'query_embedding': mentee_embedding,
             'match_threshold': 0.01,
-            'match_count': 50
+            'match_count': 20
         }).execute()
 
         if not match_response.data:
@@ -114,13 +114,13 @@ def get_recommended_mentors(mentee_id: str):
         # 최종 점수로 정렬
         enriched_mentors.sort(key=lambda x: x['final_score'], reverse=True)
         
-        # 상위 5명만 반환
-        top_mentors = enriched_mentors[:5]
-        
+        # 상위 20명만 반환
+        top_mentors = enriched_mentors[:20]
+
         print(f"🎯 최종 추천: {len(top_mentors)}명")
         for m in top_mentors:
             print(f"  - {m['full_name']}: 최종={m['final_score']}% (텍스트={m['text_similarity']*100:.1f}%, 거리={m['distance_km']}km)")
-        
+
         return top_mentors
 
     except Exception as e:

@@ -100,14 +100,15 @@ const topMentors = computed(() => {
 
   return [...props.mentors]
     .sort((a, b) => {
-      const scoreA = parseFloat(a.matchingScore) || 0;
-      const scoreB = parseFloat(b.matchingScore) || 0;
+      // 다양한 필드 지원: matchingScore, final_score, similarity
+      const scoreA = parseFloat((a.matchingScore ?? a.final_score ?? a.similarity) || 0);
+      const scoreB = parseFloat((b.matchingScore ?? b.final_score ?? b.similarity) || 0);
       return scoreB - scoreA;
     })
     .slice(0, 5)
     .map(mentor => ({
       ...mentor,
-      matchingScore: parseFloat(mentor.matchingScore || 0).toFixed(1),
+      matchingScore: parseFloat((mentor.matchingScore ?? mentor.final_score ?? mentor.similarity) || 0).toFixed(1),
       textSimilarity: mentor.textSimilarity ? parseFloat(mentor.textSimilarity).toFixed(1) : '0.0',
       distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined
     }));
