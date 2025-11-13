@@ -9,6 +9,9 @@
       <button @click="currentView = 'map'" :class="{ active: currentView === 'map' }">
         지도 뷰 (WBS 5.2)
       </button>
+      <button @click="currentView = 'list'" :class="{ active: currentView === 'list' }">
+        멘토 목록
+      </button>
     </div>
 
     <!-- 2. 그래프 뷰 (v-show로 제어) -->
@@ -32,6 +35,15 @@
     <!-- 3. 지도 뷰 (v-show로 제어) -->
     <div v-show="currentView === 'map'" class="map-panel-wrapper">
       <MentorMap />
+    </div>
+
+    <!-- 🔥 신규: 4. 목록 뷰 -->
+    <div v-show="currentView === 'list'" class="list-panel-wrapper">
+      <MentorListPanel 
+        :mentors="topMentorsList"
+        :loading="isLoadingTopMentors"
+        :currentUserId="currentUserId"
+      />
     </div>
 
     <!-- 🔥 수정: currentUserId props 추가 -->
@@ -63,6 +75,7 @@ import MentorSidebar from '@/components/profile/MentorSidebar.vue';
 import BookingModal from '@/components/calendar/BookingModal.vue';
 import MentorMap from '@/components/map/MentorMap.vue';
 import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
+import MentorListPanel from '@/components/list/MentorListPanel.vue';
 import axios from 'axios';
 
 // 🔥 Supabase Auth에서 현재 사용자 정보 가져오기
@@ -235,14 +248,17 @@ const closeBookingModal = () => {
 }
 
 .graph-panel-wrapper,
-.map-panel-wrapper {
+.map-panel-wrapper,
+.list-panel-wrapper {
   flex-grow: 1;
   height: 100%;
   position: relative;
+  overflow-y: auto; /* 🔥 스크롤 추가 */
 }
 
 .graph-panel,
-.map-panel-wrapper {
+.map-panel-wrapper,
+.list-panel-wrapper {
   width: 100%;
   height: 100%;
 }

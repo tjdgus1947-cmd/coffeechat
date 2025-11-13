@@ -5,6 +5,7 @@ import NetworkView from '@/views/NetworkView.vue';
 import LoginView from '@/views/LoginView.vue';
 import RegisterView from '@/views/RegisterView.vue';
 import MentorMap from '@/components/map/MentorMap.vue'; // ⭐️ 올바른 경로!
+import MentorListPanel from '@/components/list/MentorListPanel.vue';
 
 const routes = [
   {
@@ -40,6 +41,12 @@ const routes = [
     path: '/mypage',
     name: 'mypage',
     component: () => import('@/views/MyPageView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/mentors/list',
+    name: 'MentorList',
+    component: MentorListPanel,
     meta: { requiresAuth: true }
   }
 ];
