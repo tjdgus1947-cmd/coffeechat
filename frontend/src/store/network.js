@@ -96,17 +96,19 @@ export const useNetworkStore = defineStore('network', () => {
             style: { background: '#22c55e', color: 'black', border: '2px solid #16a34a' } 
           };
         });        const mentorEdges = recommendedMentors.map(mentor => ({
-          id: `e-m-${mentor.id}`,
-          source: menteeNode.id,
-          target: mentor.id,
-          animated: true,
-          style: { stroke: '#adb5bd' }
-        }));
-        
-        nodes.value = [menteeNode, ...mentorNodes];
-        edges.value = mentorEdges;
-        
-        console.log('네트워크 데이터를 API에서 성공적으로 로드했습니다.');
+          const mentorEdges = recommendedMentors.map(mentor => {
+            const score = mentor.final_score || mentor.similarity || 0;
+            let strokeWidth = 2;
+            if (score >= 60) strokeWidth = 8;
+            else if (score >= 30) strokeWidth = 5;
+            return {
+              id: `e-m-${mentor.id}`,
+              source: menteeNode.id,
+              target: mentor.id,
+              animated: true,
+              style: { stroke: '#adb5bd', strokeWidth }
+            };
+          });
       } catch (error) {
         console.error('네트워크 데이터 로딩 실패:', error);
         nodes.value = [];
