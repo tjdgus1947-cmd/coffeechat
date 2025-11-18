@@ -21,16 +21,16 @@
           <label for="selfIntro">
             자기소개 (AI 매칭도에 반영됩니다)
           </label>
-          <div v-if="isLoadingIntro">
-            <p>자기소개 로딩 중...</p>
-          </div>
-          <textarea 
-            v-else
-            id="selfIntro"
-            v-model="selfIntroText" 
-            placeholder="멘티/멘토에게 자신을 어필할 수 있는 자기소개, 현재 상황, 경력 등을 입력하세요."
-            rows="8"
-          ></textarea>
+          <div v-if="isLoadingIntro">
+            <p>자기소개 로딩 중...</p>
+          </div>
+          <textarea
+            v-if="!isLoadingIntro"
+            id="selfIntro"
+            v-model="selfIntroText"
+            placeholder="멘티/멘토에게 자신을 어필할 수 있는 자기소개, 현재 상황, 경력 등을 입력하세요."
+            rows="8"
+          ></textarea>
           <button @click="handleUpdateProfile" :disabled="isUpdating" class="update-button">
             {{ isUpdating ? '저장 중...' : '자기소개 저장 (임베딩 갱신)' }}
           </button>
