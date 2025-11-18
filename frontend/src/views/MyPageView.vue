@@ -16,7 +16,31 @@
         <div class="profile-item">
           <strong>아이디(Test):</strong> {{ authStore.userId }}
         </div>
-        <button class="edit-button">프로필 수정 (구현 필요)</button>
+        <!-- 자기소개 폼 삽입 -->
+        <div class="profile-update-section">
+          <label for="selfIntro">
+            자기소개 (AI 매칭도에 반영됩니다)
+          </label>
+          <div v-if="isLoadingIntro">
+            <p>자기소개 로딩 중...</p>
+          </div>
+          <textarea 
+            v-else
+            id="selfIntro"
+            v-model="selfIntroText" 
+            placeholder="멘티/멘토에게 자신을 어필할 수 있는 자기소개, 현재 상황, 경력 등을 입력하세요."
+            rows="8"
+          ></textarea>
+          <button @click="handleUpdateProfile" :disabled="isUpdating" class="update-button">
+            {{ isUpdating ? '저장 중...' : '자기소개 저장 (임베딩 갱신)' }}
+          </button>
+          <p v-if="updateSuccess" class="success-message">
+            ✅ 성공적으로 업데이트되었습니다!
+          </p>
+          <p v-if="updateError" class="error-message">
+            ❌ {{ updateError }}
+          </p>
+        </div>
       </div>
     </div>
 
@@ -49,18 +73,67 @@
     </div>  </div>
 </template>
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
-
+import api from '@/services/api';
 import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 import BookingList from '@/components/profile/BookingList.vue';
 import MentorAvailability from '@/components/profile/MentorAvailability.vue';
 import LocationUpdater from '@/components/profile/LocationUpdater.vue';
 
 const authStore = useAuthStore();
-const isProfileModalOpen = ref(false);
-</script>
+// 자기소개 수정 폼 관련 변수들
+const selfIntroText = ref('');
+const isLoadingIntro = ref(false);
+const isUpdating = ref(false);
+const updateSuccess = ref(false);
+const updateError = ref(null);
 
+// 페이지 로드 시 자기소개 불러오기
+onMounted(async () => {
+  if (authStore.userId && authStore.userRole) {
+    isLoadingIntro.value = true;
+    try {
+      const response = await api.get('/profile/introduction', {
+        params: {
+          user_id: authStore.userId,
+          role: authStore.userRole
+        }
+      });
+      selfIntroText.value = response.data.introduction_text || '';
+    } catch (err) {
+      console.error("자기소개 로드 실패:", err);
+      updateError.value = "자기소개 정보를 불러오는 데 실패했습니다.";
+    } finally {
+      isLoadingIntro.value = false;
+    }
+  }
+});
+
+// 자기소개 저장 함수
+async function handleUpdateProfile() {
+  if (!selfIntroText.value.trim()) {
+    updateError.value = "자기소개를 입력해주세요.";
+    return;
+  }
+  isUpdating.value = true;
+  updateSuccess.value = false;
+  updateError.value = null;
+  try {
+    await api.post('/profile/update-introduction', {
+      user_id: authStore.userId,
+      role: authStore.userRole,
+      introduction_text: selfIntroText.value
+    });
+    updateSuccess.value = true;
+  } catch (error) {
+    console.error('프로필 업데이트 실패:', error);
+    updateError.value = error.response?.data?.detail || '업데이트 중 오류가 발생했습니다.';
+  } finally {
+    isUpdating.value = false;
+  }
+}
+</script>
 <style scoped>
 .mypage-container {
   max-width: 800px;
@@ -90,31 +163,49 @@ h1 {
   width: 100px;
   color: #555;
 }
-
-.edit-button {
-  margin-top: 15px;
-  padding: 8px 12px;
-  background-color: #f0f0f0;
+/* 자기소개 폼 스타일 */
+.profile-update-section {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+.profile-update-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.profile-update-section textarea {
+  width: 100%;
+  padding: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+.update-button {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background-color: #6d28d9;
+  color: white;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
 }
-
-.edit-button:hover {
-  background-color: #e0e0e0;
+.update-button:hover:not(:disabled) {
+  background-color: #5b21b6;
 }
-
-.requests-card {
-  margin-top: 20px;
+.update-button:disabled {
+  background-color: #ccc;
 }
-
-.location-card {
-  margin-top: 20px;
+.success-message {
+  color: green;
+  margin-top: 10px;
 }
-
-.schedule-card {
-  margin-top: 20px;
+.error-message {
+  color: red;
+  margin-top: 10px;
 }
-
-
 </style>
