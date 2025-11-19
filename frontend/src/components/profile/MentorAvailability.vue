@@ -85,8 +85,14 @@ async function addSlot() {
   isSubmitting.value = true;
   try {
     // ⭐️ (POST) /api/availability/
+    // 필수 값 검증
+    if (!authStore.userId || !startTime || !endTime) {
+      alert("필수 정보가 누락되었습니다.");
+      isSubmitting.value = false;
+      return;
+    }
     await api.post('/availability/', {
-      mentor_id: authStore.userId, // ⭐️ 내 ID (UUID)
+      user_id: authStore.userId, // 백엔드 요구사항에 맞게 변경
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString()
     });
