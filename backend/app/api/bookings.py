@@ -34,93 +34,267 @@ class BookingSent(BaseModel):
     status: str
     mentor: UserSimple # 멘토 정보가 중첩된 객체로 들어옴
 
+from fastapi import APIRouter, HTTPException, Depends
+from app.core.config import supabase
+from typing import List, Optional
+from pydantic import BaseModel
+from .auth import get_current_user_id
+import uuid
+from datetime import datetime
+import traceback
+router = APIRouter()
 
-# --- 1. (멘토용) 멘토가 받은 신청 목록 API ---
-# (기존 코드와 동일 - 프론트엔드 mentorStore.js와 연동)
-@router.get(
-    "/api/bookings/received/me", 
-    response_model=List[BookingReceived] # 응답 형식은 BookingReceived 모델의 리스트
-)
+# =========================================
+# Pydantic 모델 정의
+# =========================================
+
+class UserSimple(BaseModel):
+    full_name: Optional[str] = "알 수 없음"
+
+class BookingReceived(BaseModel):
+    id: str  # 👈 UUID는 문자열
+    status: str
+    mentee: Optional[UserSimple] = None
+    start_time: datetime
+    end_time: datetime
+    created_at: Optional[str] = None
+
+class BookingSent(BaseModel):
+    id: str  # 👈 UUID는 문자열
+    status: str
+    mentor: Optional[UserSimple] = None
+    created_at: Optional[str] = None
+
+class BookingCreateRequest(BaseModel):
+    mentor_id: str
+    availability_slot_id: str
+
+class BookingStatusUpdate(BaseModel):
+    status: str
+
+# =========================================
+# API 라우트
+# =========================================
+
+@router.get("/api/bookings/received/me", response_model=List[BookingReceived])
 def get_received_bookings_for_mentor(
-    # 이 API는 로그인이 필요하며, 'mentor_id'에 로그인한 유저의 UUID가 들어옵니다.
     mentor_id: str = Depends(get_current_user_id)
 ):
     """
-    (멘토용) 현재 로그인한 멘토(mentor_id)가 'coffee_chats' 테이블에서
-    받은 모든 신청 목록을 멘티 정보와 Join하여 반환합니다.
+    멘토가 받은 커피챗 신청 목록 조회
     """
     try:
-        print(f"멘토 대시보드 API 수신: 멘토 ID {mentor_id}")
+        print(f"🔍 DEBUG: 멘토 ID = {mentor_id}")
 
-        # Supabase 쿼리:
-        # "coffee_chats 테이블에서 '멘토id'가 나와 같은 것을 찾고,
-        #  거기에 '멘티id'에 해당하는 'users' 테이블의 'full_name'을 
-        #  'mentee'라는 이름의 객체로 붙여줘"
+        # 1단계: 기본 쿼리 (조인 없이)
+        print("📊 1단계: 기본 데이터 조회 시도...")
+        basic_response = supabase.table('coffee_chats') \
+            .select('*') \
+            .eq('mentor_id', mentor_id) \
+            .execute()
+
+        print(f"✅ 기본 쿼리 결과: {len(basic_response.data) if basic_response.data else 0}건")
+        print(f"📋 원본 데이터: {basic_response.data}")
+
+        # 2단계: 조인 쿼리
+        print("📊 2단계: 멘티 정보 조인 시도...")
+
+        # ⭐ Supabase 조인 문법 수정
         response = supabase.table('coffee_chats') \
-            .select('id, status, mentee:users!coffee_chats_mentee_id_fkey(full_name, avatar_url)') \
+            .select('id, status, start_time, end_time, created_at, mentee_id, users!coffee_chats_mentee_id_fkey(full_name)') \
             .eq('mentor_id', mentor_id) \
             .order('created_at', desc=True) \
             .execute()
 
+        print(f"✅ 조인 쿼리 결과: {response.data}")
+
         if response.data:
-            print(f"멘토({mentor_id})에게 {len(response.data)}건의 신청 발견")
-            return response.data
-        
-        print(f"멘토({mentor_id})에게 온 신청 없음")
+            # 데이터 변환 (Supabase 조인 결과 구조에 맞춤)
+            transformed_data = []
+            for item in response.data:
+                transformed_item = {
+                    'id': item['id'],
+                    'status': item['status'],
+                    'start_time': item['start_time'],
+                    'end_time': item['end_time'],
+                    'created_at': item['created_at'],
+                    'mentee': {
+                        'full_name': item['users']['full_name'] if item.get('users') else '알 수 없음'
+                    }
+                }
+                transformed_data.append(transformed_item)
+
+            print(f"✅ 변환된 데이터: {transformed_data}")
+            return transformed_data
+
+        print("⚠️ 데이터 없음")
         return []
 
     except Exception as e:
-        print(f"심각한 오류 (멘토 대시보드): {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ 심각한 오류: {type(e).__name__}")
+        print(f"❌ 오류 메시지: {str(e)}")
+        import traceback
+        print(f"❌ 전체 스택: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
 
 
-# --- 2. (멘티용) 멘티가 보낸 신청 목록 API ---
-# (신규 추가 - 프론트엔드 bookingstore.js와 연동)
-@router.get(
-    "/api/bookings/me", 
-    response_model=List[BookingSent] # 응답 형식은 BookingSent 모델의 리스트
-)
+@router.get("/api/bookings/me", response_model=List[BookingSent])
 def get_sent_bookings_for_mentee(
-    # 이 API는 로그인이 필요하며, 'mentee_id'에 로그인한 유저의 UUID가 들어옵니다.
     mentee_id: str = Depends(get_current_user_id)
 ):
-    """
-    (멘티용) 현재 로그인한 멘티(mentee_id)가 'coffee_chats' 테이블에서
-    '보낸' 모든 신청 목록을 멘토 정보와 Join하여 반환합니다.
-    """
     try:
-        print(f"멘티 마이페이지 API 수신: 멘티 ID {mentee_id}")
+        print(f"🔍 멘티 예약 조회: {mentee_id}")
 
-        # Supabase 쿼리:
-        # "coffee_chats 테이블에서 '멘티id'가 나와 같은 것을 찾고,
-        #  거기에 '멘토id'에 해당하는 'users' 테이블의 'full_name'을 
-        #  'mentor'라는 이름의 객체로 붙여줘"
         response = supabase.table('coffee_chats') \
-            .select('id, status, mentor:users!coffee_chats_mentor_id_fkey(full_name, avatar_url)') \
+            .select('id, status, created_at, mentor_id, users!coffee_chats_mentor_id_fkey(full_name)') \
             .eq('mentee_id', mentee_id) \
             .order('created_at', desc=True) \
             .execute()
 
         if response.data:
-            print(f"멘티({mentee_id})가 보낸 {len(response.data)}건의 신청 발견")
-            return response.data
-        
-        print(f"멘티({mentee_id})가 보낸 신청 없음")
-        return []
+            transformed_data = []
+            for item in response.data:
+                transformed_data.append({
+                    'id': item['id'],
+                    'status': item['status'],
+                    'created_at': item['created_at'],
+                    'mentor': {
+                        'full_name': item['users']['full_name'] if item.get('users') else '알 수 없음'
+                    }
+                })
+            return transformed_data
 
+        return []
     except Exception as e:
-        print(f"심각한 오류 (멘티 마이페이지): {str(e)}")
+        print(f"❌ 멘티 예약 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# (wbs_detail.md) (추후 구현)
-# @router.post("/bookings/approve/{chat_id}")
-# def approve_booking(chat_id: int, mentor_id: str = Depends(get_current_user_id)):
-#     # ... (coffee_chats.id == chat_id 이고, coffee_chats.멘토id == mentor_id 인지 확인 후)
-#     # ... (status를 'approved'로 UPDATE)
-#     pass
+@router.post("/api/bookings/create")
+def create_booking(
+    request: BookingCreateRequest,
+    mentee_id: str = Depends(get_current_user_id)
+):
 
-# @router.post("/bookings/reject/{chat_id}")
-# def reject_booking(chat_id: int, mentor_id: str = Depends(get_current_user_id)):
-#     # ... (status를 'rejected'로 UPDATE)
-#     pass
+    try:
+        print(f"🧾 예약 시도: mentor_id={request.mentor_id}, slot_id={request.availability_slot_id}, mentee_id={mentee_id}")
+
+        mentor_profile_res = supabase.table("mentor_profiles") \
+            .select("user_id") \
+            .eq("id", request.mentor_id) \
+            .single() \
+            .execute()
+
+        # 멘토 프로필이 없으면 에러 처리
+        if not mentor_profile_res.data:
+            print(f"❌ 멘토 프로필 ID({request.mentor_id})에 해당하는 유저를 찾을 수 없음")
+            raise HTTPException(status_code=404, detail="멘토 프로필을 찾을 수 없습니다.")
+
+        real_mentor_user_id = mentor_profile_res.data['user_id']
+        print(f"✅ 멘토 User ID 확인됨: {real_mentor_user_id}")
+
+
+        # 1️⃣ 해당 슬롯 조회
+        slot_check = supabase.table('mentor_availability') \
+            .select('*') \
+            .eq('id', request.availability_slot_id) \
+            .execute()
+
+        # 1-A. (수정) 슬롯이 존재하는지 확인
+        if not slot_check.data:
+            print(f"⚠️ 슬롯 ID {request.availability_slot_id}를 찾을 수 없음.")
+            raise HTTPException(status_code=404, detail="예약 가능한 슬롯을 찾을 수 없습니다.")
+
+        # 1-B. (수정) 리스트에서 첫 번째 항목(딕셔너리)을 꺼냄
+        slot = slot_check.data[0]
+
+        # 1-C. (수정) 딕셔너리에서 'is_booked' 키로 확인
+        if slot['is_booked']:
+            print(f"⚠️ 슬롯 {request.availability_slot_id}는 이미 예약됨 (is_booked=True).")
+            raise HTTPException(status_code=409, detail="이미 예약된 시간 슬롯입니다.")
+
+        # 2️⃣ 'coffee_chats' 테이블에 이미 같은 슬롯으로 예약된 내역이 있는지 체크
+        #    (이중 안전장치)
+        existing = supabase.table('coffee_chats') \
+            .select('id') \
+            .eq('availability_id', request.availability_slot_id) \
+            .execute()
+
+        if existing.data:
+            print(f"⚠️ 'coffee_chats' 테이블에 이미 {request.availability_slot_id} 슬롯 ID가 존재함.")
+            raise HTTPException(status_code=409, detail="이미 해당 슬롯에 예약이 존재합니다.")
+
+        # 'slot' 변수는 1-B 단계에서 이미 정의되었으므로 여기서는 필요 없음
+
+        # 3️⃣ coffee_chats에 예약 정보 삽입
+        chat_response = supabase.table('coffee_chats').insert({
+                'id': str(uuid.uuid4()),
+                'mentee_id': mentee_id,
+                'mentor_id': real_mentor_user_id, # 👈 [중요] 여기서 변환된 진짜 ID를 넣습니다!
+                'availability_id': request.availability_slot_id,
+                'status': 'pending',
+                'start_time': slot['start_time'],
+                'end_time': slot['end_time']
+            }).execute()
+
+        if not chat_response.data:
+              raise HTTPException(status_code=500, detail="예약 정보 삽입에 실패했습니다.")
+
+        # 4️⃣ mentor_availability 테이블에서 예약 완료 처리
+        supabase.table('mentor_availability') \
+            .update({'is_booked': True}) \
+            .eq('id', request.availability_slot_id) \
+            .execute()
+
+        print(f"✅ 예약 생성 성공: {chat_response.data}")
+        return chat_response.data[0]
+
+    except HTTPException as he:
+        # FastAPI의 HTTPException은 그대로 다시 발생시킴
+        raise he
+    except Exception as e:
+        # 그 외 모든 예외 처리
+        print(f"❌ 예약 생성 중 예외 발생: {e}")
+        print(f"❌ 전체 스택: {traceback.format_exc()}") # 오류 스택 추적
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/api/bookings/{booking_id}/status")
+def update_booking_status(
+    booking_id: str,  # 👈 UUID는 문자열
+    update_data: BookingStatusUpdate,
+    current_mentor_id: str = Depends(get_current_user_id)
+):
+    """
+    멘토가 예약 상태를 승인/거절
+    """
+    try:
+        print(f"🔄 상태 업데이트 시도: booking_id={booking_id}, status={update_data.status}")
+
+        # 권한 확인
+        check_response = supabase.table('coffee_chats') \
+            .select('id, status') \
+            .eq('id', booking_id) \
+            .eq('mentor_id', current_mentor_id) \
+            .execute()
+
+        if not check_response.data:
+            raise HTTPException(status_code=404, detail="예약을 찾을 수 없거나 권한이 없습니다.")
+
+        print(f"✅ 권한 확인 완료: {check_response.data}")
+
+        # 상태 업데이트
+        update_response = supabase.table('coffee_chats') \
+            .update({'status': update_data.status}) \
+            .eq('id', booking_id) \
+            .execute()
+
+        if not update_response.data:
+            raise HTTPException(status_code=500, detail="상태 업데이트 실패")
+
+        print(f"✅ 상태 업데이트 성공: {update_response.data}")
+        return {"message": f"예약 상태가 '{update_data.status}'로 변경되었습니다."}
+
+    except Exception as e:
+        print(f"❌ 상태 업데이트 실패: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

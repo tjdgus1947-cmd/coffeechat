@@ -24,7 +24,7 @@ export const useBookingStore = defineStore('booking', () => {
     } else {
       try {
         console.log('실제 예약 목록을 API에서 가져옵니다...');
-        const response = await api.get('/bookings/me'); 
+	const response = await api.get('/bookings/received/me'); // 환경 변수 기반 상대 경로
         bookings.value = response.data;
       } catch (error) {
         console.error('예약 목록 로딩 실패:', error);
