@@ -10,7 +10,7 @@
 
     <div class="nav-actions">
       <template v-if="authStore.isAuthenticated">
-        <router-link to="/network" class="nav-link">네트워크</router-link>
+        <router-link to="/network" class="nav-link">대시보드</router-link>
         <router-link to="/mypage" class="nav-link">마이페이지</router-link>
         <button @click="handleLogout" class="nav-link logout-link">
           로그아웃

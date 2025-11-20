@@ -106,9 +106,9 @@
           <div class="footer-links">
             <h4>문의</h4>
             <ul class="contact-list">
-              <li><span>✉️</span> support@coffeechat.ai</li>
-              <li><span>📞</span> 02-1234-5678</li>
-              <li><span>📍</span> 서울시 강남구</li>
+              <li><span>✉️</span> coffeechat@pknu.ai</li>
+              <li><span>📞</span> 051-000-0000</li>
+              <li><span>📍</span> 부경대학교 스마트 아카데미 5조</li>
             </ul>
           </div>
         </div>
@@ -211,7 +211,7 @@ h1 {
   background: linear-gradient(to right, #2563eb, #9333ea);
   -webkit-background-clip: text;
   background-clip: text;
-  
+
   -webkit-text-fill-color: transparent;
 }
 

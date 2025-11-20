@@ -1,58 +1,60 @@
-/* src/style.css (수정본) */
+/* src/style.css */
 
-/* 1. Vite/Vue의 기본 스타일을 유지하되, 
-     레이아웃을 강제하는 스타일은 제거합니다. 
-*/
+/* 1. 기본 글꼴 및 설정 */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light; /* 다크 모드를 우선 비활성화 (필요시 'light dark') */
+  color-scheme: light;
   color: #213547;
-  background-color: #ffffff; /* 기본 배경색 */
-
+  background-color: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 2. body에서 display:flex, place-items:center를 제거 
-     App.vue가 레이아웃을 제어하도록 합니다.
-*/
+/* 2. body 초기화: 화면 전체 사용 */
 body {
   margin: 0;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
 }
 
-/* 3. #app에서 중앙 정렬 및 padding을 제거
-     Vue가 마운트되는 '뿌리' 역할만 하도록 합니다.
-*/
+/* 3. #app (Vue 루트) 초기화 */
 #app {
-  /* 'display: contents'는 #app 요소를 
-    시각적으로는 없는 것처럼 만들어,
-    자식 요소(#app-container)가 body의 
-    직계 자식처럼 동작하게 합니다.
-    (레이아웃 충돌을 막는 좋은 방법입니다)
-  */
-  display: contents; 
+  /* display: contents를 사용하면 #app div가 레이아웃에 영향을 주지 않고,
+     자식 요소들이 body의 직접적인 자식처럼 행동하게 되어
+     불필요한 여백 문제를 해결하는 데 효과적입니다. */
+  display: contents;
+  
+  /* 만약 display: contents가 적용되지 않는 환경을 대비해 명시적 초기화 */
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-/* --- (기존 스타일 중 일부 유지) --- */
+/* 4. main 태그 초기화 (보통 router-view를 감싸는 태그) */
+main {
+  width: 100%;
+  max-width: 100%; /* 너비 제한 해제 */
+  padding: 0 !important; /* 강제로 패딩 제거 */
+  margin: 0 !important;
+  display: block;
+}
+
+/* --- 링크 및 버튼 스타일 (기존 유지) --- */
 a {
   font-weight: 500;
-  color: #6d28d9; /* 프로젝트 메인 컬러로 변경 (선택) */
+  color: #6d28d9;
   text-decoration: inherit;
 }
 a:hover {
   color: #5b21b6;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
 }
 
 button {
@@ -68,4 +70,13 @@ button {
 }
 button:hover {
   border-color: #6d28d9;
+}
+
+/* --- 스크롤바 숨기기 --- */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
