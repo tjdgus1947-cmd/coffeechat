@@ -1,3 +1,4 @@
+<!--BookingCalendar.vue-->
 <template>
   <div class="calendar-container">
     <div v-if="isLoading" class="loading-spinner">
@@ -77,22 +78,23 @@ const availableTimesForSelectedDate = computed(() => {
 
 // --- 3. Functions (함수) ---
 
-function formatTime(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+function formatDate(isoString) {
+  if (!isoString) return '';
+  // "2025-11-29T10:00:00" -> "T"를 기준으로 잘라서 앞부분만 씀
+  return isoString.split('T')[0]; 
 }
 
-function formatDate(isoString) {
-  const date = new Date(isoString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+function formatTime(isoString) {
+  if (!isoString) return '';
+  // "2025-11-29T10:00:00" -> "T" 뒤에 있는 시간(10:00)만 가져옴
+  return isoString.split('T')[1].substring(0, 5);
 }
 
 function processSlots(slots) {
   const map = {};
   slots.forEach(slot => {
+    // 이제 여기서 시간이 바뀌지 않고 DB에 있는 그대로 들어갑니다.
+    const rawTimeString = slot.start_time.substring(0, 19);
     const dateKey = formatDate(slot.start_time);
     const timeLabel = formatTime(slot.start_time);
     

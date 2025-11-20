@@ -1,12 +1,10 @@
 <template>
   <div class="mentor-list-container">
-    <!-- 헤더 -->
     <div class="list-header">
       <h1>🎯 추천 멘토 목록</h1>
       <p class="subtitle">AI가 분석한 나와 가장 잘 맞는 멘토들을 만나보세요</p>
     </div>
 
-    <!-- 필터 섹션 -->
     <div class="filter-section">
       <div class="filter-group">
         <label>
@@ -60,7 +58,6 @@
       </button>
     </div>
 
-    <!-- 정렬 옵션 -->
     <div class="sort-section">
       <span class="result-count">{{ filteredMentors.length }}명의 멘토</span>
       <div class="sort-controls">
@@ -73,13 +70,11 @@
       </div>
     </div>
 
-    <!-- 로딩 상태 -->
     <div v-if="loading" class="loading-container">
       <div class="spinner"></div>
       <p>멘토 목록을 불러오는 중...</p>
     </div>
 
-    <!-- 멘토 리스트 -->
     <div v-else-if="mentors.length > 0 && filteredMentors.length > 0" class="mentor-list">
       <div
         v-for="(mentor, index) in filteredMentors"
@@ -87,19 +82,16 @@
         class="mentor-card"
         @click="selectMentor(mentor)"
       >
-        <!-- 순위 배지 -->
         <div class="rank-badge" v-if="index < 3">
           <span v-if="index === 0">🥇</span>
           <span v-else-if="index === 1">🥈</span>
           <span v-else>🥉</span>
         </div>
 
-        <!-- 멘토 프로필 이미지 -->
         <div class="mentor-avatar">
           {{ (mentor.name || 'M').charAt(0) }}
         </div>
 
-        <!-- 멘토 정보 -->
         <div class="mentor-info">
           <div class="mentor-header">
             <h3>{{ mentor.name || '멘토' }}</h3>
@@ -117,7 +109,6 @@
             </span>
           </div>
 
-          <!-- 전문 분야 태그 -->
           <div class="tags" v-if="mentor.tags && mentor.tags.length > 0">
             <span
               v-for="tag in mentor.tags.slice(0, 3)"
@@ -128,11 +119,9 @@
             </span>
           </div>
 
-          <!-- 간단한 소개 -->
           <p class="mentor-intro">{{ mentor.introduction || '소개 정보가 없습니다.' }}</p>
         </div>
 
-        <!-- 매칭 점수 -->
         <div class="mentor-scores">
           <div class="score-item primary">
             <span class="score-label">AI 매칭도</span>
@@ -160,7 +149,6 @@
           </div>
         </div>
 
-        <!-- 액션 버튼 -->
         <div class="card-actions">
           <button class="action-button primary" @click.stop="openBooking(mentor)">
             ☕ 커피챗 신청
@@ -172,7 +160,6 @@
       </div>
     </div>
 
-    <!-- 빈 상태 -->
     <div v-else class="empty-state">
       <p class="empty-icon">🔍</p>
       <p class="empty-text">조건에 맞는 멘토가 없습니다.</p>
@@ -202,7 +189,8 @@ const props = defineProps({
   }
 });
 
-defineEmits(['select-mentor']);
+// ⭐️ 부모에게 이벤트를 보낼 수 있도록 defineEmits를 선언합니다.
+const emit = defineEmits(['view-profile', 'open-booking']);
 
 // 필터
 const filters = ref({
@@ -279,19 +267,22 @@ function calculateDistanceScore(km) {
   return (rawScore * 0.3).toFixed(1);
 }
 
-// 멘토 선택
+// ⭐️ 멘토 선택 (카드 전체 클릭)
 function selectMentor(mentor) {
-  console.log('선택된 멘토:', mentor);
+  // console.log('선택된 멘토:', mentor);
+  emit('view-profile', mentor); // '프로필 보기'와 동일하게 동작
 }
 
-// 커피챗 신청
+// ⭐️ 커피챗 신청 (버튼 클릭)
 function openBooking(mentor) {
-  console.log('커피챗 신청:', mentor);
+  // console.log('커피챗 신청:', mentor);
+  emit('open-booking', mentor);
 }
 
-// 프로필 보기
+// ⭐️ 프로필 보기 (버튼 클릭)
 function viewProfile(mentor) {
-  console.log('프로필 보기:', mentor);
+  // console.log('프로필 보기:', mentor);
+  emit('view-profile', mentor);
 }
 </script>
 

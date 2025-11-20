@@ -1,95 +1,101 @@
 <template>
-<div class="mypage-container">
-    <h1>마이페이지</h1>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="header-section">
+        <h1>마이페이지</h1>
+        <p>프로필과 위치 정보를 관리하세요</p>
+      </div>
 
-    <div class="profile-card card">
-      <h2>내 프로필</h2>
-      <div v-if="authStore.user">
-        <div class="profile-item" v-if="authStore.userName">
-          <strong>이름:</strong>
-          {{ authStore.userName }}
-        </div>
-        <div class="profile-item" v-if="authStore.userRole">
-          <strong>역할:</strong>
-          {{ authStore.userRole === 'mentee' ? '멘티' : '멘토' }}
-        </div>
-        <div class="profile-item">
-          <strong>아이디(Test):</strong>
-          {{ authStore.userId }}
-        </div>
+      <div class="main-grid">
         
-        <div class="profile-update-section">
-          <label for="selfIntro">
-            자기소개 (AI 매칭도에 반영됩니다)
-          </label>
-          <div v-if="isLoadingIntro">
-            <p>자기소개 로딩 중...</p>
+        <aside class="left-column">
+          <div class="card profile-card">
+            <div class="profile-header">
+              <div class="avatar-circle">
+                {{ authStore.userName?.charAt(0) || '유' }}
+                <span class="role-badge">
+                  {{ authStore.userRole === 'mentee' ? '멘티' : '멘토' }}
+                </span>
+              </div>
+              <h2>{{ authStore.userName || '사용자' }}</h2>
+              
+              <div class="profile-info">
+                <p><span class="icon">👤</span> {{ authStore.userName }}</p>
+                <p><span class="icon">🆔</span> {{ authStore.userRole === 'mentee' ? '멘티' : '멘토' }}</p>
+                <div class="id-box">
+                  <span class="icon">🔑</span> {{ authStore.userId }}
+                </div>
+              </div>
+            </div>
+
+            <div class="intro-section">
+              <label>자기소개</label>
+              <p class="sub-text">AI 매칭도에 반영됩니다</p>
+              
+              <div v-if="isLoadingIntro" class="loading-box">
+                로딩 중...
+              </div>
+              
+              <div v-else>
+                <textarea
+                  v-model="selfIntroText"
+                  placeholder="경력, 관심사, 현재 상황 등을 입력해주세요."
+                  rows="8"
+                ></textarea>
+                <button 
+                  @click="handleUpdateProfile" 
+                  :disabled="isUpdating || !selfIntroText.trim()"
+                  class="purple-btn"
+                >
+                  {{ isUpdating ? '저장 중...' : '프로필 수정' }}
+                </button>
+                <p v-if="updateSuccess" class="msg success">✅ 저장되었습니다!</p>
+                <p v-if="updateError" class="msg error">❌ {{ updateError }}</p>
+              </div>
+            </div>
           </div>
-          <textarea 
-            v-else
-            id="selfIntro"
-            v-model="selfIntroText" 
-            placeholder="멘티/멘토에게 자신을 어필할 수 있는 자기소개, 현재 상황, 경력 등을 입력하세요."
-            rows="8"
-          ></textarea>
-          <button @click="handleUpdateProfile" :disabled="isUpdating" class="update-button">
-            {{ isUpdating ? '저장 중...' : '자기소개 저장 (임베딩 갱신)' }}
-          </button>
-          <p v-if="updateSuccess" class="success-message">
-            ✅ 성공적으로 업데이트되었습니다!
-          </p>
-          <p v-if="updateError" class="error-message">
-            ❌ {{ updateError }}
-          </p>
-        </div>
-        </div>
-    </div>
+        </aside>
 
-    <div class="requests-card card" v-if="authStore.userRole === 'mentee'">
-      <h2>커피챗 신청 목록</h2>
-      <p>내가 멘토에게 보낸 신청 현황입니다.</p>
-      <BookingList />
-    </div>
-    
-    <div class="requests-card card" v-if="authStore.userRole === 'mentor'">
-      <h2>받은 커피챗 신청</h2>
-      <p>멘티들이 나에게 보낸 신청 현황입니다.</p>
-      <MentorRequestList />
-   </div>
+        <main class="right-column">
+          
+          <div class="card location-card">
+            <div class="card-header">
+               <h3>📍 나의 위치 정보 설정</h3>
+            </div>
+            <LocationUpdater />
+          </div>
 
-    <div class="schedule-card card" v-if="authStore.userRole === 'mentor'">
-        <h2>내 일정 관리</h2>
-        <p>멘티가 예약할 수 있는 시간을 등록/관리합니다.</p>
-        <MentorAvailability />
-    </div>
+          <div class="card schedule-card" v-if="authStore.userRole === 'mentor'">
+            <div class="card-header">
+              <h3>📅 내 일정 관리</h3>
+            </div>
+            <MentorAvailability />
+          </div>
 
-    <LocationUpdater />
+        </main>
+
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-// ⭐️ 2. onMounted와 ref를 추가합니다.
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
+import api from '@/services/api';
+
+// 컴포넌트 import (BookingList 삭제됨)
 import LocationUpdater from '@/components/profile/LocationUpdater.vue';
-import MentorRequestList from '@/components/profile/MentorRequestList.vue';
-import BookingList from '@/components/profile/BookingList.vue';
 import MentorAvailability from '@/components/profile/MentorAvailability.vue';
-// ⭐️ 3. auth.js에서 사용한 'api' (axios)를 가져옵니다.
-import api from '@/services/api'; 
 
 const authStore = useAuthStore();
-// (isProfileModalOpen은 사용되지 않아 삭제)
 
-// ⭐️ 4. 자기소개 수정 폼을 위한 변수들
 const selfIntroText = ref('');
 const isLoadingIntro = ref(false);
 const isUpdating = ref(false);
 const updateSuccess = ref(false);
 const updateError = ref(null);
 
-// ⭐️ 5. (중요) 페이지가 로드될 때, 1단계에서 만든 API를 호출해
-//         현재 자기소개를 불러옵니다.
 onMounted(async () => {
   if (authStore.userId && authStore.userRole) {
     isLoadingIntro.value = true;
@@ -103,37 +109,29 @@ onMounted(async () => {
       selfIntroText.value = response.data.introduction_text || '';
     } catch (err) {
       console.error("자기소개 로드 실패:", err);
-      updateError.value = "자기소개 정보를 불러오는 데 실패했습니다.";
     } finally {
       isLoadingIntro.value = false;
     }
   }
 });
 
-// ⭐️ 6. "자기소개 저장" 버튼이 호출할 함수
 async function handleUpdateProfile() {
-  if (!selfIntroText.value.trim()) {
-    updateError.value = "자기소개를 입력해주세요.";
-    return;
-  }
+  if (!selfIntroText.value.trim()) return;
   
   isUpdating.value = true;
   updateSuccess.value = false;
   updateError.value = null;
 
   try {
-    // ⭐️ 7. 1단계에서 만든 API를 호출합니다.
     await api.post('/profile/update-introduction', {
       user_id: authStore.userId,
       role: authStore.userRole,
-      introduction_text: selfIntroText.value // ⭐️ textarea의 텍스트를 전송
+      introduction_text: selfIntroText.value
     });
-    
-    updateSuccess.value = true; // 성공!
-
+    updateSuccess.value = true;
+    setTimeout(() => { updateSuccess.value = false; }, 3000);
   } catch (error) {
-    console.error('프로필 업데이트 실패:', error);
-    updateError.value = error.response?.data?.detail || '업데이트 중 오류가 발생했습니다.';
+    updateError.value = '업데이트 실패';
   } finally {
     isUpdating.value = false;
   }
@@ -141,87 +139,197 @@ async function handleUpdateProfile() {
 </script>
 
 <style scoped>
-.mypage-container {
-  max-width: 800px;
+/* 전체 레이아웃 설정 */
+.page-container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 40px 20px;
+}
+
+.content-wrapper {
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-h1 {
-  margin-bottom: 20px;
+/* 헤더 스타일 */
+.header-section {
+  margin-bottom: 30px;
 }
-
-.card {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.profile-item {
-  margin-bottom: 10px;
-  font-size: 1.1rem;
-}
-
-.profile-item strong {
-  display: inline-block;
-  width: 100px;
-  color: #555;
-}
-
-/* ⭐️ 8. 새로 추가된 폼 스타일 */
-.profile-update-section {
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
-}
-.profile-update-section label {
-  display: block;
+.header-section h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111;
   margin-bottom: 8px;
+}
+.header-section p {
+  color: #666;
+}
+
+/* 그리드 레이아웃 */
+.main-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr; /* 왼쪽 고정, 오른쪽 가변 */
+  gap: 24px;
+  align-items: start;
+}
+
+/* 반응형 */
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 카드 공통 스타일 */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  border: 1px solid #f3f4f6;
+  margin-bottom: 24px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.card-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* --- 왼쪽 프로필 스타일 --- */
+.profile-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.avatar-circle {
+  width: 100px;
+  height: 100px;
+  background-color: #8b5cf6;
+  color: white;
+  font-size: 36px;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.role-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #7c3aed;
+  border: 3px solid white;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 20px;
   font-weight: 600;
-  font-size: 1.1rem;
 }
-.profile-update-section textarea {
+
+.profile-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.profile-info {
+  text-align: left;
+  background-color: #f9fafb;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.profile-info p {
+  margin-bottom: 8px;
+  color: #555;
+  font-size: 14px;
+}
+
+.id-box {
+  font-size: 12px;
+  color: #9ca3af;
+  word-break: break-all;
+  margin-top: 4px;
+}
+
+.icon { margin-right: 6px; }
+
+/* --- 자기소개 폼 스타일 --- */
+.intro-section {
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.intro-section label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.sub-text {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
-  line-height: 1.6;
-  resize: vertical; /* 세로 크기만 조절 가능 */
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  resize: none;
+  margin-bottom: 12px;
+  outline: none;
+  transition: border 0.2s;
 }
-.update-button { /* ⭐️ 기존 edit-button 대신 새 스타일 */
-  margin-top: 12px;
-  padding: 10px 16px;
-  background-color: #6d28d9;
+textarea:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.purple-btn {
+  width: 100%;
+  background-color: #8b5cf6;
   color: white;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 12px;
+  border-radius: 8px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-.update-button:hover:not(:disabled) {
-  background-color: #5b21b6;
+.purple-btn:hover:not(:disabled) {
+  background-color: #7c3aed;
 }
-.update-button:disabled {
-  background-color: #ccc;
-}
-.success-message {
-  color: green;
-  margin-top: 10px;
-}
-.error-message {
-  color: red;
-  margin-top: 10px;
-}
-/* ⭐️ 8. 여기까지 ⭐️ */
-
-.requests-card {
-  margin-top: 20px;
+.purple-btn:disabled {
+  background-color: #ddd;
+  cursor: not-allowed;
 }
 
-.schedule-card {
-  margin-top: 20px;
+.msg {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.success { color: #10b981; }
+.error { color: #ef4444; }
+
+/* --- 오른쪽 기능 영역 --- */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 </style>

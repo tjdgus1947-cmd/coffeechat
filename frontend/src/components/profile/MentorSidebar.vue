@@ -1,3 +1,4 @@
+<!-- MentorSidebar.vue -->
 <template>
   <aside v-if="mentor" class="sidebar-container">
     <button @click="$emit('close')" class="close-button" aria-label="닫기">X</button>

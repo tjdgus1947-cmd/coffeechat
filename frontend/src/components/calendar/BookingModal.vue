@@ -1,3 +1,4 @@
+<!--BookingModal.vue-->
 <template>
   <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
