@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 import uuid
+import traceback
 
 from app.core.config import supabase
 from fastapi.encoders import jsonable_encoder
@@ -32,6 +33,7 @@ def get_mentor_profile_id(user_id: uuid.UUID) -> uuid.UUID:
     auth.users.id(user_id)로 mentor_profiles.id(PK) 조회
     """
     try:
+        print(f"[DEBUG] mentor_profiles 조회: user_id={user_id}")
         profile_res = (
             supabase.table("mentor_profiles")
             .select("id")
@@ -40,7 +42,9 @@ def get_mentor_profile_id(user_id: uuid.UUID) -> uuid.UUID:
             .execute()
         )
 
+        print(f"[DEBUG] mentor_profiles 결과: {profile_res}")
         if not profile_res.data:
+            print(f"[ERROR] mentor_profiles에 user_id={user_id} 없음")
             raise HTTPException(
                 status_code=404,
                 detail="멘토 프로필을 찾을 수 없습니다.",
@@ -49,10 +53,9 @@ def get_mentor_profile_id(user_id: uuid.UUID) -> uuid.UUID:
         return profile_res.data["id"]
 
     except HTTPException:
-        # 위에서 이미 HTTPException을 던졌으면 그대로 전달
         raise
     except Exception as e:
-        print(f"🔥 get_mentor_profile_id 오류: {e}")
+        print(f"🔥 get_mentor_profile_id Exception: user_id={user_id}, error={e}")
         raise HTTPException(
             status_code=500,
             detail=f"멘토 프로필 조회 실패: {str(e)}",
@@ -100,7 +103,9 @@ def get_mentor_availability(user_id: uuid.UUID):
     특정 멘토(user_id 기준)의 향후 예약 가능 슬롯 조회
     """
     try:
+        print(f"[DEBUG] 예약 가능 시간 조회: user_id={user_id}")
         mentor_profile_id = get_mentor_profile_id(user_id)
+        print(f"[DEBUG] mentor_profile_id={mentor_profile_id}")
 
         response = (
             supabase.table("mentor_availability")
@@ -111,50 +116,20 @@ def get_mentor_availability(user_id: uuid.UUID):
             .order("start_time", desc=False)
             .execute()
         )
-
-        return jsonable_encoder(response.data or [])
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ----- 3. 수정 (PUT) -----
-
-@router.put("/api/availability/{slot_id}")
-def update_availability_slot(slot_id: uuid.UUID, update_data: AvailabilityUpdate):
-    """
-    슬롯 시간(start_time / end_time) 수정
-    (단순 버전: mentor_id 검증 없이 slot_id 기준으로만 수정)
-    """
-    try:
-        update_payload = update_data.dict(exclude_unset=True)
-
-        if not update_payload:
-            raise HTTPException(
-                status_code=400,
-                detail="수정할 값이 없습니다.",
-            )
-
-        response = (
-            supabase.table("mentor_availability")
-            .update(update_payload)
-            .eq("id", str(slot_id))
-            .execute()
-        )
-
-        if not response.data:
-            raise HTTPException(
-                status_code=404,
-                detail="해당 슬롯을 찾을 수 없습니다.",
-            )
-
-        return jsonable_encoder(response.data[0])
+        print(f"[DEBUG] mentor_availability 결과: {response}")
+        
+        # 방어 로직: 데이터가 없으면 404 반환
+        if not response.data or response.data == []:
+            print(f"[ERROR] 예약 가능 슬롯 없음: mentor_id={mentor_profile_id}")
+            raise HTTPException(status_code=404, detail="예약 가능 슬롯이 없습니다.")
+        
+        return jsonable_encoder(response.data)
 
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[TRACEBACK] 예약 가능 시간 조회 Exception: user_id={user_id}, error={e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

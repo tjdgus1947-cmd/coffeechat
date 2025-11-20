@@ -14,6 +14,7 @@ from app.api import location
 from app.api import availability
 from app.api import coffeechats
 from app.api import profile
+from app.api import bookings
 
 # 🚨 ⭐️ 핵심: FastAPI 앱 인스턴스를 생성합니다. ⭐️
 app = FastAPI()
@@ -50,6 +51,7 @@ app.include_router(location.router)
 app.include_router(availability.router)
 app.include_router(coffeechats.router)
 app.include_router(profile.router)
+app.include_router(bookings.router)
 
 @app.get("/")
 def read_root():

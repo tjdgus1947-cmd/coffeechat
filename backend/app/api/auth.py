@@ -1,12 +1,27 @@
 # backend/app/api/auth.py
 from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
+from fastapi.security import OAuth2PasswordBearer
+import uuid
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from app.core.config import supabase
 from app.services.ml_service import generate_embedding
 import uuid
 
+
 router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+def get_current_user_id(token: str = Depends(oauth2_scheme)) -> uuid.UUID:
+    # 실제 토큰 검증 및 user_id 추출 로직 필요
+    # 예시: 토큰에서 user_id를 추출하는 부분을 구현해야 함
+    # 아래는 더미 예시
+    try:
+        # 실제 구현에서는 JWT decode 등으로 user_id 추출
+        user_id = "11111111-1111-1111-1111-111111111111"  # 예시 UUID
+        return uuid.UUID(user_id)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 # --- Pydantic 스키마 정의 ---
 class MentorSignUp(BaseModel):
