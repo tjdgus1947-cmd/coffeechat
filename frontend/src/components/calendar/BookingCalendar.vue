@@ -59,6 +59,15 @@ const selectedDate = ref(null);
 const selectedTimeSlot = ref(null); 
 const availableSlotsMap = ref({});
 
+
+function toLocalYyyyMmDd(date) {
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // --- 2. Computed (계산된 속성) ---
 const calendarAttributes = computed(() => {
   return [
@@ -72,30 +81,43 @@ const calendarAttributes = computed(() => {
 
 const availableTimesForSelectedDate = computed(() => {
   if (!selectedDate.value) return [];
-  const key = selectedDate.value.toISOString().split('T')[0];
+  
+  // ⭐️ [수정 1] toISOString() 대신 로컬 변환 함수 사용
+  // (이전 코드: const key = selectedDate.value.toISOString().split('T')[0];)
+  const key = toLocalYyyyMmDd(selectedDate.value);
+  
   return availableSlotsMap.value[key] || [];
 });
-
 // --- 3. Functions (함수) ---
 
 function formatDate(isoString) {
   if (!isoString) return '';
-  // "2025-11-29T10:00:00" -> "T"를 기준으로 잘라서 앞부분만 씀
-  return isoString.split('T')[0]; 
+  const dateObj = new Date(isoString);
+  return toLocalYyyyMmDd(dateObj);
 }
 
 function formatTime(isoString) {
   if (!isoString) return '';
-  // "2025-11-29T10:00:00" -> "T" 뒤에 있는 시간(10:00)만 가져옴
-  return isoString.split('T')[1].substring(0, 5);
+  const dateObj = new Date(isoString);
+  // ⭐️ [선택] 시간도 로컬 시간대로 보여주기 위해 수정 권장
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+  
+  // (기존 코드는 UTC 기준으로 짤리기 때문에, 
+  // DB에 UTC로 저장되어 있다면 한국 시간보다 9시간 전 시간이 표시될 수 있음.
+  // 만약 기존 코드로 시간이 잘 나온다면 formatTime은 그대로 두셔도 됩니다.)
 }
+
 
 function processSlots(slots) {
   const map = {};
   slots.forEach(slot => {
-    // 이제 여기서 시간이 바뀌지 않고 DB에 있는 그대로 들어갑니다.
-    const rawTimeString = slot.start_time.substring(0, 19);
-    const dateKey = formatDate(slot.start_time);
+    const dateKey = formatDate(slot.start_time); // 위에서 수정한 formatDate 사용
+    
+    // 시간 표시용 라벨
+    // (만약 DB에 저장된 그대로의 문자열 시간만 필요하다면 기존 로직 유지)
+    // 하지만 Date 객체로 변환해서 로컬 시간을 뽑는 것이 안전합니다.
     const timeLabel = formatTime(slot.start_time);
     
     if (!map[dateKey]) {

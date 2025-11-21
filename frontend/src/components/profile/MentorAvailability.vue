@@ -5,6 +5,7 @@
     <v-date-picker
       v-model="selectedDate"
       :attributes="calendarAttributes"
+      :min-date="minDate" 
       @dayclick="onDayClick"
       trim-weeks
     />
@@ -56,6 +57,7 @@ const isLoading = ref(true);
 const isSubmitting = ref(false);
 const selectedDate = ref(new Date());
 const newSlotTime = ref('10:00'); // 기본 선택 시간
+const minDate = ref(new Date());
 
 // --- 1. (GET) 내 슬롯 불러오기 ---
 // 이 컴포넌트가 마운트되면, 내 ID로 등록된 슬롯을 불러옵니다.
@@ -82,7 +84,11 @@ async function addSlot() {
   const [hours, minutes] = newSlotTime.value.split(':');
   const startTime = new Date(selectedDate.value);
   startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-  
+  const now = new Date();
+  if (startTime <= now) {
+    alert('이미 지나간 시간은 등록할 수 없습니다. 미래의 시간을 선택해주세요.');
+    return; // 함수 종료
+  }
   // (예시: 1시간 슬롯)
   const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
 

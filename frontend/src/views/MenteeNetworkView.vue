@@ -2,6 +2,7 @@
 
   <div class="network-view-container">
 
+    <!-- 탭 메뉴 -->
     <div class="view-switcher">
 
       <button @click="currentView = 'graph'" :class="{ active: currentView === 'graph' }">
@@ -22,6 +23,7 @@
 
     </div>
 
+    <!-- 각 탭의 내용 -->
     <div v-show="currentView === 'graph'" class="graph-panel-wrapper">
       <NetworkGraph
         :nodes="networkStore.nodes"
@@ -65,8 +67,13 @@
                 <span class="chat-time">{{ formatSchedule(chat.start_time, chat.end_time) }}</span>
               </div>
 
-              <button class="review-btn" @click="openReviewModal(chat)">
-                ✍️ 후기 작성
+              <!-- 🔥 수정: 후기 작성 여부에 따라 버튼 텍스트 변경 -->
+              <button 
+                class="review-btn" 
+                :class="{ 'reviewed': chat.has_review }"
+                @click="openReviewModal(chat)"
+              >
+                {{ chat.has_review ? '📖 내가 쓴 후기' : '✍️ 후기 작성' }}
               </button>
             </div>
           </div>
@@ -104,6 +111,7 @@
         </section>
       </div>
 
+    <!-- 사이드 패널 및 모달 -->
     <MentorSidebar
       v-if="(currentView === 'graph' || currentView === 'list') && selectedMentor"
       :mentor="selectedMentor"
@@ -121,6 +129,15 @@
       @booking-confirmed="closeBookingModal"
     />
 
+    <!-- 🔥 추가: 후기 작성 모달 연결 -->
+    <ReviewModal
+      :show="isReviewModalOpen"
+      :chat="selectedChatForReview"
+      :mentee-id="currentUserId"
+      @close="closeReviewModal"
+      @review-submitted="handleReviewSubmitted"
+    />
+
   </div>
 
 </template>
@@ -129,7 +146,7 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import { supabase } from '@/supabaseClient';
-import { useRoute } from 'vue-router'; // 🔥 추가: 라우터 정보 가져오기
+import { useRoute } from 'vue-router';
 
 import { useNetworkStore } from '@/store/network';
 import { useBookingStore } from '@/store/bookingstore'; 
@@ -141,11 +158,14 @@ import MentorMap from '@/components/map/MentorMap.vue';
 import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
 import MentorListPanel from '@/components/list/MentorListPanel.vue';
 
-const route = useRoute(); // 🔥 추가: 현재 URL 정보
+// 🔥 추가: 후기 모달 import
+import ReviewModal from '@/components/review/ReviewModal.vue';
+
+const route = useRoute();
 const networkStore = useNetworkStore();
 const bookingStore = useBookingStore();
 
-const currentView = ref('graph'); // 기본값: 그래프 뷰
+const currentView = ref('graph');
 const selectedMentor = ref(null);
 const mentorForBooking = ref(null);
 const isModalOpen = ref(false);
@@ -153,17 +173,21 @@ const currentUserId = ref('');
 const topMentorsList = ref([]);
 const isLoadingTopMentors = ref(false);
 
+// 🔥 추가: 후기 모달 상태 변수
+const isReviewModalOpen = ref(false);
+const selectedChatForReview = ref(null);
+
+// 🔥 추가: 후기 작성 여부 저장
+const reviewStatusMap = ref({});
+
 
 onMounted(async () => {
-  // 🔥 핵심 기능: URL에 '?tab=list'가 있으면 '멘토 목록' 탭으로 자동 전환
   if (route.query.tab === 'list') {
     currentView.value = 'list';
   }
 
-  // 그래프 데이터 로드
   networkStore.fetchNetworkData();
 
-  // 현재 로그인한 사용자 정보 가져오기
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     
@@ -174,31 +198,49 @@ onMounted(async () => {
 
     if (user) {
       currentUserId.value = user.id;
-      console.log('✅ 현재 사용자 ID:', user.id);
-      
-      // 실시간 매칭도 계산
       await fetchTopMentorsWithRealScore();
-
       await bookingStore.fetchBookings();
-    } else {
-      console.warn('⚠️ 로그인된 사용자가 없습니다.');
+      await fetchReviewStatus(); // 🔥 추가: 후기 작성 여부 확인
     }
   } catch (err) {
     console.error('Auth 에러:', err);
   }
 });
 
-// 1. 완료된 커피챗
+// 🔥 추가: 후기 작성 여부를 확인하는 함수
+async function fetchReviewStatus() {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('coffee_chat_id')
+      .eq('mentee_id', currentUserId.value);
+
+    if (error) throw error;
+
+    // coffee_chat_id를 키로 하는 맵 생성
+    reviewStatusMap.value = {};
+    data.forEach(review => {
+      reviewStatusMap.value[review.coffee_chat_id] = true;
+    });
+  } catch (error) {
+    console.error('후기 상태 조회 실패:', error);
+  }
+}
+
 const completedChats = computed(() => {
   const now = new Date();
-  return bookingStore.bookings.filter(chat => {
-    if (chat.status !== 'approved') return false;
-    if (!chat.end_time) return false;
-    return new Date(chat.end_time) < now; 
-  });
+  return bookingStore.bookings
+    .filter(chat => {
+      if (chat.status !== 'approved') return false;
+      if (!chat.end_time) return false;
+      return new Date(chat.end_time) < now; 
+    })
+    .map(chat => ({
+      ...chat,
+      has_review: !!reviewStatusMap.value[chat.id] // 🔥 추가: 후기 작성 여부
+    }));
 });
 
-// 2. 진행 중인 커피챗
 const activeChats = computed(() => {
   const now = new Date();
   return bookingStore.bookings.filter(chat => {
@@ -208,7 +250,6 @@ const activeChats = computed(() => {
   });
 });
 
-// 헬퍼 함수들
 function getStatusLabel(status) {
   if (status === 'approved') return '승인됨';
   if (status === 'rejected') return '거절됨';
@@ -221,11 +262,24 @@ function formatSchedule(start, end) {
   return `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit', hour12: false})}`;
 }
 
+// 🔥 수정: 후기 모달 열기
 function openReviewModal(chat) {
-  alert(`${chat.mentor?.full_name} 멘토님에 대한 후기 작성 (준비 중)`);
+  selectedChatForReview.value = chat;
+  isReviewModalOpen.value = true;
 }
 
-// TOP 멘토 매칭도 계산
+// 🔥 추가: 후기 모달 닫기
+function closeReviewModal() {
+  isReviewModalOpen.value = false;
+  selectedChatForReview.value = null;
+}
+
+// 🔥 수정: 후기 제출 완료 시 처리
+async function handleReviewSubmitted() {
+  await fetchReviewStatus(); // 후기 상태 다시 확인
+  await bookingStore.fetchBookings();
+}
+
 async function fetchTopMentorsWithRealScore() {
   if (!currentUserId.value) {
     topMentorsList.value = networkStore.nodes
@@ -436,9 +490,18 @@ const closeBookingModal = () => {
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s;
 }
 .review-btn:hover {
   background-color: #5b21b6;
+}
+
+/* 🔥 추가: 후기 작성 완료 버튼 스타일 */
+.review-btn.reviewed {
+  background-color: #059669;
+}
+.review-btn.reviewed:hover {
+  background-color: #047857;
 }
 
 .chat-top {
@@ -473,5 +536,24 @@ const closeBookingModal = () => {
   border-radius: 12px;
   color: #9ca3af;
   font-size: 14px;
+}
+
+/* 스크롤바 숨기기 */
+.graph-panel-wrapper::-webkit-scrollbar,
+.map-panel-wrapper::-webkit-scrollbar,
+.list-panel-wrapper::-webkit-scrollbar,
+.management-panel::-webkit-scrollbar,
+.sidebar-panel::-webkit-scrollbar,
+.top-mentors-floating::-webkit-scrollbar {
+  display: none;
+}
+.graph-panel-wrapper,
+.map-panel-wrapper,
+.list-panel-wrapper,
+.management-panel,
+.sidebar-panel,
+.top-mentors-floating {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

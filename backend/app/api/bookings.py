@@ -176,19 +176,55 @@ def create_booking(
         print(f"❌ 예약 생성 중 예외: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# backend/app/api/bookings.py
+
 @router.put("/api/bookings/{booking_id}/status")
 def update_booking_status(
     booking_id: str,
     update_data: BookingStatusUpdate,
     current_mentor_id: str = Depends(get_current_user_id)
 ):
-    # (기존 코드 유지)
     try:
-        check_response = supabase.table('coffee_chats').select('id').eq('id', booking_id).eq('mentor_id', current_mentor_id).execute()
-        if not check_response.data:
-            raise HTTPException(status_code=404, detail="권한 없음")
+        print(f"🔄 예약 상태 변경 요청: ID={booking_id}, Status={update_data.status}")
 
-        update_response = supabase.table('coffee_chats').update({'status': update_data.status}).eq('id', booking_id).execute()
-        return {"message": "상태 업데이트 성공"}
+        # 1. 권한 확인 및 예약 정보 조회
+        check_response = supabase.table('coffee_chats') \
+            .select('id, availability_id') \
+            .eq('id', booking_id) \
+            .eq('mentor_id', current_mentor_id) \
+            .execute()
+            
+        if not check_response.data:
+            raise HTTPException(status_code=404, detail="권한이 없거나 예약을 찾을 수 없습니다.")
+
+        booking_info = check_response.data[0]
+        slot_id = booking_info.get('availability_id') # 삭제할 슬롯 ID 미리 저장
+
+        # ⭐️ 2. [핵심 수정] 상태 업데이트와 동시에 availability_id 연결 끊기 (NULL로 변경)
+        update_payload = {'status': update_data.status}
+        
+        # 승인 또는 거절인 경우, 연결 고리를 NULL로 만듭니다.
+        if update_data.status in ['approved', 'rejected']:
+            update_payload['availability_id'] = None 
+
+        update_response = supabase.table('coffee_chats') \
+            .update(update_payload) \
+            .eq('id', booking_id) \
+            .execute()
+
+        # 3. 연결이 끊어졌으므로 이제 안전하게 슬롯 삭제 가능
+        if update_data.status in ['approved', 'rejected']:
+            if slot_id:
+                print(f"🗑️ 예약 결정({update_data.status})에 따라 슬롯 삭제: {slot_id}")
+                
+                delete_response = supabase.table('mentor_availability') \
+                    .delete() \
+                    .eq('id', slot_id) \
+                    .execute()
+
+        return {"message": f"예약이 {update_data.status} 처리되었으며, 시간표에서 제거되었습니다."}
+
     except Exception as e:
+        print(f"🔥 상태 업데이트 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
