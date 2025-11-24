@@ -1,15 +1,16 @@
-<template>
+<!-- MenteeNetworkView.vue -->
 
+<template>
   <div class="network-view-container">
 
+    <!-- 탭 메뉴 -->
     <div class="view-switcher">
-
       <button @click="currentView = 'graph'" :class="{ active: currentView === 'graph' }">
         네트워크 뷰
       </button>
 
       <button @click="currentView = 'map'" :class="{ active: currentView === 'map' }">
-        지도 뷰 (WBS 5.2)
+        지도 뷰
       </button>
 
       <button @click="currentView = 'list'" :class="{ active: currentView === 'list' }">
@@ -20,8 +21,10 @@
         커피챗 관리
       </button>
 
+      <!-- (멘티 화면에는 채팅 탭 없음 / 플로팅 버튼으로 진입) -->
     </div>
 
+    <!-- 네트워크 뷰 -->
     <div v-show="currentView === 'graph'" class="graph-panel-wrapper">
       <NetworkGraph
         :nodes="networkStore.nodes"
@@ -37,10 +40,12 @@
       />
     </div>
 
+    <!-- 지도 뷰 -->
     <div v-show="currentView === 'map'" class="map-panel-wrapper">
       <MentorMap />
     </div>
 
+    <!-- 멘토 목록 뷰 -->
     <div v-show="currentView === 'list'" class="list-panel-wrapper">
       <MentorListPanel
         :mentors="topMentorsList"
@@ -51,59 +56,80 @@
       />
     </div>
 
+    <!-- 커피챗 관리 뷰 -->
     <div v-if="currentView === 'management'" class="management-panel">
-        <section class="manage-section completed-section">
-          <div class="section-header">
-            <h3>🎉 완료된 커피챗</h3>
-            <span class="desc">종료된 세션입니다. 멘토님에게 후기를 남겨보세요!</span>
+      <section class="manage-section completed-section">
+        <div class="section-header">
+          <h3>🎉 완료된 커피챗</h3>
+          <span class="desc">종료된 세션입니다. 멘토님에게 후기를 남겨보세요!</span>
+        </div>
+
+        <div v-if="completedChats.length > 0" class="chat-list">
+          <div v-for="chat in completedChats" :key="chat.id" class="chat-card completed">
+            <div class="chat-info">
+              <span class="mentor-name">{{ chat.mentor?.full_name || '멘토' }}님</span>
+              <span class="chat-time">{{ formatSchedule(chat.start_time, chat.end_time) }}</span>
+            </div>
+
+            <button 
+              class="review-btn" 
+              :class="{ 'reviewed': chat.has_review }"
+              @click="openReviewModal(chat)"
+            >
+              {{ chat.has_review ? '📖 내가 쓴 후기' : '✍️ 후기 작성' }}
+            </button>
           </div>
+        </div>
 
-          <div v-if="completedChats.length > 0" class="chat-list">
-            <div v-for="chat in completedChats" :key="chat.id" class="chat-card completed">
-              <div class="chat-info">
-                <span class="mentor-name">{{ chat.mentor?.full_name || '멘토' }}님</span>
-                <span class="chat-time">{{ formatSchedule(chat.start_time, chat.end_time) }}</span>
-              </div>
+        <div v-else class="empty-state-box">
+          완료된 커피챗이 아직 없습니다.
+        </div>
+      </section>
 
-              <button class="review-btn" @click="openReviewModal(chat)">
-                ✍️ 후기 작성
-              </button>
+      <section class="manage-section active-section">
+        <div class="section-header">
+          <h3>📨 신청 현황</h3>
+          <span class="desc">승인 대기 중이거나 예정된 일정입니다.</span>
+        </div>
+
+        <div v-if="activeChats.length > 0" class="chat-list">
+          <div v-for="chat in activeChats" :key="chat.id" class="chat-card">
+            <div class="chat-top">
+              <span class="mentor-name">{{ chat.mentor?.full_name || '멘토' }}님</span>
+              <span :class="['status-badge', chat.status]">
+                {{ getStatusLabel(chat.status) }}
+              </span>
+            </div>
+
+            <div class="chat-details">
+              <p v-if="chat.start_time">📅 {{ formatSchedule(chat.start_time, chat.end_time) }}</p>
+              <p v-else class="no-time">시간 정보 없음</p>
             </div>
           </div>
+        </div>
 
-          <div v-else class="empty-state-box">
-            완료된 커피챗이 아직 없습니다.
-          </div>
-        </section>
+        <div v-else class="empty-state-box">
+          신청 내역이 없습니다.
+        </div>
+      </section>
+    </div>
 
-        <section class="manage-section active-section">
-          <div class="section-header">
-            <h3>📨 신청 현황</h3>
-            <span class="desc">승인 대기 중이거나 예정된 일정입니다.</span>
-          </div>
-
-          <div v-if="activeChats.length > 0" class="chat-list">
-            <div v-for="chat in activeChats" :key="chat.id" class="chat-card">
-              <div class="chat-top">
-                <span class="mentor-name">{{ chat.mentor?.full_name || '멘토' }}님</span>
-                <span :class="['status-badge', chat.status]">
-                  {{ getStatusLabel(chat.status) }}
-                </span>
-              </div>
-
-              <div class="chat-details">
-                <p v-if="chat.start_time">📅 {{ formatSchedule(chat.start_time, chat.end_time) }}</p>
-                <p v-else class="no-time">시간 정보 없음</p>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="empty-state-box">
-            신청 내역이 없습니다.
-          </div>
-        </section>
+    <!-- 채팅 뷰 -->
+    <div v-if="currentView === 'chat'" class="chat-view-wrapper">
+      <div class="chat-layout">
+        <ChatRoomList 
+          @select-room="handleSelectRoom" 
+          ref="chatRoomListRef"
+          class="chat-room-list"
+        />
+        <ChatRoom 
+          :selected-room="selectedChatRoom"
+          class="chat-room"
+        />
       </div>
+    </div>
 
+    <!-- 사이드 패널 및 모달 -->
     <MentorSidebar
       v-if="(currentView === 'graph' || currentView === 'list') && selectedMentor"
       :mentor="selectedMentor"
@@ -121,18 +147,41 @@
       @booking-confirmed="closeBookingModal"
     />
 
-  </div>
+    <ReviewModal
+      :show="isReviewModalOpen"
+      :chat="selectedChatForReview"
+      :mentee-id="currentUserId"
+      @close="closeReviewModal"
+      @review-submitted="handleReviewSubmitted"
+    />
 
+    <!-- 💬 네트워크 그래프 화면 왼쪽 아래 플로팅 채팅 버튼 -->
+    <button
+      v-if="currentView === 'graph'"
+      class="floating-chat-btn"
+      @click="goToChat"
+    >
+      💬
+      <span
+        v-if="chatStore.unreadCount > 0"
+        class="chat-badge"
+      >
+        {{ chatStore.unreadCount > 9 ? '9+' : chatStore.unreadCount }}
+      </span>
+    </button>
+
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import { supabase } from '@/supabaseClient';
-import { useRoute } from 'vue-router'; // 🔥 추가: 라우터 정보 가져오기
+import { useRoute } from 'vue-router';
 
 import { useNetworkStore } from '@/store/network';
 import { useBookingStore } from '@/store/bookingstore'; 
+import { useChatStore } from '@/store/chatStore';
 
 import NetworkGraph from '@/components/graph/NetworkGraph.vue';
 import MentorSidebar from '@/components/profile/MentorSidebar.vue';
@@ -140,12 +189,18 @@ import BookingModal from '@/components/calendar/BookingModal.vue';
 import MentorMap from '@/components/map/MentorMap.vue';
 import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
 import MentorListPanel from '@/components/list/MentorListPanel.vue';
+import ReviewModal from '@/components/review/ReviewModal.vue';
 
-const route = useRoute(); // 🔥 추가: 현재 URL 정보
+// 채팅 컴포넌트
+import ChatRoomList from '@/components/chat/ChatRoomList.vue';
+import ChatRoom from '@/components/chat/ChatRoom.vue';
+
+const route = useRoute();
 const networkStore = useNetworkStore();
 const bookingStore = useBookingStore();
+const chatStore = useChatStore();
 
-const currentView = ref('graph'); // 기본값: 그래프 뷰
+const currentView = ref('graph');
 const selectedMentor = ref(null);
 const mentorForBooking = ref(null);
 const isModalOpen = ref(false);
@@ -153,17 +208,21 @@ const currentUserId = ref('');
 const topMentorsList = ref([]);
 const isLoadingTopMentors = ref(false);
 
+const isReviewModalOpen = ref(false);
+const selectedChatForReview = ref(null);
+const reviewStatusMap = ref({});
+
+// 채팅 관련 state
+const selectedChatRoom = ref(null);
+const chatRoomListRef = ref(null);
 
 onMounted(async () => {
-  // 🔥 핵심 기능: URL에 '?tab=list'가 있으면 '멘토 목록' 탭으로 자동 전환
   if (route.query.tab === 'list') {
     currentView.value = 'list';
   }
 
-  // 그래프 데이터 로드
   networkStore.fetchNetworkData();
 
-  // 현재 로그인한 사용자 정보 가져오기
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     
@@ -174,31 +233,53 @@ onMounted(async () => {
 
     if (user) {
       currentUserId.value = user.id;
-      console.log('✅ 현재 사용자 ID:', user.id);
-      
-      // 실시간 매칭도 계산
       await fetchTopMentorsWithRealScore();
-
       await bookingStore.fetchBookings();
-    } else {
-      console.warn('⚠️ 로그인된 사용자가 없습니다.');
+      await fetchReviewStatus();
     }
   } catch (err) {
     console.error('Auth 에러:', err);
   }
 });
 
-// 1. 완료된 커피챗
+// 플로팅 버튼 → 채팅 탭으로 전환
+function goToChat() {
+  currentView.value = 'chat';
+}
+
+// 후기 상태 조회
+async function fetchReviewStatus() {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('coffee_chat_id')
+      .eq('mentee_id', currentUserId.value);
+
+    if (error) throw error;
+
+    reviewStatusMap.value = {};
+    data.forEach(review => {
+      reviewStatusMap.value[review.coffee_chat_id] = true;
+    });
+  } catch (error) {
+    console.error('후기 상태 조회 실패:', error);
+  }
+}
+
 const completedChats = computed(() => {
   const now = new Date();
-  return bookingStore.bookings.filter(chat => {
-    if (chat.status !== 'approved') return false;
-    if (!chat.end_time) return false;
-    return new Date(chat.end_time) < now; 
-  });
+  return bookingStore.bookings
+    .filter(chat => {
+      if (chat.status !== 'approved') return false;
+      if (!chat.end_time) return false;
+      return new Date(chat.end_time) < now; 
+    })
+    .map(chat => ({
+      ...chat,
+      has_review: !!reviewStatusMap.value[chat.id]
+    }));
 });
 
-// 2. 진행 중인 커피챗
 const activeChats = computed(() => {
   const now = new Date();
   return bookingStore.bookings.filter(chat => {
@@ -208,7 +289,6 @@ const activeChats = computed(() => {
   });
 });
 
-// 헬퍼 함수들
 function getStatusLabel(status) {
   if (status === 'approved') return '승인됨';
   if (status === 'rejected') return '거절됨';
@@ -222,10 +302,21 @@ function formatSchedule(start, end) {
 }
 
 function openReviewModal(chat) {
-  alert(`${chat.mentor?.full_name} 멘토님에 대한 후기 작성 (준비 중)`);
+  selectedChatForReview.value = chat;
+  isReviewModalOpen.value = true;
 }
 
-// TOP 멘토 매칭도 계산
+function closeReviewModal() {
+  isReviewModalOpen.value = false;
+  selectedChatForReview.value = null;
+}
+
+async function handleReviewSubmitted() {
+  await fetchReviewStatus();
+  await bookingStore.fetchBookings();
+}
+
+// TOP 멘토 / 매칭도 조회
 async function fetchTopMentorsWithRealScore() {
   if (!currentUserId.value) {
     topMentorsList.value = networkStore.nodes
@@ -303,10 +394,14 @@ const closeBookingModal = () => {
   isModalOpen.value = false;
   mentorForBooking.value = null;
 };
+
+// 채팅방 선택 핸들러
+function handleSelectRoom(room) {
+  selectedChatRoom.value = room;
+}
 </script>
 
 <style scoped>
-/* 스타일은 기존과 동일합니다 */
 .network-view-container {
   display: flex;
   width: 100%;
@@ -436,9 +531,17 @@ const closeBookingModal = () => {
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s;
 }
 .review-btn:hover {
   background-color: #5b21b6;
+}
+
+.review-btn.reviewed {
+  background-color: #059669;
+}
+.review-btn.reviewed:hover {
+  background-color: #047857;
 }
 
 .chat-top {
@@ -473,5 +576,98 @@ const closeBookingModal = () => {
   border-radius: 12px;
   color: #9ca3af;
   font-size: 14px;
+}
+
+/* 채팅 뷰 스타일 */
+.chat-view-wrapper {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  height: 100%;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.chat-room-list {
+  border-right: 1px solid #e5e7eb;
+}
+
+/* 💬 네트워크 뷰 왼쪽 아래 플로팅 채팅 버튼 */
+.floating-chat-btn {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: #6d28d9;
+  border: none;
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+  z-index: 20;
+}
+
+/* 인스타 DM 느낌의 빨간 배지 */
+.chat-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background-color: #ff3040;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .chat-room-list {
+    display: none;
+  }
+}
+
+/* 스크롤바 숨기기 */
+.graph-panel-wrapper::-webkit-scrollbar,
+.map-panel-wrapper::-webkit-scrollbar,
+.list-panel-wrapper::-webkit-scrollbar,
+.management-panel::-webkit-scrollbar,
+.sidebar-panel::-webkit-scrollbar,
+.top-mentors-floating::-webkit-scrollbar {
+  display: none;
+}
+.graph-panel-wrapper,
+.map-panel-wrapper,
+.list-panel-wrapper,
+.management-panel,
+.sidebar-panel,
+.top-mentors-floating {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

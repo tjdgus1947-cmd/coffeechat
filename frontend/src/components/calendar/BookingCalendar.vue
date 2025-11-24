@@ -1,4 +1,4 @@
-<!--BookingCalendar.vue-->
+<!--BookingCalendar.vue (고민 필드 추가)-->
 <template>
   <div class="calendar-container">
     <div v-if="isLoading" class="loading-spinner">
@@ -32,6 +32,22 @@
         </p>
       </div>
 
+      <!-- 🔥 고민 입력 섹션 추가 -->
+      <div v-if="selectedTimeSlot" class="concern-section">
+        <h4>멘토님께 전할 고민 (선택사항)</h4>
+        <p class="concern-hint">
+          어떤 주제로 이야기하고 싶으신가요? 멘토님이 미리 준비하는 데 도움이 됩니다.
+        </p>
+        <textarea
+          v-model="concern"
+          placeholder="예: 진로 고민, 이직 준비, 포트폴리오 검토 등"
+          rows="4"
+          maxlength="500"
+          class="concern-textarea"
+        ></textarea>
+        <p class="char-count">{{ concern.length }} / 500</p>
+      </div>
+
       <button 
         @click="confirmBooking" 
         :disabled="!selectedDate || !selectedTimeSlot || isSubmitting" 
@@ -52,13 +68,12 @@ const props = defineProps({
 });
 const emit = defineEmits(['booking-confirmed']);
 
-// --- 1. State (변수) ---
 const isLoading = ref(true);
 const isSubmitting = ref(false);
 const selectedDate = ref(null); 
 const selectedTimeSlot = ref(null); 
 const availableSlotsMap = ref({});
-
+const concern = ref('');  // 🔥 고민 필드
 
 function toLocalYyyyMmDd(date) {
   if (!date) return '';
@@ -68,7 +83,6 @@ function toLocalYyyyMmDd(date) {
   return `${year}-${month}-${day}`;
 }
 
-// --- 2. Computed (계산된 속성) ---
 const calendarAttributes = computed(() => {
   return [
     {
@@ -81,14 +95,9 @@ const calendarAttributes = computed(() => {
 
 const availableTimesForSelectedDate = computed(() => {
   if (!selectedDate.value) return [];
-  
-  // ⭐️ [수정 1] toISOString() 대신 로컬 변환 함수 사용
-  // (이전 코드: const key = selectedDate.value.toISOString().split('T')[0];)
   const key = toLocalYyyyMmDd(selectedDate.value);
-  
   return availableSlotsMap.value[key] || [];
 });
-// --- 3. Functions (함수) ---
 
 function formatDate(isoString) {
   if (!isoString) return '';
@@ -99,25 +108,16 @@ function formatDate(isoString) {
 function formatTime(isoString) {
   if (!isoString) return '';
   const dateObj = new Date(isoString);
-  // ⭐️ [선택] 시간도 로컬 시간대로 보여주기 위해 수정 권장
   const hours = String(dateObj.getHours()).padStart(2, '0');
   const minutes = String(dateObj.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
-  
-  // (기존 코드는 UTC 기준으로 짤리기 때문에, 
-  // DB에 UTC로 저장되어 있다면 한국 시간보다 9시간 전 시간이 표시될 수 있음.
-  // 만약 기존 코드로 시간이 잘 나온다면 formatTime은 그대로 두셔도 됩니다.)
 }
 
 
 function processSlots(slots) {
   const map = {};
   slots.forEach(slot => {
-    const dateKey = formatDate(slot.start_time); // 위에서 수정한 formatDate 사용
-    
-    // 시간 표시용 라벨
-    // (만약 DB에 저장된 그대로의 문자열 시간만 필요하다면 기존 로직 유지)
-    // 하지만 Date 객체로 변환해서 로컬 시간을 뽑는 것이 안전합니다.
+    const dateKey = formatDate(slot.start_time);
     const timeLabel = formatTime(slot.start_time);
     
     if (!map[dateKey]) {
@@ -138,7 +138,6 @@ async function fetchAvailability() {
   try {
     const response = await api.get(`/availability/${props.mentorId}`);
     availableSlotsMap.value = processSlots(response.data);
-    console.log(`멘토(${props.mentorId})의 ${response.data.length}개 슬롯 로드 완료`);
   } catch(e) {
     console.error("멘토 가능 시간 로딩 실패:", e);
     availableSlotsMap.value = {};
@@ -163,9 +162,11 @@ const confirmBooking = async () => {
   
   isSubmitting.value = true;
   try {
+    // 🔥 concern 필드 추가
     await api.post('/bookings/create', {
       mentor_id: props.mentorId,
-      availability_slot_id: selectedTimeSlot.value.slotId
+      availability_slot_id: selectedTimeSlot.value.slotId,
+      concern: concern.value.trim() || null  // 🔥 고민 전송
     });
     
     alert('예약 신청이 완료되었습니다. 멘토의 승인을 기다려주세요.');
@@ -174,6 +175,7 @@ const confirmBooking = async () => {
     fetchAvailability(); 
     selectedDate.value = null;
     selectedTimeSlot.value = null;
+    concern.value = '';  // 🔥 초기화
 
   } catch (error) {
     console.error('예약 신청 실패:', error);
@@ -199,12 +201,7 @@ const confirmBooking = async () => {
   border-radius: 0;
   width: 100%;
 }
-:deep(.vc-header) { margin-bottom: 10px; }
-:deep(.vc-title) { font-size: 1.1rem; font-weight: bold; }
-:deep(.vc-weekday) { color: #666; }
-:deep(.vc-day.is-today .vc-day-content) { background-color: #f0ebff; color: #6d28d9; }
-:deep(.vc-day-content:focus) { background-color: #6d28d9; color: #fff; }
-:deep(.vc-day.is-disabled .vc-day-content) { color: #ccc; text-decoration: line-through; pointer-events: none; }
+
 .time-slots { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
 .time-slots h4 { font-weight: bold; margin-bottom: 10px; }
 .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
@@ -212,6 +209,52 @@ const confirmBooking = async () => {
 .slot-button:hover { border-color: #6d28d9; }
 .slot-button.selected { background-color: #6d28d9; color: white; font-weight: bold; border-color: #6d28d9; }
 .no-slots { color: #777; font-size: 0.9rem; }
+
+/* 🔥 고민 입력 섹션 스타일 */
+.concern-section {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.concern-section h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.concern-hint {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.concern-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.concern-textarea:focus {
+  outline: none;
+  border-color: #6d28d9;
+  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1);
+}
+
+.char-count {
+  text-align: right;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
 .confirm-button { width: 100%; margin-top: 20px; padding: 12px; background-color: #6d28d9; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
 .confirm-button:disabled { background-color: #ccc; cursor: not-allowed; }
 .loading-spinner { text-align: center; padding: 20px; color: #666; }

@@ -1,4 +1,4 @@
-# backend/app/api/bookings.py (디버깅 모드)
+# backend/app/api/bookings.py (수정됨)
 
 from fastapi import APIRouter, HTTPException, Depends
 from app.core.config import supabase
@@ -16,26 +16,35 @@ router = APIRouter()
 class UserSimple(BaseModel):
     full_name: Optional[str] = "알 수 없음"
 
+# 🔥 멘티 정보 추가 (멘토가 볼 수 있도록)
+class MenteeDetailInfo(BaseModel):
+    id: Optional[str] = None  # 🔥 [추가] 이 줄을 꼭 추가해주세요!
+    full_name: Optional[str] = "알 수 없음"
+    current_situation: Optional[str] = None
+    career_goal: Optional[str] = None
+
 class BookingReceived(BaseModel):
     id: str
     status: str
-    mentee: Optional[UserSimple] = None 
+    mentee: Optional[MenteeDetailInfo] = None  # 🔥 상세 정보로 변경
     start_time: datetime
     end_time: datetime
     created_at: Optional[str] = None
+    concern: Optional[str] = None  # 🔥 고민 필드 추가
 
-# 🔥 [확인] 여기에 start_time, end_time이 있어야 함
 class BookingSent(BaseModel):
     id: str
     status: str
     mentor: Optional[UserSimple] = None
     created_at: Optional[str] = None
     start_time: Optional[datetime] = None 
-    end_time: Optional[datetime] = None   
+    end_time: Optional[datetime] = None
+    concern: Optional[str] = None  # 🔥 고민 필드 추가
 
 class BookingCreateRequest(BaseModel):
     mentor_id: str 
     availability_slot_id: str
+    concern: Optional[str] = None  # 🔥 고민 필드 추가
 
 class BookingStatusUpdate(BaseModel):
     status: str 
@@ -46,10 +55,20 @@ class BookingStatusUpdate(BaseModel):
 def get_received_bookings_for_mentor(
     mentor_id: str = Depends(get_current_user_id)
 ):
-    # (멘토용 코드는 생략 - 기존과 동일)
+    """멘토가 받은 커피챗 신청 목록 조회 (멘티 상세 정보 포함)"""
     try:
+        # 🔥 [수정됨] users 테이블 안에서 mentee_profiles를 찾도록 쿼리 구조 변경
+        # 기존 코드: mentee_profiles!inner(...) -> 에러 원인 (직접 연결 없음)
+        # 수정 코드: users(..., mentee_profiles(...)) -> 정상 (users를 통해 조회)
+        
         response = supabase.table('coffee_chats') \
-            .select('id, status, start_time, end_time, created_at, mentee_id, users!coffee_chats_mentee_id_fkey(full_name)') \
+            .select('''
+                id, status, start_time, end_time, created_at, concern, mentee_id,
+                users!coffee_chats_mentee_id_fkey(
+                    full_name,
+                    mentee_profiles(current_situation, career_goal)
+                )
+            ''') \
             .eq('mentor_id', mentor_id) \
             .order('created_at', desc=True) \
             .execute()
@@ -57,74 +76,87 @@ def get_received_bookings_for_mentor(
         if response.data:
             transformed_data = []
             for item in response.data:
+                # users 데이터 가져오기
+                user_data = item.get('users') or {}
+                
+                # users 안에 중첩된 mentee_profiles 가져오기 (배열 형태일 수 있음)
+                m_profile_data = user_data.get('mentee_profiles')
+                
+                # 배열이면 첫 번째 것, 객체면 그대로, 없으면 빈 딕셔너리
+                if isinstance(m_profile_data, list) and m_profile_data:
+                    profile = m_profile_data[0]
+                elif isinstance(m_profile_data, dict):
+                    profile = m_profile_data
+                else:
+                    profile = {}
+                
                 transformed_data.append({
                     'id': item['id'],
                     'status': item['status'],
                     'start_time': item['start_time'],
                     'end_time': item['end_time'],
                     'created_at': item['created_at'],
-                    'mentee': { 'full_name': item['users']['full_name'] if item.get('users') else '알 수 없음' }
+                    'concern': item.get('concern'),
+                    'mentee': {
+                        'id': item['mentee_id'],  # 🔥 [추가] 멘티 ID(UUID)를 여기에 맵핑!
+                        'full_name': user_data.get('full_name', '알 수 없음'),
+                        'current_situation': profile.get('current_situation'),
+                        'career_goal': profile.get('career_goal')
+                    }
                 })
             return transformed_data
         return []
+    
     except Exception as e:
+        print(f"❌ 멘토 예약 조회 실패: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# 🔥🔥🔥 [여기가 문제의 구간입니다] 🔥🔥🔥
 @router.get("/api/bookings/me", response_model=List[BookingSent])
 def get_sent_bookings_for_mentee(
     mentee_id: str = Depends(get_current_user_id)
 ):
+    """멘티가 보낸 커피챗 신청 목록 조회"""
     try:
-        print(f"\n🔍 [디버깅] 멘티 예약 조회 시작: ID={mentee_id}")
-        
-        # 1. DB에서 데이터 가져오기
         response = supabase.table('coffee_chats') \
-            .select('id, status, created_at, start_time, end_time, mentor_id, users!coffee_chats_mentor_id_fkey(full_name)') \
+            .select('id, status, created_at, start_time, end_time, concern, mentor_id, users!coffee_chats_mentor_id_fkey(full_name)') \
             .eq('mentee_id', mentee_id) \
             .order('created_at', desc=True) \
             .execute()
         
-        # 2. DB에서 가져온 원본 데이터 확인
-        print(f"📊 [디버깅] DB 응답 개수: {len(response.data)}")
         if response.data:
-            print(f"📝 [디버깅] 첫 번째 데이터 샘플: {response.data[0]}") 
-            # 👆 터미널에서 이 부분에 'start_time'이 있는지 꼭 확인하세요!
-
             transformed_data = []
             for item in response.data:
                 data_item = {
                     'id': item['id'],
                     'status': item['status'],
                     'created_at': item['created_at'],
-                    'start_time': item.get('start_time'), # 여기서 매핑
+                    'start_time': item.get('start_time'),
                     'end_time': item.get('end_time'),
+                    'concern': item.get('concern'),  # 🔥 고민 추가
                     'mentor': {
                         'full_name': item['users']['full_name'] if item.get('users') else '알 수 없음'
                     }
                 }
                 transformed_data.append(data_item)
-            
-            print(f"🚀 [디버깅] 변환 후 데이터 (첫번째): {transformed_data[0]}")
             return transformed_data
             
         return []
 
     except Exception as e:
-        print(f"❌ [디버깅] 에러 발생: {e}")
-        import traceback
+        print(f"❌ 멘티 예약 조회 실패: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-# (나머지 create_booking 등의 코드는 기존 유지)
+
 @router.post("/api/bookings/create")
 def create_booking(
     request: BookingCreateRequest,
     mentee_id: str = Depends(get_current_user_id)
 ):
+    """커피챗 예약 생성 (고민 포함)"""
     try:
-        # 1️⃣ 해당 슬롯 조회
         slot_check = supabase.table('mentor_availability') \
             .select('*') \
             .eq('id', request.availability_slot_id) \
@@ -134,7 +166,6 @@ def create_booking(
             raise HTTPException(status_code=404, detail="예약 가능한 슬롯을 찾을 수 없습니다.")
 
         slot = slot_check.data[0]
-        print(f"🕒 [디버깅] 슬롯 정보 확인: start_time={slot.get('start_time')}") # 디버깅용
 
         if slot['is_booked']:
             raise HTTPException(status_code=409, detail="이미 예약된 시간 슬롯입니다.")
@@ -147,23 +178,23 @@ def create_booking(
         if existing.data:
             raise HTTPException(status_code=409, detail="이미 해당 슬롯에 예약이 존재합니다.")
         
-        # 멘토 ID 찾기
         mentor_profile = supabase.table("mentor_profiles").select("user_id").eq("id", request.mentor_id).single().execute()
         real_mentor_id = mentor_profile.data['user_id']
 
-        # 예약 생성
+        # 🔥 concern 필드 추가
         chat_response = supabase.table('coffee_chats').insert({
-                'id': str(uuid.uuid4()),
-                'mentee_id': mentee_id,
-                'mentor_id': real_mentor_id,
-                'availability_id': request.availability_slot_id,
-                'status': 'pending',
-                'start_time': slot['start_time'],
-                'end_time': slot['end_time']
-            }).execute()
+            'id': str(uuid.uuid4()),
+            'mentee_id': mentee_id,
+            'mentor_id': real_mentor_id,
+            'availability_id': request.availability_slot_id,
+            'status': 'pending',
+            'start_time': slot['start_time'],
+            'end_time': slot['end_time'],
+            'concern': request.concern  # 🔥 고민 저장
+        }).execute()
         
         if not chat_response.data:
-             raise HTTPException(status_code=500, detail="예약 정보 삽입에 실패했습니다.")
+            raise HTTPException(status_code=500, detail="예약 정보 삽입에 실패했습니다.")
             
         supabase.table('mentor_availability') \
             .update({'is_booked': True}) \
@@ -174,10 +205,9 @@ def create_booking(
 
     except Exception as e:
         print(f"❌ 예약 생성 중 예외: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# backend/app/api/bookings.py
 
 @router.put("/api/bookings/{booking_id}/status")
 def update_booking_status(
@@ -185,12 +215,10 @@ def update_booking_status(
     update_data: BookingStatusUpdate,
     current_mentor_id: str = Depends(get_current_user_id)
 ):
+    """커피챗 승인/거절 처리 + 채팅방 생성"""
     try:
-        print(f"🔄 예약 상태 변경 요청: ID={booking_id}, Status={update_data.status}")
-
-        # 1. 권한 확인 및 예약 정보 조회
         check_response = supabase.table('coffee_chats') \
-            .select('id, availability_id') \
+            .select('id, availability_id, mentor_id, mentee_id') \
             .eq('id', booking_id) \
             .eq('mentor_id', current_mentor_id) \
             .execute()
@@ -199,12 +227,10 @@ def update_booking_status(
             raise HTTPException(status_code=404, detail="권한이 없거나 예약을 찾을 수 없습니다.")
 
         booking_info = check_response.data[0]
-        slot_id = booking_info.get('availability_id') # 삭제할 슬롯 ID 미리 저장
+        slot_id = booking_info.get('availability_id')
 
-        # ⭐️ 2. [핵심 수정] 상태 업데이트와 동시에 availability_id 연결 끊기 (NULL로 변경)
         update_payload = {'status': update_data.status}
         
-        # 승인 또는 거절인 경우, 연결 고리를 NULL로 만듭니다.
         if update_data.status in ['approved', 'rejected']:
             update_payload['availability_id'] = None 
 
@@ -213,18 +239,29 @@ def update_booking_status(
             .eq('id', booking_id) \
             .execute()
 
-        # 3. 연결이 끊어졌으므로 이제 안전하게 슬롯 삭제 가능
+        # 🔥 승인 시 채팅방 생성
+        if update_data.status == 'approved':
+            try:
+                chat_room_response = supabase.table('chat_rooms').insert({
+                    'coffee_chat_id': booking_id,
+                    'mentor_id': booking_info['mentor_id'],
+                    'mentee_id': booking_info['mentee_id']
+                }).execute()
+                
+                print(f"✅ 채팅방 생성 완료: {chat_room_response.data}")
+            except Exception as chat_error:
+                print(f"⚠️ 채팅방 생성 실패 (예약은 승인됨): {chat_error}")
+
         if update_data.status in ['approved', 'rejected']:
             if slot_id:
-                print(f"🗑️ 예약 결정({update_data.status})에 따라 슬롯 삭제: {slot_id}")
-                
-                delete_response = supabase.table('mentor_availability') \
+                supabase.table('mentor_availability') \
                     .delete() \
                     .eq('id', slot_id) \
                     .execute()
 
-        return {"message": f"예약이 {update_data.status} 처리되었으며, 시간표에서 제거되었습니다."}
+        return {"message": f"예약이 {update_data.status} 처리되었습니다."}
 
     except Exception as e:
         print(f"🔥 상태 업데이트 실패: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
