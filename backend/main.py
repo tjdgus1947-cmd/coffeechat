@@ -16,10 +16,12 @@ from fastapi.encoders import jsonable_encoder
 from app.api import mentors
 from app.api import coffeechats # 👈 coffeechats 라우터 추가
 from app.api import profile
+from app.api import ai_generation # 임포트 추가
 
 # 🚨 ⭐️ 핵심: FastAPI 앱 인스턴스를 생성합니다. ⭐️
 app = FastAPI()
 
+app.include_router(ai_generation.router) # 라우터 등록
 # JSON 응답 직렬화(Serialization) 로직 정의 및 연결
 def json_datetime_encoder(obj):
     if isinstance(obj, datetime):
