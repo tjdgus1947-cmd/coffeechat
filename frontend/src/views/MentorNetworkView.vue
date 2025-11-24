@@ -1,228 +1,255 @@
 <template>
-  <div class="mentor-dashboard">
-    
-    <section class="top-section">
-      <div class="welcome-card">
-        
-        <div class="card-top">
-          <div class="greeting-text">
-            <span class="sub-label">MENTOR DASHBOARD</span>
-            <h2>안녕하세요, {{ authStore.userName || '멘토' }}님 👋</h2>
-            <p>이번 달 멘토링 활동 현황을 확인하세요.</p>
-          </div>
-          <div class="goal-badge">
-            🎯 목표 달성률 <strong>{{ goalProgress }}%</strong> · <strong>{{ stats.total }}건</strong> 신청 처리
-          </div>
-        </div>
+  <div class="mentor-container">
 
-        <div class="stats-row">
-          <div class="stat-item">
-            <div class="stat-icon blue">📅</div>
-            <div class="stat-text">
-              <span class="label">전체 신청</span>
-              <strong class="value">{{ stats.total }}</strong>
+    <div class="view-switcher">
+      <button 
+        @click="currentView = 'dashboard'" 
+        :class="{ active: currentView === 'dashboard' }"
+      >
+        📊 대시보드
+      </button>
+
+      <button 
+        @click="currentView = 'chat'" 
+        :class="{ active: currentView === 'chat' }"
+      >
+        💬 채팅
+      </button>
+    </div>
+
+    <div v-show="currentView === 'dashboard'" class="mentor-dashboard">
+      <section class="top-section">
+        <div class="welcome-card">
+          
+          <div class="card-top">
+            <div class="greeting-text">
+              <span class="sub-label">MENTOR DASHBOARD</span>
+              <h2>안녕하세요, {{ authStore.userName || '멘토' }}님 👋</h2>
+              <p>이번 달 멘토링 활동 현황을 확인하세요.</p>
+            </div>
+            <div class="goal-badge">
+              🎯 목표 달성률 <strong>{{ goalProgress }}%</strong> · <strong>{{ stats.total }}건</strong> 신청 처리
             </div>
           </div>
 
-          <div class="stat-item">
-            <div class="stat-icon yellow">🕒</div>
-            <div class="stat-text">
-              <span class="label">응답 대기</span>
-              <strong class="value">{{ stats.pending }}</strong>
-            </div>
-          </div>
-
-          <div class="stat-item">
-            <div class="stat-icon green">✅</div>
-            <div class="stat-text">
-              <span class="label">확정 세션</span>
-              <strong class="value">{{ stats.approved }}</strong>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <section class="content-section">
-      <div class="content-wrapper">
-        
-        <!-- 첫 번째 행: 커피챗 목록 + 레벨 -->
-        <div class="content-grid">
-          <div class="main-panel">
-            <div class="panel-header">
-              <h3>다가오는 커피챗 / 신청 목록</h3>
-              <span class="count-badge">{{ stats.total }}건</span>
-            </div>
-            <div class="panel-body list-scroll-area">
-              <MentorRequestList />
-            </div>
-          </div>
-
-          <div class="side-panel">
-            <div class="panel-header">
-              <h3>멘토 레벨</h3>
-              <span class="level-badge">Lv. {{ mentorLevel.level }}</span>
-            </div>
-            <div class="panel-body level-body">
-              <div class="xp-info">
-                <p class="xp-total">
-                  {{ mentorLevel.totalXP }}
-                  <span class="unit"> P</span>
-                </p>
-                <p class="xp-weekly">이번 주 XP {{ mentorLevel.weeklyXP }}</p>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-icon blue">📅</div>
+              <div class="stat-text">
+                <span class="label">전체 신청</span>
+                <strong class="value">{{ stats.total }}</strong>
               </div>
+            </div>
 
-              <div class="xp-progress">
-                <div class="progress-header">
-                  <span>다음 레벨까지</span>
-                  <span>{{ mentorLevel.currentXP }} / {{ mentorLevel.nextLevelXP }} XP</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: mentorLevel.progress + '%' }"></div>
-                </div>
+            <div class="stat-item">
+              <div class="stat-icon yellow">🕒</div>
+              <div class="stat-text">
+                <span class="label">응답 대기</span>
+                <strong class="value">{{ stats.pending }}</strong>
               </div>
+            </div>
 
-              <div class="badges-section">
-                <h4>획득한 배지 ({{ earnedBadges }} / {{ totalBadges }})</h4>
-                <div class="badges-grid">
-                  <div
-                    v-for="badge in badges"
-                    :key="badge.name"
-                    class="badge-item"
-                    :class="{ earned: badge.earned }"
-                  >
-                    <span class="badge-icon">{{ badge.icon }}</span>
-                    <span class="badge-name">{{ badge.name }}</span>
+            <div class="stat-item">
+              <div class="stat-icon green">✅</div>
+              <div class="stat-text">
+                <span class="label">확정 세션</span>
+                <strong class="value">{{ stats.approved }}</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="content-section">
+        <div class="content-wrapper">
+          
+          <div class="content-grid">
+            <div class="main-panel">
+              <div class="panel-header">
+                <h3>다가오는 커피챗 / 신청 목록</h3>
+                <span class="count-badge">{{ stats.total }}건</span>
+              </div>
+              <div class="panel-body list-scroll-area">
+                <MentorRequestList />
+              </div>
+            </div>
+
+            <div class="side-panel">
+              <div class="panel-header">
+                <h3>멘토 레벨</h3>
+                <span class="level-badge">Lv. {{ mentorLevel.level }}</span>
+              </div>
+              <div class="panel-body level-body">
+                <div class="xp-info">
+                  <p class="xp-total">
+                    {{ mentorLevel.totalXP }}
+                    <span class="unit"> P</span>
+                  </p>
+                  <p class="xp-weekly">이번 주 XP {{ mentorLevel.weeklyXP }}</p>
+                </div>
+
+                <div class="xp-progress">
+                  <div class="progress-header">
+                    <span>다음 레벨까지</span>
+                    <span>{{ mentorLevel.currentXP }} / {{ mentorLevel.nextLevelXP }} XP</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: mentorLevel.progress + '%' }"></div>
+                  </div>
+                </div>
+
+                <div class="badges-section">
+                  <h4>획득한 배지 ({{ earnedBadges }} / {{ totalBadges }})</h4>
+                  <div class="badges-grid">
+                    <div
+                      v-for="badge in badges"
+                      :key="badge.name"
+                      class="badge-item"
+                      :class="{ earned: badge.earned }"
+                    >
+                      <span class="badge-icon">{{ badge.icon }}</span>
+                      <span class="badge-name">{{ badge.name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ranking-box">
+                  <div class="ranking-content">
+                    <div>
+                      <p class="ranking-label">내 순위</p>
+                      <p class="ranking-value">{{ myRanking.rank ? `#${myRanking.rank}` : '데이터 없음' }}</p>
+                      <p class="ranking-points">포인트 {{ myRanking.points }}P</p>
+                    </div>
+                    <div class="ranking-trend" :class="rankingTrendClass">
+                      <span class="trend-icon">{{ rankingTrendIcon }}</span>
+                      <span class="trend-text">{{ rankingTrendText }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div class="ranking-box">
-                <div class="ranking-content">
-                  <div>
-                    <p class="ranking-label">내 순위</p>
-                    <p class="ranking-value">{{ myRanking.rank ? `#${myRanking.rank}` : '데이터 없음' }}</p>
-                    <p class="ranking-points">포인트 {{ myRanking.points }}P</p>
-                  </div>
-                  <div class="ranking-trend" :class="rankingTrendClass">
-                    <span class="trend-icon">{{ rankingTrendIcon }}</span>
-                    <span class="trend-text">{{ rankingTrendText }}</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 두 번째 행: 최근 받은 리뷰 + 멘토 랭킹 -->
-        <div class="bottom-grid">
-          <!-- 최근 받은 리뷰 -->
-          <article class="review-panel">
-            <div class="panel-header">
-              <div>
-                <h3>최근 받은 리뷰</h3>
-                <p class="panel-desc">멘티 피드백을 확인하세요.</p>
+          <div class="bottom-grid">
+            <article class="review-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>최근 받은 리뷰</h3>
+                  <p class="panel-desc">멘티 피드백을 확인하세요.</p>
+                </div>
+                <div class="rating-badge">
+                  <span class="star-icon">⭐</span>
+                  <span class="rating-value">{{ averageRating }}</span>
+                </div>
               </div>
-              <div class="rating-badge">
-                <span class="star-icon">⭐</span>
-                <span class="rating-value">{{ averageRating }}</span>
-              </div>
-            </div>
 
-            <div class="panel-body">
-              <div v-if="recentReviews.length > 0" class="review-list">
-                <div v-for="review in recentReviews" :key="review.id" class="review-item">
-                  <div class="review-header">
-                    <div class="reviewer-info">
-                      <img
-                        :src="review.avatar || 'https://via.placeholder.com/40'"
-                        :alt="review.menteeName"
-                        class="reviewer-avatar"
-                      />
-                      <div class="reviewer-details">
-                        <span class="reviewer-name">{{ review.menteeName }}</span>
-                        <span class="review-date">{{ review.dateLabel }}</span>
+              <div class="panel-body">
+                <div v-if="recentReviews.length > 0" class="review-list">
+                  <div v-for="review in recentReviews" :key="review.id" class="review-item">
+                    <div class="review-header">
+                      <div class="reviewer-info">
+                        <img
+                          :src="review.avatar || 'https://via.placeholder.com/40'"
+                          :alt="review.menteeName"
+                          class="reviewer-avatar"
+                        />
+                        <div class="reviewer-details">
+                          <span class="reviewer-name">{{ review.menteeName }}</span>
+                          <span class="review-date">{{ review.dateLabel }}</span>
+                        </div>
+                      </div>
+                      <div class="review-stars">
+                        <span
+                          v-for="i in 5"
+                          :key="i"
+                          :class="i <= review.rating ? 'star filled' : 'star'"
+                        >★</span>
                       </div>
                     </div>
-                    <div class="review-stars">
-                      <span
-                        v-for="i in 5"
-                        :key="i"
-                        :class="i <= review.rating ? 'star filled' : 'star'"
-                      >★</span>
-                    </div>
+                    <p class="review-session">{{ review.session }}</p>
+                    <p class="review-comment">{{ review.comment }}</p>
                   </div>
-                  <p class="review-session">{{ review.session }}</p>
-                  <p class="review-comment">{{ review.comment }}</p>
+                </div>
+
+                <div v-else class="empty-reviews">
+                  <p class="emoji">📝</p>
+                  <p>아직 리뷰가 없습니다. 커피챗이 완료되면 멘티에게 후기를 요청해보세요.</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="ranking-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>멘토 랭킹</h3>
+                  <p class="panel-desc">이번 달 상위 멘토 현황</p>
+                </div>
+                <div class="top-badge">
+                  상위 10위까지 {{ pointsToTopTen }}P
                 </div>
               </div>
 
-              <div v-else class="empty-reviews">
-                <p class="emoji">📝</p>
-                <p>아직 리뷰가 없습니다. 커피챗이 완료되면 멘티에게 후기를 요청해보세요.</p>
-              </div>
-            </div>
-          </article>
-
-          <!-- 멘토 랭킹 -->
-          <article class="ranking-panel">
-            <div class="panel-header">
-              <div>
-                <h3>멘토 랭킹</h3>
-                <p class="panel-desc">이번 달 상위 멘토 현황</p>
-              </div>
-              <div class="top-badge">
-                상위 10위까지 {{ pointsToTopTen }}P
-              </div>
-            </div>
-
-            <div class="panel-body">
-              <!-- 내 순위 강조 박스 -->
-              <div class="my-rank-box">
-                <div class="rank-content">
-                  <div class="rank-left">
-                    <div class="rank-number">
-                      {{ myRanking.rank ? `#${myRanking.rank}` : '-' }}
+              <div class="panel-body">
+                <div class="my-rank-box">
+                  <div class="rank-content">
+                    <div class="rank-left">
+                      <div class="rank-number">
+                        {{ myRanking.rank ? `#${myRanking.rank}` : '-' }}
+                      </div>
+                      <div class="rank-info">
+                        <p class="rank-label">내 순위</p>
+                        <p class="rank-name">{{ authStore.userName || '멘토' }}</p>
+                      </div>
                     </div>
-                    <div class="rank-info">
-                      <p class="rank-label">내 순위</p>
-                      <p class="rank-name">{{ authStore.userName || '멘토' }}</p>
-                    </div>
-                  </div>
-                  <div class="rank-right">
-                    <p class="rank-label">포인트</p>
-                    <p class="rank-points">{{ myRanking.points }}P</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 상위 멘토 리스트 -->
-              <div v-if="topMentors.length > 0" class="top-mentors-list">
-                <div
-                  v-for="mentor in topMentors"
-                  :key="mentor.id"
-                  class="mentor-rank-item"
-                >
-                  <div class="mentor-rank-left">
-                    <span class="mentor-rank-number">#{{ mentor.rank }}</span>
-                    <div class="mentor-info">
-                      <p class="mentor-name">{{ mentor.name }}</p>
-                      <p class="mentor-category">포인트 {{ mentor.points }}P</p>
+                    <div class="rank-right">
+                      <p class="rank-label">포인트</p>
+                      <p class="rank-points">{{ myRanking.points }}P</p>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div v-else class="empty-ranking">
-                <p>상위 멘토 데이터가 아직 준비되지 않았습니다.</p>
+                <div v-if="topMentors.length > 0" class="top-mentors-list">
+                  <div
+                    v-for="mentor in topMentors"
+                    :key="mentor.id"
+                    class="mentor-rank-item"
+                  >
+                    <div class="mentor-rank-left">
+                      <span class="mentor-rank-number">#{{ mentor.rank }}</span>
+                      <div class="mentor-info">
+                        <p class="mentor-name">{{ mentor.name }}</p>
+                        <p class="mentor-category">포인트 {{ mentor.points }}P</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="empty-ranking">
+                  <p>상위 멘토 데이터가 아직 준비되지 않았습니다.</p>
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          </div>
+
         </div>
+      </section>
+    </div>
 
+    <div v-if="currentView === 'chat'" class="chat-view-wrapper">
+      <div class="chat-layout">
+        <ChatRoomList 
+          @select-room="handleSelectRoom" 
+          ref="chatRoomListRef"
+          class="chat-room-list"
+        />
+        <ChatRoom 
+          :selected-room="selectedChatRoom"
+          class="chat-room"
+        />
       </div>
-    </section>
+    </div>
+
   </div>
 </template>
 
@@ -233,8 +260,19 @@ import { useMentorStore } from '@/store/mentorStore';
 import { supabase } from '@/supabaseClient';
 import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 
+// 🔥 채팅 컴포넌트 import
+import ChatRoomList from '@/components/chat/ChatRoomList.vue';
+import ChatRoom from '@/components/chat/ChatRoom.vue';
+
 const authStore = useAuthStore();
 const mentorStore = useMentorStore();
+
+// 🔥 뷰 상태 관리 (dashboard | chat)
+const currentView = ref('dashboard');
+
+// 🔥 채팅 관련 state
+const selectedChatRoom = ref(null);
+const chatRoomListRef = ref(null);
 
 const receivedReviews = ref([]);
 const topMentors = ref([]);
@@ -248,6 +286,11 @@ onMounted(async () => {
     fetchMentorRanking()
   ]);
 });
+
+// 🔥 채팅방 선택 핸들러
+function handleSelectRoom(room) {
+  selectedChatRoom.value = room;
+}
 
 // ---------------- 리뷰 불러오기 ----------------
 async function fetchReceivedReviews() {
@@ -313,7 +356,6 @@ async function fetchMentorRanking() {
       return;
     }
 
-    // mentor_id별 리뷰 수 / 평점 집계
     const statsMap = {};
     for (const row of reviewRows) {
       const mId = row.mentor_id;
@@ -327,7 +369,6 @@ async function fetchMentorRanking() {
 
     const mentorStats = Object.values(statsMap).map(s => {
       const avgRating = s.reviewCount > 0 ? s.totalRating / s.reviewCount : 0;
-      // 포인트 계산 규칙 (원하면 나중에 바꿔도 됨)
       const points = s.reviewCount * 10 + avgRating * 20;
       return {
         mentor_id: s.mentor_id,
@@ -337,9 +378,7 @@ async function fetchMentorRanking() {
       };
     });
 
-    // 포인트 기준 내림차순 정렬
     mentorStats.sort((a, b) => b.points - a.points);
-
     const mentorIds = mentorStats.map(m => m.mentor_id);
 
     const { data: mentorsInfo, error: mentorsError } = await supabase
@@ -362,7 +401,6 @@ async function fetchMentorRanking() {
       points: Math.round(m.points)
     }));
 
-    // 내 순위/포인트 계산
     const myIdx = mentorStats.findIndex(m => m.mentor_id === user.id);
     if (myIdx !== -1) {
       const myPoints = Math.round(mentorStats[myIdx].points);
@@ -424,39 +462,7 @@ const badges = computed(() => [
 const earnedBadges = computed(() => badges.value.filter(b => b.earned).length);
 const totalBadges = computed(() => badges.value.length);
 
-// 트렌드용 (지금은 diff=0이라 "변동 없음"만 뜸)
-const bookingsThisMonth = computed(() => {
-  const now = new Date();
-  return (mentorStore.receivedBookings || []).filter(b => {
-    const date = new Date(b.created_at || b.start_time);
-    return (
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth()
-    );
-  });
-});
-
-const bookingsLastMonth = computed(() => {
-  const now = new Date();
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return (mentorStore.receivedBookings || []).filter(b => {
-    const date = new Date(b.created_at || b.start_time);
-    return (
-      date.getFullYear() === lastMonth.getFullYear() &&
-      date.getMonth() === lastMonth.getMonth()
-    );
-  });
-});
-
-const approvedThisMonth = computed(
-  () => bookingsThisMonth.value.filter(b => b.status === 'approved').length
-);
-const approvedLastMonth = computed(
-  () => bookingsLastMonth.value.filter(b => b.status === 'approved').length
-);
-
-// 필요하면 나중에 diff 계산을 여기서 myRanking.value에 반영해도 됨
-
+// 트렌드 관련
 const rankingTrendClass = computed(() => {
   if (!stats.value.total) return 'text-gray-400';
   if (myRanking.value.diff > 0) return 'text-green-600';
@@ -517,12 +523,48 @@ function formatRelativeTime(dateString) {
 </script>
 
 <style scoped>
-.mentor-dashboard {
-  width: 100%;
-  min-height: 100vh;
+.mentor-container {
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
   background-color: #f9fafb;
+}
+
+/* 🔥 탭 메뉴 스타일 */
+.view-switcher {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 40px;
+  flex-shrink: 0;
+}
+.view-switcher button {
+  padding: 16px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.view-switcher button:hover {
+  color: #111827;
+}
+.view-switcher button.active {
+  border-bottom: 3px solid #6d28d9;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+/* 대시보드 스크롤 영역 */
+.mentor-dashboard {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 상단 섹션 */
@@ -1031,6 +1073,31 @@ function formatRelativeTime(dateString) {
   font-size: 14px;
 }
 
+/* 🔥 채팅 뷰 스타일 추가 */
+.chat-view-wrapper {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  padding: 20px 40px; /* 대시보드와 여백 맞춤 */
+  box-sizing: border-box;
+}
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  height: 100%;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background: white;
+}
+
+.chat-room-list {
+  border-right: 1px solid #e5e7eb;
+}
+
 /* 반응형 */
 @media (max-width: 1024px) {
   .content-grid {
@@ -1048,7 +1115,9 @@ function formatRelativeTime(dateString) {
 
 @media (max-width: 768px) {
   .top-section,
-  .content-section {
+  .content-section,
+  .view-switcher,
+  .chat-view-wrapper {
     padding: 20px;
   }
   
@@ -1059,6 +1128,14 @@ function formatRelativeTime(dateString) {
   .card-top {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .chat-room-list {
+    display: none; /* 모바일 대응 필요시 수정 */
   }
 }
 </style>
