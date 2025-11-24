@@ -1,3 +1,5 @@
+<!-- MenteeNetworkView.vue -->
+
 <template>
   <div class="network-view-container">
 
@@ -19,13 +21,10 @@
         커피챗 관리
       </button>
 
-      <!-- 🔥 채팅 탭 추가 -->
-      <button @click="currentView = 'chat'" :class="{ active: currentView === 'chat' }">
-        💬 채팅
-      </button>
+      <!-- (멘티 화면에는 채팅 탭 없음 / 플로팅 버튼으로 진입) -->
     </div>
 
-    <!-- 각 탭의 내용 -->
+    <!-- 네트워크 뷰 -->
     <div v-show="currentView === 'graph'" class="graph-panel-wrapper">
       <NetworkGraph
         :nodes="networkStore.nodes"
@@ -41,10 +40,12 @@
       />
     </div>
 
+    <!-- 지도 뷰 -->
     <div v-show="currentView === 'map'" class="map-panel-wrapper">
       <MentorMap />
     </div>
 
+    <!-- 멘토 목록 뷰 -->
     <div v-show="currentView === 'list'" class="list-panel-wrapper">
       <MentorListPanel
         :mentors="topMentorsList"
@@ -55,6 +56,7 @@
       />
     </div>
 
+    <!-- 커피챗 관리 뷰 -->
     <div v-if="currentView === 'management'" class="management-panel">
       <section class="manage-section completed-section">
         <div class="section-header">
@@ -112,7 +114,7 @@
       </section>
     </div>
 
-    <!-- 🔥 채팅 뷰 추가 -->
+    <!-- 채팅 뷰 -->
     <div v-if="currentView === 'chat'" class="chat-view-wrapper">
       <div class="chat-layout">
         <ChatRoomList 
@@ -153,6 +155,21 @@
       @review-submitted="handleReviewSubmitted"
     />
 
+    <!-- 💬 네트워크 그래프 화면 왼쪽 아래 플로팅 채팅 버튼 -->
+    <button
+      v-if="currentView === 'graph'"
+      class="floating-chat-btn"
+      @click="goToChat"
+    >
+      💬
+      <span
+        v-if="chatStore.unreadCount > 0"
+        class="chat-badge"
+      >
+        {{ chatStore.unreadCount > 9 ? '9+' : chatStore.unreadCount }}
+      </span>
+    </button>
+
   </div>
 </template>
 
@@ -164,6 +181,7 @@ import { useRoute } from 'vue-router';
 
 import { useNetworkStore } from '@/store/network';
 import { useBookingStore } from '@/store/bookingstore'; 
+import { useChatStore } from '@/store/chatStore';
 
 import NetworkGraph from '@/components/graph/NetworkGraph.vue';
 import MentorSidebar from '@/components/profile/MentorSidebar.vue';
@@ -173,13 +191,14 @@ import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
 import MentorListPanel from '@/components/list/MentorListPanel.vue';
 import ReviewModal from '@/components/review/ReviewModal.vue';
 
-// 🔥 채팅 컴포넌트 import
+// 채팅 컴포넌트
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatRoom from '@/components/chat/ChatRoom.vue';
 
 const route = useRoute();
 const networkStore = useNetworkStore();
 const bookingStore = useBookingStore();
+const chatStore = useChatStore();
 
 const currentView = ref('graph');
 const selectedMentor = ref(null);
@@ -193,7 +212,7 @@ const isReviewModalOpen = ref(false);
 const selectedChatForReview = ref(null);
 const reviewStatusMap = ref({});
 
-// 🔥 채팅 관련 state
+// 채팅 관련 state
 const selectedChatRoom = ref(null);
 const chatRoomListRef = ref(null);
 
@@ -223,6 +242,12 @@ onMounted(async () => {
   }
 });
 
+// 플로팅 버튼 → 채팅 탭으로 전환
+function goToChat() {
+  currentView.value = 'chat';
+}
+
+// 후기 상태 조회
 async function fetchReviewStatus() {
   try {
     const { data, error } = await supabase
@@ -291,6 +316,7 @@ async function handleReviewSubmitted() {
   await bookingStore.fetchBookings();
 }
 
+// TOP 멘토 / 매칭도 조회
 async function fetchTopMentorsWithRealScore() {
   if (!currentUserId.value) {
     topMentorsList.value = networkStore.nodes
@@ -369,7 +395,7 @@ const closeBookingModal = () => {
   mentorForBooking.value = null;
 };
 
-// 🔥 채팅방 선택 핸들러
+// 채팅방 선택 핸들러
 function handleSelectRoom(room) {
   selectedChatRoom.value = room;
 }
@@ -552,7 +578,7 @@ function handleSelectRoom(room) {
   font-size: 14px;
 }
 
-/* 🔥 채팅 뷰 스타일 */
+/* 채팅 뷰 스타일 */
 .chat-view-wrapper {
   flex: 1;
   height: 100%;
@@ -574,6 +600,45 @@ function handleSelectRoom(room) {
 
 .chat-room-list {
   border-right: 1px solid #e5e7eb;
+}
+
+/* 💬 네트워크 뷰 왼쪽 아래 플로팅 채팅 버튼 */
+.floating-chat-btn {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: #6d28d9;
+  border: none;
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+  z-index: 20;
+}
+
+/* 인스타 DM 느낌의 빨간 배지 */
+.chat-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background-color: #ff3040;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 반응형 */
