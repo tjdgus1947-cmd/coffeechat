@@ -27,7 +27,7 @@
 <script setup>
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
-import logoUrl from '@/assets/images/logo.png';
+const logoUrl = '/logo.png';
 
 
 const authStore = useAuthStore();
