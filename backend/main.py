@@ -16,8 +16,8 @@ from fastapi.encoders import jsonable_encoder
 from app.api import mentors
 from app.api import coffeechats # 👈 coffeechats 라우터 추가
 from app.api import profile
+from app.api import ai_generation
 from app.api import chat
-
 # 🚨 ⭐️ 핵심: FastAPI 앱 인스턴스를 생성합니다. ⭐️
 app = FastAPI()
 
@@ -53,6 +53,7 @@ app.include_router(location.router)
 app.include_router(availability.router)
 app.include_router(bookings.router)
 app.include_router(profile.router)
+app.include_router(ai_generation.router)
 app.include_router(chat.router)
   
 # (다른 라우터들도 포함)
