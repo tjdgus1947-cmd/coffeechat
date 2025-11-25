@@ -15,10 +15,12 @@ import LoginForm from '@/components/auth/LoginForm.vue';
 
 <style scoped>
 .auth-container {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  max-width: 500px;
+  margin: 60px auto;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  box-shadow: none;
+  background: transparent;
 }
 </style>
