@@ -72,14 +72,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+// ChatRoom.vue
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import api from '@/services/api';
+import { supabase } from '@/services/supabase';
 
 const authStore = useAuthStore();
 const props = defineProps({
   selectedRoom: Object
 });
+const subscription = ref(null);
 
 const messages = ref([]);
 const newMessage = ref('');
@@ -99,10 +102,56 @@ const partnerName = computed(() => {
 });
 
 watch(() => props.selectedRoom, async (newRoom) => {
+  if (subscription.value) {
+    supabase.removeChannel(subscription.value); // 이전 방 구독 해제
+    subscription.value = null;
+  }
+
   if (newRoom) {
     await fetchMessages();
+    subscribeToRealtime(newRoom.id); // ⭐️ 실시간 구독 시작
   }
 }, { immediate: true });
+
+onUnmounted(() => {
+  if (subscription.value) {
+    supabase.removeChannel(subscription.value);
+  }
+});
+
+function subscribeToRealtime(roomId) {
+  subscription.value = supabase
+    .channel(`room-${roomId}`) // 채널 이름 (유니크하면 됨)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT', // 메시지가 추가될 때만 감지
+        schema: 'public',
+        table: 'chat_messages',
+        filter: `chat_room_id=eq.${roomId}` // 현재 방의 메시지만 필터링
+      },
+      (payload) => {
+        // payload.new에 새로 들어온 메시지 데이터가 있음
+        const newMessage = payload.new;
+        
+        // 내 메시지는 handleSend에서 이미 추가했을 수도 있지만, 
+        // 확실히 하기 위해 중복 방지 체크 후 추가하거나,
+        // handleSend에서는 API 호출만 하고 여기서 UI 업데이트를 해도 됨.
+        // 여기서는 중복 방지 로직을 추가함.
+        const exists = messages.value.some(m => m.id === newMessage.id);
+        if (!exists) {
+          messages.value.push(newMessage);
+          nextTick(() => scrollToBottom());
+          
+          // (선택 사항) 상대방이 보낸 메시지라면 '읽음 처리' API 호출 로직 추가 가능
+          if (newMessage.sender_id !== currentUserId.value) {
+             markAsRead(newMessage.id); 
+          }
+        }
+      }
+    )
+    .subscribe();
+}
 
 async function fetchMessages() {
   if (!props.selectedRoom) return;
