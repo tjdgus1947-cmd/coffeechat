@@ -8,6 +8,9 @@ from app.services.matching_service import (
     calculate_final_match_score,
     extract_coordinates_from_geography
 )
+from app.services.reranking_service import rerank_candidates
+from app.services.feedback_service import personalize_match_scores
+from app.services.hybrid_search_service import hybrid_search, adaptive_hybrid_weights
 import uuid
 import unicodedata
 import json
@@ -127,80 +130,100 @@ def update_user_location(request: LocationMatchRequest):
 
 # --- (⭐️⭐️⭐️ 핵심 수정 API ⭐️⭐️⭐️) ---
 
-@router.get("/api/matching/find-matches")
-def find_matches_with_location(
-    user_id: str = Query(..., description="현재 사용자 ID"),
-    role: str = Query(..., description="'mentor' 또는 'mentee'"),
-    # ⭐️ [수정] 422 오류 해결: le=50 -> le=100 (프론트엔드 요청에 맞춤)
-    limit: int = Query(10, ge=1, le=100, description="반환할 최대 매칭 수"),
-    max_distance: float = Query(50.0, ge=1, description="최대 거리 기준 (km)")
+@router.get("/api/matching/find-matches-advanced")
+def find_matches_advanced(
+    user_id: str = Query(...),
+    role: str = Query(...),
+    limit: int = Query(10, ge=1, le=100),
+    max_distance: float = Query(50.0, ge=1),
+    keyword_boost: float = Query(0.15, ge=0, le=0.3),
+    use_reranking: bool = Query(True, description="Re-ranking 사용"),
+    use_hybrid: bool = Query(True, description="하이브리드 검색 사용"),
+    use_personalization: bool = Query(True, description="개인화 사용")
 ):
+    """
+    🚀 고급 AI 매칭 API
+    - Re-ranking (2단계 검색)
+    - 하이브리드 검색 (Semantic + BM25)
+    - 개인화 (피드백 학습)
+    """
     try:
         user_id_str = get_clean_user_id(user_id)
         current_table = 'mentee_profiles' if role == 'mentee' else 'mentor_profiles'
         target_table = 'mentor_profiles' if role == 'mentee' else 'mentee_profiles'
 
-        # ⭐️ [수정] 500 오류 해결: 페이지네이션으로 현재 사용자 정보 가져오기
-        all_current_profiles_data = fetch_all_with_pagination(
-            current_table, "user_id, embedding, location"
+        # 텍스트 컬럼 설정
+        if role == 'mentee':
+            current_text_column = "current_situation"
+            target_text_column = "career_info"
+        else:
+            current_text_column = "career_info"
+            target_text_column = "current_situation"
+
+        # 현재 사용자 정보
+        all_current_profiles = fetch_all_with_pagination(
+            current_table, 
+            f"user_id, embedding, location, {current_text_column}"
         )
-        current_profile = find_profile_in_list(all_current_profiles_data, user_id_str)
+        current_profile = find_profile_in_list(all_current_profiles, user_id_str)
         
-        if current_profile is None:
-            raise HTTPException(status_code=404, detail="User profile not found (Python search failed)")
-        
-        if not current_profile.get('embedding'):
-            raise HTTPException(status_code=400, detail="임베딩이 생성되지 않았습니다.")
-        if not current_profile.get('location'):
-            raise HTTPException(status_code=400, detail="위치 정보가 없습니다.")
+        if not current_profile:
+            raise HTTPException(status_code=404, detail="프로필을 찾을 수 없습니다")
         
         current_embedding = json.loads(current_profile['embedding'])
         current_lat, current_lon = extract_coordinates_from_geography(current_profile['location'])
+        current_text = current_profile.get(current_text_column, "")
         
-        # ⭐️ [수정] 500 오류 해결: 페이지네이션으로 모든 매칭 후보 가져오기 (인라인 루프)
+        # 1️⃣ 1차 매칭 (기본 임베딩 + 거리)
+        logger.info("📍 1단계: 기본 매칭 시작")
+        
         all_candidates_data = []
         offset = 0
-        chunk_size = 1000 # 한 번에 1000명씩
+        chunk_size = 1000
         
         while True:
-            logger.info(f"Fetching candidates from {target_table}: {offset} to {offset + chunk_size - 1}...")
             candidates_response = supabase.table(target_table) \
-                                          .select("user_id, embedding, location") \
-                                          .not_.is_("embedding", "null") \
-                                          .not_.is_("location", "null") \
-                                          .range(offset, offset + chunk_size - 1) \
-                                          .execute()
+                .select(f"user_id, embedding, location, {target_text_column}") \
+                .not_.is_("embedding", "null") \
+                .not_.is_("location", "null") \
+                .range(offset, offset + chunk_size - 1) \
+                .execute()
             
             if candidates_response.data:
                 all_candidates_data.extend(candidates_response.data)
                 if len(candidates_response.data) < chunk_size:
-                    break # 마지막 페이지
+                    break
                 offset += chunk_size
             else:
-                break # 데이터 없음
+                break
         
-        logger.info(f"Total candidates fetched: {len(all_candidates_data)}")
+        logger.info(f"총 후보: {len(all_candidates_data)}명")
 
         matches = []
-        # ⭐️ [수정] candidates_response.data -> all_candidates_data
         for candidate in all_candidates_data:
-            if candidate.get('user_id') and get_clean_user_id(candidate['user_id']) == user_id_str:
-                continue # 자기 자신 제외
+            if get_clean_user_id(candidate.get('user_id', '')) == user_id_str:
+                continue
             
             try:
                 candidate_lat, candidate_lon = extract_coordinates_from_geography(candidate['location'])
                 candidate_embedding = json.loads(candidate['embedding'])
+                candidate_text = candidate.get(target_text_column, "")
                 
                 match_result = calculate_final_match_score(
                     current_embedding,
                     candidate_embedding,
                     current_lat, current_lon,
                     candidate_lat, candidate_lon,
-                    max_distance=max_distance
+                    text1=current_text,
+                    text2=candidate_text,
+                    max_distance=max_distance,
+                    keyword_boost=keyword_boost
                 )
                 
                 matches.append({
                     "user_id": candidate['user_id'],
+                    "text": candidate_text,  # 🔥 Re-ranking/하이브리드용
+                    "embedding": candidate_embedding,  # 🔥 하이브리드용
                     "final_score": match_result['final_score'],
                     "text_similarity": match_result['text_similarity'],
                     "distance_km": match_result['distance_km'],
@@ -208,69 +231,66 @@ def find_matches_with_location(
                     "breakdown": match_result['breakdown']
                 })
             except Exception as e:
-                logger.warning(f"Failed to process candidate {candidate.get('user_id')}: {e}")
+                logger.warning(f"후보 처리 실패: {e}")
                 continue
         
         matches.sort(key=lambda x: x['final_score'], reverse=True)
-        return {"user_id": user_id, "matches": matches[:limit]}
+        logger.info(f"1차 매칭 완료: {len(matches)}명")
+        
+        # 2️⃣ 하이브리드 검색 (선택)
+        if use_hybrid and len(matches) > 0:
+            logger.info("🔍 2단계: 하이브리드 검색 적용")
+            query_len = len(current_text)
+            semantic_w, keyword_w = adaptive_hybrid_weights(query_len)
+            
+            matches = hybrid_search(
+                current_text,
+                current_embedding,
+                matches,
+                semantic_weight=semantic_w,
+                keyword_weight=keyword_w
+            )
+        
+        # 3️⃣ Re-ranking (선택)
+        if use_reranking and len(matches) > limit:
+            logger.info("🎯 3단계: Re-ranking 적용")
+            matches = rerank_candidates(
+                current_text,
+                matches,
+                top_k=limit * 2,  # 여유있게
+                rerank_weight=0.3
+            )
+        
+        # 4️⃣ 개인화 (선택)
+        if use_personalization and role == 'mentee':
+            logger.info("✨ 4단계: 개인화 적용")
+            matches = personalize_match_scores(user_id_str, matches, role)
+        
+        # 최종 정리
+        final_matches = matches[:limit]
+        
+        # 응답 데이터 정리 (embedding, text 제거)
+        for match in final_matches:
+            match.pop('embedding', None)
+            match.pop('text', None)
+        
+        return {
+            "user_id": user_id,
+            "total_candidates": len(all_candidates_data),
+            "filtered_matches": len(matches),
+            "matches": final_matches,
+            "settings": {
+                "keyword_boost": keyword_boost,
+                "use_reranking": use_reranking,
+                "use_hybrid": use_hybrid,
+                "use_personalization": use_personalization
+            }
+        }
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"🔥 Find Matches Fatal Error: {e}")
+        logger.error(f"고급 매칭 실패: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/api/matching/debug/{user_id}")
-def debug_user_profile(
-    user_id: str, 
-    role: str = Query(...)
-):
-    try:
-        user_id_str = get_clean_user_id(user_id)
-        table_name = 'mentor_profiles' if role == 'mentor' else 'mentee_profiles'
-
-        # ⭐️ [수정] 디버그 API도 페이지네이션 적용
-        all_profiles_data = fetch_all_with_pagination(
-            table_name, "user_id, embedding, location"
-        )
-        profile = find_profile_in_list(all_profiles_data, user_id_str)
-        
-        if profile is None:
-            raise HTTPException(status_code=404, detail="User not found (Python search failed)")
-
-        embedding_list = None
-        embedding_dim = 0
-        embedding_error = None
-
-        try:
-            if profile.get('embedding'):
-                embedding_list = json.loads(profile['embedding'])
-                embedding_dim = len(embedding_list)
-        except Exception as e:
-            embedding_error = f"Failed to parse embedding string: {e}"
-
-        result = {
-            "user_id": profile['user_id'],
-            "has_embedding": embedding_list is not None,
-            "embedding_dimension": embedding_dim,
-            "embedding_parse_error": embedding_error,
-            "has_location": profile.get('location') is not None,
-            "location_raw": profile.get('location')
-        }
-        
-        if profile.get('location'):
-            try:
-                lat, lon = extract_coordinates_from_geography(profile['location'])
-                result['location_parsed'] = {"latitude": lat, "longitude": lon}
-            except Exception as e:
-                result['location_error'] = str(e)
-        
-        return result
-    
-    except HTTPException:
-        raise
-    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

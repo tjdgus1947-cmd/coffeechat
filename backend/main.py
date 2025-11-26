@@ -20,6 +20,7 @@ from app.api import profile
 from app.api import ai_generation # 임포트 추가
 from app.api import chat
 
+
 # 🚨 ⭐️ 핵심: FastAPI 앱 인스턴스를 생성합니다. ⭐️
 app = FastAPI()
 
