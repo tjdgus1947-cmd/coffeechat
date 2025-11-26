@@ -18,5 +18,9 @@ lecture_web_38/
 # (필수) 테스트용 파일
 test_connection.py
 
-# (선택) VS Code 설정
-.vscode/
+.venv/
+backend/.venv/
+__pycache__/
+*.dll
+*.so
+*.dylib

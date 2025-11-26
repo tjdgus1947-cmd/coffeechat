@@ -4,10 +4,10 @@
 """
 from typing import List, Dict, Tuple
 import math
-import re  # ⭐️ 1. re 임포트 추가
+import re
 from app.services.ml_service import calculate_match_score
 
-# ⭐️ 2. shapely 임포트 시도
+# shapely 임포트 시도
 try:
     from shapely import wkb
     SHAPELY_AVAILABLE = True
@@ -66,6 +66,7 @@ def calculate_final_match_score(
     최종 매칭 점수 계산 (자기소개 70% + 거리 30%)
     """
     # 1. 텍스트 유사도 계산 (0~100)
+    # ml_service의 bge-m3 모델을 이용한 점수 계산
     text_similarity = calculate_match_score(text_embedding1, text_embedding2)
     
     # 2. 거리 계산
@@ -89,19 +90,9 @@ def calculate_final_match_score(
     }
 
 
-# ⭐️⭐️⭐️ 3. 여기가 핵심 수정 ⭐️⭐️⭐️
 def extract_coordinates_from_geography(geography_data: str) -> Tuple[float, float]:
     """
     PostGIS Geography (WKB 또는 WKT)에서 위도/경도 추출
-    
-    Args:
-        geography_data: PostGIS Point (WKB: "0101000..." 또는 WKT: "POINT(127 37)")
-    
-    Returns:
-        Tuple[float, float]: (latitude, longitude)
-    
-    Raises:
-        ValueError: 잘못된 형식의 geography 데이터인 경우
     """
     if not geography_data:
         raise ValueError("Location data is empty or None")

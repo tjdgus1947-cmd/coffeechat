@@ -1,56 +1,48 @@
 # backend/app/services/ml_service.py
-from sentence_transformers import SentenceTransformer
-import math
+from sentence_transformers import SentenceTransformer, util
+import torch
 
-# 1. 모델 로드
+# ⭐️ 1. GPU 가속 설정 (가능하면 GPU 사용)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Loading AI Model on {device}...")
+
+# ⭐️ 2. 모델 교체 (BAAI/bge-m3: 한국어 성능 우수, 변별력 높음)
 try:
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    print("SentenceTransformer 모델 로드 성공")
+    model = SentenceTransformer('BAAI/bge-m3', device=device)
+    print("SentenceTransformer (BAAI/bge-m3) 모델 로드 성공")
 except Exception as e:
     print(f"SentenceTransformer 모델 로드 실패: {e}")
     model = None
 
-def generate_embedding(text: str):
+def generate_embedding(text: str) -> list[float]:
     """
-    주어진 텍스트를 384차원 임베딩 벡터로 변환합니다. (WBS 4.1)
+    주어진 텍스트를 1024차원 임베딩 벡터로 변환합니다. (BAAI/bge-m3 기준)
     """
     if model is None:
         raise Exception("ML 모델이 로드되지 않았습니다.")
-    if not text:
-        return [0.0] * 384
     
-    embedding = model.encode(text)
+    if not text:
+        # bge-m3는 1024차원이므로 0 벡터도 1024개여야 함
+        return [0.0] * 1024
+    
+    # normalize_embeddings=True: 코사인 유사도 계산 최적화
+    embedding = model.encode(text, normalize_embeddings=True)
     return embedding.tolist()
 
-
-def calculate_match_score(embedding1, embedding2):
+def calculate_match_score(embedding1: list[float], embedding2: list[float]) -> float:
     """
     두 임베딩 벡터 간의 코사인 유사도를 계산하여 0~100 점수로 반환
-    (scikit-learn 없이 순수 Python으로 구현)
-    
-    Args:
-        embedding1: 첫 번째 임베딩 벡터 (list)
-        embedding2: 두 번째 임베딩 벡터 (list)
-    
-    Returns:
-        float: 0~100 사이의 유사도 점수
     """
-    # 벡터 내적 (dot product)
-    dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
-    
-    # 각 벡터의 크기 (magnitude)
-    magnitude1 = math.sqrt(sum(a * a for a in embedding1))
-    magnitude2 = math.sqrt(sum(b * b for b in embedding2))
-    
-    # 코사인 유사도 (-1 ~ 1)
-    if magnitude1 == 0 or magnitude2 == 0:
+    if not embedding1 or not embedding2:
         return 0.0
+
+    # ⭐️ 3. 유틸리티 함수 사용 (수동 계산보다 빠르고 정확함)
+    # 텐서로 변환하여 계산 후 다시 float로 추출
+    score = util.cos_sim(embedding1, embedding2).item()
     
-    cosine_similarity = dot_product / (magnitude1 * magnitude2)
-    
-    # 0~100 스케일로 변환
-    # cosine_similarity: -1(완전 반대) ~ 0(무관) ~ 1(완전 일치)
-    # 변환: (-1+1)/2*100 = 0점, (0+1)/2*100 = 50점, (1+1)/2*100 = 100점
-    score = (cosine_similarity + 1) / 2 * 100
-    
-    return round(score, 2)
+    # 점수 보정 (0~100)
+    # 코사인 유사도(-1~1)를 0~100점으로 변환하되, 음수는 0으로 처리
+    if score < 0:
+        score = 0.0
+        
+    return round(score * 100, 2)
