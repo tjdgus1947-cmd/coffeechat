@@ -1,11 +1,8 @@
-// src/store/auth.js
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/services/api'; 
-import router from '@/router'; 
-
-const MOCK_LOGIN = false; 
+import { supabase } from '@/supabaseClient'; 
 
 export const useAuthStore = defineStore('auth', () => {
   // --- State ---
@@ -39,21 +36,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function registerMentee(menteeData) {
+  // ⭐️ [수정됨] 실제 API 호출 로직 추가 (FormData 전송)
+  async function registerMentee(formData) {
     try {
-      await api.post('/auth/register/mentee', menteeData);
+      const response = await api.post('/auth/register/mentee', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      console.log('멘티 가입 성공:', response.data);
+      return response.data;
     } catch (error) {
-      console.error('멘티 회원가입 실패:', error);
+      console.error('멘티 가입 요청 실패:', error);
       throw error; 
     }
   }
 
-  async function registerMentor(mentorData) {
+  // ⭐️ [수정됨] 멘토 가입 (JSON -> FormData로 변경)
+  async function registerMentor(formData) {
     try {
-      await api.post('/auth/register/mentor', mentorData);
+      // 백엔드(auth.py)의 sign_up_mentor가 이제 Form(...)과 File(...)을 받습니다.
+      // 따라서 FormData 객체를 보내야 하며, 헤더 설정이 필요합니다.
+      const response = await api.post('/auth/register/mentor', formData, {
+         headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log('멘토 가입 성공:', response.data);
+      return response.data;
     } catch (error) {
-      console.error('멘토 회원가입 실패:', error);
-      throw error; 
+      console.error('멘토 가입 요청 실패:', error);
+      throw error;
     }
   }
 
@@ -75,55 +86,52 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // --- 내부 헬퍼 함수 ---
-  function logoutCleanup() {
-    user.value = null;
-    token.value = null;
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    updateApiHeaders(); 
-  }
-  
-  function updateApiHeaders() {
-    if (token.value) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
-    } else {
-      delete api.defaults.headers.common['Authorization'];
-    }
-  }
-  
-  // --- 앱 초기화 ---
-  updateApiHeaders();
-  
-  if (MOCK_LOGIN && !token.value) {
-    console.warn('!!! MOCK LOGIN 활성 상태 !!!');
-    const mockUser = {
-      id: 'mentee-kim-fake-id', 
-      user_metadata: {
-        full_name: '김멘티 (테스트)',
-        role: 'mentee',
-      }
-    };
-    const mockToken = 'fake-jwt-token-for-development';
-
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    localStorage.setItem('token', mockToken);
-    
-    user.value = mockUser;
-    token.value = mockToken;
-    
-    updateApiHeaders();
+  // --- 내부 헬퍼 함수 ---
+  function logoutCleanup() {
+    user.value = null;
+    token.value = null;
+    localStorage.removeItem('user'); 
+    localStorage.removeItem('token'); 
+    updateApiHeaders(null);
   }
-  return { 
-    user, 
-    token, 
-    userId, 
-    userName, // 👈 (추가)
-    isAuthenticated, 
-    userRole, 
-    login, 
-    logout, 
-    registerMentee,
-    registerMentor 
-  };
+  
+  function updateApiHeaders(sessionToken) {
+    if (sessionToken) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${sessionToken}`;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+    }
+  }
+
+  async function initializeAuth() {
+    const { data } = await supabase.auth.getSession();
+
+    if (data.session) {
+      user.value = data.session.user;
+      token.value = data.session.access_token;
+      updateApiHeaders(data.session.access_token);
+    } else {
+      logoutCleanup();
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        user.value = session.user;
+        token.value = session.access_token;
+        updateApiHeaders(session.access_token);
+      } else {
+        user.value = null;
+        token.value = null;
+        updateApiHeaders(null);
+      }
+    });
+  }
+  
+  return { 
+    user, token, userId, userName,
+    isAuthenticated, userRole, 
+    login, logout, 
+    registerMentee, registerMentor,
+    initializeAuth
+  };
 });

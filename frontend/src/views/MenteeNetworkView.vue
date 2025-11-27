@@ -41,7 +41,7 @@
       />
     </div>
 
-    <div v-show="currentView === 'map'" class="map-panel-wrapper">
+    <div v-if="currentView === 'map'" class="map-panel-wrapper">
       <MentorMap />
     </div>
 

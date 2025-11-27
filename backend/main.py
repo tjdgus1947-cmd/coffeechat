@@ -16,9 +16,8 @@ from fastapi.encoders import jsonable_encoder
 from app.api import mentors
 from app.api import coffeechats # 👈 coffeechats 라우터 추가
 from app.api import profile
-from app.api import chat
 from app.api import ai_generation
-
+from app.api import chat
 # 🚨 ⭐️ 핵심: FastAPI 앱 인스턴스를 생성합니다. ⭐️
 app = FastAPI()
 
@@ -33,12 +32,9 @@ app.json_encoder = json_datetime_encoder
 
 # 2. origins 목록
 origins = [
-    "http://localhost:5173",
+    "http://localhost:5173", # 👈 '수민'님의 Vue.js 주소 (포트 확인!)
     "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "http://localhost:5175", # 👈 새로운 포트
-    "http://127.0.0.1:5175",
+    # (만약 '수민'님 Vue.js가 5174 등 다른 포트라면 그것도 추가)
 ]
 
 app.add_middleware(
@@ -57,8 +53,8 @@ app.include_router(location.router)
 app.include_router(availability.router)
 app.include_router(bookings.router)
 app.include_router(profile.router)
-app.include_router(chat.router)
 app.include_router(ai_generation.router)
+app.include_router(chat.router)
   
 # (다른 라우터들도 포함)
 # app.include_router(auth.router)

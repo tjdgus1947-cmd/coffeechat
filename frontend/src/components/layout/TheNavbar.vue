@@ -27,7 +27,7 @@
 <script setup>
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
-import logoUrl from '@/assets/images/logo.png';
+const logoUrl = '/logo.png';
 
 
 const authStore = useAuthStore();
@@ -62,7 +62,7 @@ align-items: center;
 
 /* 6. ⭐️ (추가) 로고 이미지 크기 조절 (Canvas 버전) */
 .logo-image {
-  height: 50px; /* 로고 높이 (Navbar 높이(60px)보다 작게) */
+  height: 70px; /* 기존 50px → 70px */
   width: auto; /* 가로 비율 자동 */
 }
 
