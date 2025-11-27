@@ -1,8 +1,8 @@
+// src/store/auth.js
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/services/api'; 
-// ⭐️ 1. 여기서 router 임포트를 "삭제"합니다. (순환 고리 끊기)
-// import router from '@/router'; 
 import { supabase } from '@/supabaseClient'; 
 
 export const useAuthStore = defineStore('auth', () => {
@@ -37,9 +37,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // (회원가입 함수는 백엔드 API를 쓰는 것이 맞으므로 그대로 둡니다)
-  async function registerMentee(formData) { /* ... (기존 코드와 동일) ... */ }
-  async function registerMentor(mentorData) { /* ... (기존 코드와 동일) ... */ }
+  // ⭐️ [수정됨] 실제 API 호출 로직 추가 (FormData 전송)
+  async function registerMentee(formData) {
+    try {
+      const response = await api.post('/auth/register/mentee', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      console.log('멘티 가입 성공:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('멘티 가입 요청 실패:', error);
+      throw error; 
+    }
+  }
+
+  // ⭐️ [수정됨] 멘토 가입 (JSON -> FormData로 변경)
+  async function registerMentor(formData) {
+    try {
+      // 백엔드(auth.py)의 sign_up_mentor가 이제 Form(...)과 File(...)을 받습니다.
+      // 따라서 FormData 객체를 보내야 하며, 헤더 설정이 필요합니다.
+      const response = await api.post('/auth/register/mentor', formData, {
+         headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log('멘토 가입 성공:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('멘토 가입 요청 실패:', error);
+      throw error;
+    }
+  }
 
   async function logout() {
     try {
@@ -50,13 +78,11 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       logoutCleanup();
       
-      // ⭐️ 2. router를 "이 함수 내부에서" 동적으로 import 합니다.
       try {
         const router = (await import('@/router')).default;
         router.push({ name: 'login' });
       } catch (e) {
         console.error("라우터 이동 실패:", e);
-        // 라우터를 못찾아도 앱이 죽지 않도록 합니다.
       }
     }
   }
@@ -78,7 +104,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // ⭐️ 3. 앱 초기화 로직 (main.js가 호출할 함수)
   async function initializeAuth() {
     const { data } = await supabase.auth.getSession();
 
@@ -108,6 +133,6 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated, userRole, 
     login, logout, 
     registerMentee, registerMentor,
-    initializeAuth // ⭐️ main.js가 이 함수를 쓸 수 있도록 노출
+    initializeAuth
   };
 });

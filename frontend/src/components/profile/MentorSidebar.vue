@@ -9,8 +9,25 @@
       <p class="mentor-company">{{ mentor.company }}</p>
     </div>
 
-    <!-- 🔥 수정된 부분: 실시간 매칭도 표시 -->
-    <div class="matching-score">
+    <!-- 🔥 AI 매칭도 표시 -->
+    <div v-if="mentor.matchingScore" class="matching-score-section">
+      <div class="score-card">
+        <div class="score-label">AI 매칭 점수</div>
+        <div class="score-value">{{ mentor.matchingScore }}%</div>
+      </div>
+      
+      <div v-if="mentor.commonTopics && mentor.commonTopics.length > 0" class="common-topics">
+        <p class="topics-label">공통 관심 분야</p>
+        <div class="topics-tags">
+          <span v-for="topic in mentor.commonTopics" :key="topic" class="topic-tag">
+            {{ topic }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔥 멘티-멘토 네트워크용 실시간 매칭도 (기존) -->
+    <div v-else class="matching-score">
       <span>AI 매칭도</span>
       <strong v-if="!loadingScore">{{ realMatchScore }}%</strong>
       <strong v-else style="color: #999;">계산 중...</strong>
@@ -18,7 +35,6 @@
         <div class="progress" :style="{ width: realMatchScore + '%' }"></div>
       </div>
       
-      <!-- 🆕 상세 정보 표시 (선택사항) -->
       <div v-if="matchDetails && !loadingScore" class="match-details">
         <small style="color: #666;">
           텍스트 유사도: {{ matchDetails.text_similarity }}% / 
@@ -80,10 +96,16 @@ async function fetchMatchingScore() {
     return;
   }
 
+  // 🔥 이미 matchingScore가 있으면 API 호출 불필요 (멘토-멘토 네트워크)
+  if (props.mentor.matchingScore) {
+    loadingScore.value = false;
+    return;
+  }
+
   loadingScore.value = true;
 
   try {
-    // 백엔드 API 호출
+    // 백엔드 API 호출 (멘티-멘토 네트워크용)
     const response = await fetch(
       `http://localhost:8000/api/matching/find-matches?user_id=${props.currentUserId}&role=mentee&limit=50`
     );
@@ -176,6 +198,58 @@ onMounted(() => {
   font-size: 14px;
   margin: 0;
 }
+/* 🔥 멘토-멘토 네트워크용 매칭 점수 섹션 */
+.matching-score-section {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.score-card {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.score-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 5px;
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.common-topics {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.topics-label {
+  font-size: 13px;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.topics-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.topic-tag {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 12px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+}
+
+/* 기존 멘티-멘토 네트워크용 매칭 점수 */
 .matching-score {
   margin: 20px 0;
 }
@@ -194,9 +268,8 @@ onMounted(() => {
 .progress {
   background-color: #6d28d9;
   height: 100%;
-  transition: width 0.3s ease; /* 🆕 부드러운 애니메이션 */
+  transition: width 0.3s ease;
 }
-/* 🆕 상세 정보 스타일 */
 .match-details {
   margin-top: 8px;
   font-size: 12px;

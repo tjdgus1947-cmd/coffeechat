@@ -13,15 +13,17 @@ def get_mentor_list():
     """
     (수정됨) 새로운 ERD에 맞춰 public.users와 mentor_profiles를 JOIN하여
     모든 멘토 목록을 조회합니다.
+    mentor_profiles에 데이터가 있는 사용자만 반환합니다.
     """
     try:
         response = supabase.table('users') \
                             .select('id, full_name, mentor_profiles(id, career_info, profile_image_url, location, verification_status)') \
-                            .eq('role', 'mentor') \
+                            .not_('mentor_profiles', 'is', 'null') \
                             .execute()
         
         if response.data:
-            return response.data
+            # mentor_profiles가 빈 배열인 경우 제외
+            return [user for user in response.data if user.get('mentor_profiles')]
         return []
 
     except Exception as e:

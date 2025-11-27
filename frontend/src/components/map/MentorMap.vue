@@ -95,6 +95,13 @@ export default {
 
     async initializeMap() {
       try {
+        // 카카오맵 API 로드 확인
+        if (!window.kakao || !window.kakao.maps) {
+          this.error = '카카오맵 API가 로드되지 않았습니다. 잠시 후 다시 시도해주세요.';
+          this.loading = false;
+          return;
+        }
+
         const container = document.getElementById('kakao-map');
         if (!container) {
           this.error = '지도 DOM 요소를 찾는 데 실패했습니다.';

@@ -217,6 +217,10 @@ const handleSubmit = async () => {
     // 여기선 일단 situation 필드를 활용합니다.
     formData.append('situation', form.final_introduction); 
     formData.append('topics', form.topics);
+    
+    // 위치 정보 추가 (기본값: 서울시청)
+    formData.append('latitude', 37.5665);
+    formData.append('longitude', 126.9780);
 
     await authStore.registerMentee(formData);
     

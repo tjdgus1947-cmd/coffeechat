@@ -12,7 +12,7 @@
     </div>
 
     <!-- TOP 5 리스트 -->
-    <div v-else-if="topMentors.length > 0" class="mentors-list">
+    <div v-else-if="topMentors && topMentors.length > 0" class="mentors-list">
       <div
         v-for="(mentor, index) in topMentors"
         :key="mentor.id"
@@ -82,6 +82,9 @@
       <p>😔</p>
       <p>추천 멘토가 없습니다.</p>
       <small>프로필을 완성하면 더 정확한 추천을 받을 수 있어요!</small>
+      <small style="color: red; margin-top: 10px;">
+        DEBUG: loading={{ loading }}, mentors={{ props.mentors?.length || 0 }}, computed={{ topMentors?.length || 0 }}
+      </small>
     </div>
   </div>
 </template>
@@ -102,24 +105,47 @@ const props = defineProps({
 
 defineEmits(['select-mentor']);
 
-// TOP 5 데이터 가공 (로직 동일)
+// TOP 5 데이터 가공 (멘티-멘토 & 멘토-멘토 네트워크 모두 지원)
 const topMentors = computed(() => {
-  if (!props.mentors || props.mentors.length === 0) return [];
+  if (!props.mentors || props.mentors.length === 0) {
+    console.log('🔍 TopMentorsPanel: props.mentors가 비어있음');
+    return [];
+  }
   
-  return [...props.mentors]
+  console.log('🔍 TopMentorsPanel: 받은 멘토 수:', props.mentors.length);
+  console.log('🔍 TopMentorsPanel: 첫 번째 멘토 데이터:', props.mentors[0]);
+  
+  const processed = [...props.mentors]
     .sort((a, b) => {
-      const scoreA = parseFloat(a.final_score) || 0;
-      const scoreB = parseFloat(b.final_score) || 0;
+      // final_score (멘티-멘토) 또는 matchingScore (멘토-멘토) 사용
+      const scoreA = parseFloat(a.matchingScore || a.final_score) || 0;
+      const scoreB = parseFloat(b.matchingScore || b.final_score) || 0;
       return scoreB - scoreA;
     })
     .slice(0, 5)
-    .map(mentor => ({
-      ...mentor,
-      matchingScore: parseFloat(mentor.final_score || 0).toFixed(1),
-      textSimilarity: mentor.textSimilarity ? parseFloat(mentor.textSimilarity).toFixed(1) : '0.0',
-      distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined,
-      breakdown: mentor.breakdown 
-    }));
+    .map(mentor => {
+      // matchingScore 우선, 없으면 final_score 사용
+      const score = mentor.matchingScore ? parseFloat(mentor.matchingScore).toFixed(1) 
+                    : mentor.final_score ? parseFloat(mentor.final_score).toFixed(1) 
+                    : '0.0';
+      
+      console.log(`🔍 멘토 ${mentor.name}: 원본 score=${mentor.matchingScore || mentor.final_score}, 변환 후=${score}`);
+      
+      return {
+        ...mentor,
+        matchingScore: score,
+        textSimilarity: mentor.textSimilarity ? parseFloat(mentor.textSimilarity).toFixed(1) : '0.0',
+        distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined,
+        breakdown: mentor.breakdown 
+      };
+    });
+  
+  console.log('🔍 TopMentorsPanel: 처리된 TOP 5:', processed.map(m => ({
+    name: m.name,
+    matchingScore: m.matchingScore
+  })));
+  
+  return processed;
 });
 
 function formatDistance(km) {

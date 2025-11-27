@@ -15,6 +15,14 @@
       >
         💬 채팅
       </button>
+
+      <button 
+        @click="handleMentorNetwork" 
+        :class="{ active: currentView === 'mentor-network' }"
+        class="mentor-network-btn"
+      >
+        🔒 멘토-멘토 네트워크
+      </button>
     </div>
 
     <div v-show="currentView === 'dashboard'" class="mentor-dashboard">
@@ -250,6 +258,43 @@
       </div>
     </div>
 
+    <!-- 🔥 멘토-멘토 네트워크 뷰 -->
+    <div v-show="currentView === 'mentor-network'" class="mentor-network-panel-wrapper">
+      <div v-if="mentorNetworkStore.isLoading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>멘토 네트워크를 불러오는 중...</p>
+      </div>
+      
+      <template v-else>
+        <NetworkGraph
+          :nodes="mentorNetworkStore.nodes"
+          :edges="mentorNetworkStore.edges"
+          @node-click="handleMentorNetworkNodeClick"
+          class="mentor-network-graph"
+        />
+        
+        <!-- TOP 멘토 패널 (멘티 네트워크와 동일) -->
+        <div style="background: red; color: white; padding: 10px; position: absolute; top: 10px; right: 10px; z-index: 9999;">
+          테스트: {{ mentorNetworkStore.topMentors.length }}명
+        </div>
+        <TopMentorsPanel
+          :mentors="mentorNetworkStore.topMentors"
+          :loading="false"
+          @select-mentor="handleTopMentorClickInNetwork"
+          class="top-mentors-floating"
+        />
+      </template>
+    </div>
+
+    <!-- 멘토 네트워크 사이드바 -->
+    <MentorSidebar
+      v-if="currentView === 'mentor-network' && selectedMentorForNetwork"
+      :mentor="selectedMentorForNetwork"
+      :currentUserId="authStore.userId"
+      @close="closeMentorNetworkSidebar"
+      class="sidebar-panel"
+    />
+
   </div>
 </template>
 
@@ -257,6 +302,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useMentorStore } from '@/store/mentorStore';
+import { useMentorNetworkStore } from '@/store/mentorNetworkStore';
 import { supabase } from '@/supabaseClient';
 import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 
@@ -264,15 +310,24 @@ import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatRoom from '@/components/chat/ChatRoom.vue';
 
+// 🔥 멘토 네트워크 컴포넌트 import
+import NetworkGraph from '@/components/graph/NetworkGraph.vue';
+import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
+import MentorSidebar from '@/components/profile/MentorSidebar.vue';
+
 const authStore = useAuthStore();
 const mentorStore = useMentorStore();
+const mentorNetworkStore = useMentorNetworkStore();
 
-// 🔥 뷰 상태 관리 (dashboard | chat)
+// 🔥 뷰 상태 관리 (dashboard | chat | mentor-network)
 const currentView = ref('dashboard');
 
 // 🔥 채팅 관련 state
 const selectedChatRoom = ref(null);
 const chatRoomListRef = ref(null);
+
+// 🔥 멘토 네트워크 관련 state
+const selectedMentorForNetwork = ref(null);
 
 const receivedReviews = ref([]);
 const topMentors = ref([]);
@@ -290,6 +345,42 @@ onMounted(async () => {
 // 🔥 채팅방 선택 핸들러
 function handleSelectRoom(room) {
   selectedChatRoom.value = room;
+}
+
+// 멘토-멘토 네트워크 버튼 핸들러
+async function handleMentorNetwork() {
+  currentView.value = 'mentor-network';
+  
+  if (!authStore.userId) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  // 네트워크 데이터 로드
+  await mentorNetworkStore.fetchMentorNetwork(authStore.userId);
+  
+  console.log('🔍 MentorNetworkView: 로딩 완료 후 topMentors 수:', mentorNetworkStore.topMentors.length);
+  console.log('🔍 MentorNetworkView: topMentors 샘플:', mentorNetworkStore.topMentors.slice(0, 2));
+}
+
+// 멘토 네트워크 노드 클릭 핸들러
+function handleMentorNetworkNodeClick(node) {
+  if (node.data?.type === 'mentor') {
+    selectedMentorForNetwork.value = node.data;
+  } else if (node.data?.type === 'mentor-self') {
+    // 본인 노드 클릭 시 사이드바 닫기
+    selectedMentorForNetwork.value = null;
+  }
+}
+
+// TOP 멘토 패널에서 멘토 클릭
+function handleTopMentorClickInNetwork(mentor) {
+  selectedMentorForNetwork.value = mentor;
+}
+
+// 멘토 네트워크 사이드바 닫기
+function closeMentorNetworkSidebar() {
+  selectedMentorForNetwork.value = null;
 }
 
 // ---------------- 리뷰 불러오기 ----------------
@@ -557,6 +648,24 @@ function formatRelativeTime(dateString) {
   border-bottom: 3px solid #6d28d9;
   font-weight: 700;
   color: #6d28d9;
+}
+
+/* 멘토-멘토 네트워크 버튼 스타일 */
+.view-switcher button.mentor-network-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px 8px 0 0;
+  margin-left: 10px;
+  position: relative;
+}
+.view-switcher button.mentor-network-btn:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+  color: white;
+  transform: translateY(-2px);
+}
+.view-switcher button.mentor-network-btn.active {
+  border-bottom: 3px solid #764ba2;
+  color: white;
 }
 
 /* 대시보드 스크롤 영역 */
@@ -1096,6 +1205,64 @@ function formatRelativeTime(dateString) {
 
 .chat-room-list {
   border-right: 1px solid #e5e7eb;
+}
+
+/* 🔥 멘토-멘토 네트워크 뷰 스타일 */
+.mentor-network-panel-wrapper {
+  flex: 1;
+  display: flex;
+  position: relative;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  overflow: hidden;
+}
+
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: white;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #6d28d9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.mentor-network-graph {
+  width: 100%;
+  height: 100%;
+}
+
+/* TOP 멘토 패널 (기존 스타일 재사용) */
+.top-mentors-floating {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  z-index: 10;
+}
+
+/* 사이드바 */
+.sidebar-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  z-index: 20;
 }
 
 /* 반응형 */
