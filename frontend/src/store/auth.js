@@ -48,6 +48,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function registerMentor(mentorData) {
+    try {
+      await api.post('/auth/register/mentor', mentorData);
+    } catch (error) {
+      console.error('멘토 회원가입 실패:', error);
+      throw error; 
+    }
+  }
+
   async function logout() {
     try {
       const { error } = await supabase.auth.signOut();

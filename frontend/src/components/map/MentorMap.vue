@@ -42,7 +42,6 @@
 <script>
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
-import { mapState } from 'pinia';
 
 export default {
   name: 'MentorMap',
@@ -59,7 +58,15 @@ export default {
   },
 
   computed: {
-    ...mapState(useAuthStore, ['userId', 'userRole'])
+    authStore() {
+      return useAuthStore();
+    },
+    userId() {
+      return this.authStore.userId;
+    },
+    userRole() {
+      return this.authStore.userRole;
+    }
   },
 
   mounted() {
