@@ -2,7 +2,7 @@ import axios from 'axios';
 // .env 파일에 VITE_API_URL=http://localhost:8000 (백엔드 주소)를 설정합니다.
 // wbs_detail.md에 /api로 시작하니 baseURL에 /api를 추가합니다.
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
