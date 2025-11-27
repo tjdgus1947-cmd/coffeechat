@@ -113,6 +113,7 @@ function formatTime(isoString) {
   return `${hours}:${minutes}`;
 }
 
+
 function processSlots(slots) {
   const map = {};
   slots.forEach(slot => {

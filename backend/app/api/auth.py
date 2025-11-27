@@ -1,4 +1,3 @@
-# backend/app/api/auth.py
 from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -15,13 +14,11 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    """
-    JWT 토큰을 검증하고 User 객체를 반환합니다.
-    """
+   
     try:
-        print(f"🔐 토큰 검증 시도: {token[:20]}...")  # 👈 디버깅 로그
+        print(f"🔐 토큰 검증 시도: {token[:20]}...")
         
-        # Supabase에서 토큰으로 사용자 정보 가져오기
+    
         response = supabase.auth.get_user(token)
         user = response.user
 
@@ -42,9 +39,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
 
 def get_current_user_id(current_user: User = Depends(get_current_user)) -> str:
-    """
-    현재 인증된 사용자의 ID를 반환합니다.
-    """
+ 
     if not current_user:
         print("❌ current_user가 None입니다.")
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -54,7 +49,7 @@ def get_current_user_id(current_user: User = Depends(get_current_user)) -> str:
     return user_id
 
 
-# --- Pydantic 스키마 정의 ---
+
 class MentorSignUp(BaseModel):
     email: EmailStr
     password: str
@@ -72,8 +67,7 @@ class UserSignIn(BaseModel):
     email: EmailStr
     password: str
 
-
-# --- 멘토 회원가입 (FormData 방식 + 파일 업로드) ---
+# --- 멘토 회원가입 (JSON 방식) ---
 @router.post("/api/auth/register/mentor")
 def sign_up_mentor(
     email: str = Form(...),
@@ -170,8 +164,6 @@ def sign_up_mentor(
     except Exception as e:
         print(f"🔥 멘토 가입 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
 
 # --- 멘티 회원가입 (FormData 방식) ---
 @router.post("/api/auth/register/mentee")

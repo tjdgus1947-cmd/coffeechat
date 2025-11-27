@@ -50,20 +50,72 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+// 'onUnmounted'를 꼭 추가해야 합니다!
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import api from '@/services/api';
+import { supabase } from '@/services/supabase';
 
 const authStore = useAuthStore();
 const chatRooms = ref([]);
 const isLoading = ref(true);
 const selectedRoomId = ref(null);
+const listSubscription = ref(null);
 
 const emit = defineEmits(['select-room']);
 
 onMounted(async () => {
   await fetchChatRooms();
+  subscribeToListUpdates(); // ⭐️ 목록 실시간 구독 시작
 });
+
+onUnmounted(() => {
+  if (listSubscription.value) {
+    supabase.removeChannel(listSubscription.value);
+  }
+});
+
+
+function subscribeToListUpdates() {
+  listSubscription.value = supabase
+    .channel('room-list-updates')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages'
+      },
+      (payload) => {
+        const newMessage = payload.new;
+        
+        // 수신된 메시지가 현재 목록에 있는 방인지 확인
+        const roomIndex = chatRooms.value.findIndex(room => room.id === newMessage.chat_room_id);
+        
+        if (roomIndex !== -1) {
+          const room = chatRooms.value[roomIndex];
+          
+          // 1. 마지막 메시지와 시간 업데이트
+          room.last_message = newMessage.message;
+          room.last_message_time = newMessage.created_at;
+          
+          // 2. 안 읽은 메시지 카운트 증가
+          // (내가 보낸 게 아니고, 현재 선택된 방이 아닐 때만)
+          if (newMessage.sender_id !== authStore.userId && selectedRoomId.value !== room.id) {
+            room.unread_count = (room.unread_count || 0) + 1;
+          }
+          
+          // 3. 업데이트된 방을 목록 최상단으로 이동 (Sort)
+          chatRooms.value.splice(roomIndex, 1);
+          chatRooms.value.unshift(room);
+        } else {
+            // 새로운 방이 생겼을 수도 있으므로 목록을 다시 불러오는 것도 방법
+            // fetchChatRooms(); 
+        }
+      }
+    )
+    .subscribe();
+}
 
 async function fetchChatRooms() {
   isLoading.value = true;

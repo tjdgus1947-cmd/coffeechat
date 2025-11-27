@@ -5,6 +5,7 @@
 - 채팅방 목록 조회
 - 채팅 메시지 조회
 - 메시지 전송
+- 🔥 안 읽은 메시지 개수 조회 (신규 추가)
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -43,7 +44,10 @@ class SendMessageRequest(BaseModel):
     chat_room_id: str
     message: str
 
-# --- API 라우트 ---
+
+# ----------------------------------------------------
+# 📌 1) 전체 채팅방 목록 조회
+# ----------------------------------------------------
 
 @router.get("/api/chat/rooms", response_model=List[ChatRoomInfo])
 def get_my_chat_rooms(current_user_id: str = Depends(get_current_user_id)):
@@ -62,7 +66,7 @@ def get_my_chat_rooms(current_user_id: str = Depends(get_current_user_id)):
         chat_rooms = []
         
         for room in response.data:
-            # 2. 상대방 이름 조회
+            # 2. 상대방 ID
             partner_id = room['mentee_id'] if room['mentor_id'] == current_user_id else room['mentor_id']
             
             partner_info = supabase.table('users') \
@@ -79,7 +83,7 @@ def get_my_chat_rooms(current_user_id: str = Depends(get_current_user_id)):
                 .limit(1) \
                 .execute()
             
-            # 4. 읽지 않은 메시지 수 조회
+            # 4. 읽지 않은 메시지 수
             unread_count = supabase.table('chat_messages') \
                 .select('id', count='exact') \
                 .eq('chat_room_id', room['id']) \
@@ -110,6 +114,11 @@ def get_my_chat_rooms(current_user_id: str = Depends(get_current_user_id)):
         print(f"❌ 채팅방 목록 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+# ----------------------------------------------------
+# 📌 2) 채팅방 메시지 조회 + 읽음 처리
+# ----------------------------------------------------
 
 @router.get("/api/chat/rooms/{room_id}/messages", response_model=List[ChatMessage])
 def get_chat_messages(
@@ -157,7 +166,7 @@ def get_chat_messages(
                 is_read=msg['is_read']
             ))
         
-        # 4. 읽음 처리 (상대방이 보낸 메시지)
+        # 4. 읽음 처리 (상대가 보낸 메시지)
         supabase.table('chat_messages') \
             .update({'is_read': True}) \
             .eq('chat_room_id', room_id) \
@@ -173,6 +182,11 @@ def get_chat_messages(
         print(f"❌ 메시지 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+# ----------------------------------------------------
+# 📌 3) 메시지 전송
+# ----------------------------------------------------
 
 @router.post("/api/chat/messages")
 def send_message(
@@ -212,3 +226,45 @@ def send_message(
     except Exception as e:
         print(f"❌ 메시지 전송 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ----------------------------------------------------
+# 📌 4) 🔥 추가: 전체 안 읽은 메시지 개수 반환
+# ----------------------------------------------------
+
+@router.get("/api/chat/unread-count")
+def get_unread_chat_count(current_user_id: str = Depends(get_current_user_id)):
+    """
+    현재 로그인한 유저의 '안 읽은 메시지 개수' 반환
+    """
+    try:
+        # 1) 내가 속한 채팅방 가져오기
+        rooms_resp = (
+            supabase.table("chat_rooms")
+            .select("id")
+            .or_(f"mentor_id.eq.{current_user_id},mentee_id.eq.{current_user_id}")
+            .execute()
+        )
+
+        room_ids = [r["id"] for r in (rooms_resp.data or [])]
+
+        if not room_ids:
+            return {"unread_count": 0}
+
+        # 2) 그 방들의 읽지 않은 메시지 개수
+        msgs_resp = (
+            supabase.table("chat_messages")
+            .select("id", count="exact")
+            .in_("chat_room_id", room_ids)
+            .eq("is_read", False)
+            .neq("sender_id", current_user_id)
+            .execute()
+        )
+
+        unread_count = msgs_resp.count or 0
+        return {"unread_count": unread_count}
+
+    except Exception as e:
+        print("❌ unread-count 조회 실패:", e)
+        raise HTTPException(status_code=500, detail="unread-count 조회 실패")

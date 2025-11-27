@@ -8,7 +8,7 @@ import sys
 router = APIRouter()
 
 # 1. API 키 설정 (공백 제거 필수)
-raw_api_key = "AIzaSyBV42GSy0-WxfONNktGD51COfEJ-Y5SWHc" 
+raw_api_key = "AIzaSyCPYuZgF7NJLvnTRvrwZi-WIIw-Mh4v21c" 
 GOOGLE_API_KEY = raw_api_key.strip()
 
 # 2. transport='rest' 옵션 추가
