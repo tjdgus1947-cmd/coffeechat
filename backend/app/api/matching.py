@@ -83,16 +83,21 @@ def find_matches_advanced(
         # 1. 내 정보
         all_current_profiles = fetch_all_with_pagination(
             current_table, 
-            f"user_id, embedding, location, {current_text_column}"
+            f"*" 
         )
         current_profile = find_profile_in_list(all_current_profiles, user_id_str)
         
         if not current_profile:
+            logger.error(f"❌ 내 프로필을 찾을 수 없음. ID: {user_id_str}")
             raise HTTPException(status_code=404, detail="프로필을 찾을 수 없습니다")
         
-        current_embedding = json.loads(current_profile['embedding'])
-        current_lat, current_lon = extract_coordinates_from_geography(current_profile['location'])
-        current_text = current_profile.get(current_text_column, "")
+        try:
+            current_embedding = json.loads(current_profile['embedding'])
+            current_lat, current_lon = extract_coordinates_from_geography(current_profile['location'])
+            current_text = current_profile.get(current_text_column, "")
+        except Exception as e:
+            logger.error(f"❌ 내 프로필 데이터 파싱 실패: {e}")
+            raise HTTPException(status_code=500, detail="내 프로필 데이터가 올바르지 않습니다.")
         
         # ⭐️ 2. [핵심 수정] 후보군 가져올 때 '이름(full_name)'과 'ID' 포함하기
         # users 테이블을 조인해서 full_name을 가져옵니다.
@@ -104,18 +109,31 @@ def find_matches_advanced(
         )
         
         matches = []
+        skip_count = 0
+
         for candidate in all_candidates_data:
+            # 나 자신 제외
             if get_clean_user_id(candidate.get('user_id', '')) == user_id_str:
                 continue
             
             try:
+                if not candidate.get('embedding') or not candidate.get('location'):
+                    skip_count += 1
+                    continue
+
                 cand_emb = json.loads(candidate['embedding'])
                 cand_lat, cand_lon = extract_coordinates_from_geography(candidate['location'])
                 cand_text = candidate.get(target_text_column, "")
                 
                 # ⭐️ 이름 추출 로직
                 user_info = candidate.get('users') or {}
-                cand_name = user_info.get('full_name', '알 수 없음')
+                # users가 리스트로 올 경우 처리 (Supabase 설정에 따라 다름)
+                if isinstance(user_info, list) and len(user_info) > 0:
+                    cand_name = user_info[0].get('full_name', '알 수 없음')
+                elif isinstance(user_info, dict):
+                    cand_name = user_info.get('full_name', '알 수 없음')
+                else:
+                    cand_name = '알 수 없음'
                 
                 # 점수 계산
                 match_result = calculate_final_match_score(
@@ -128,10 +146,10 @@ def find_matches_advanced(
                 
                 matches.append({
                     "user_id": candidate['user_id'],
-                    "id": candidate['id'],     # ⭐️ 프로필 ID (예약 시 필수)
-                    "name": cand_name,         # ⭐️ 멘토 이름 (화면 표시용)
-                    "text": cand_text,         # 소개글 (파싱용)
-                    "embedding": cand_emb,
+                    "id": candidate['id'],
+                    "name": cand_name,
+                    "text": cand_text,
+                    # "embedding": cand_emb, # 굳이 안 보내도 됨
                     "final_score": match_result['final_score'],
                     "text_similarity": match_result['text_similarity'],
                     "distance_km": match_result['distance_km'],
@@ -139,20 +157,34 @@ def find_matches_advanced(
                     "breakdown": match_result['breakdown']
                 })
             except Exception as e:
+                # 🔥 [핵심] 에러가 나면 로그를 찍습니다!
+                logger.error(f"⚠️ 후보자({candidate.get('id')}) 계산 중 에러: {e}")
+                skip_count += 1
                 continue
+        
+        logger.info(f"✅ 매칭 완료: 총 {len(matches)}명 발견 (스킵됨: {skip_count}명)")
         
         matches.sort(key=lambda x: x['final_score'], reverse=True)
         
         # 3. 하이브리드 / 리랭킹 / 개인화 (기존 로직 유지)
         if use_hybrid and len(matches) > 0:
-             semantic_w, keyword_w = adaptive_hybrid_weights(len(current_text))
-             matches = hybrid_search(current_text, current_embedding, matches, semantic_w, keyword_w)
+             try:
+                semantic_w, keyword_w = adaptive_hybrid_weights(len(current_text))
+                matches = hybrid_search(current_text, current_embedding, matches, semantic_w, keyword_w)
+             except Exception as e:
+                logger.error(f"⚠️ 하이브리드 서치 실패: {e}")
 
         if use_reranking and len(matches) > limit:
-             matches = rerank_candidates(current_text, matches, top_k=limit * 2)
+             try:
+                matches = rerank_candidates(current_text, matches, top_k=limit * 2)
+             except Exception as e:
+                logger.error(f"⚠️ 리랭킹 실패: {e}")
 
         if use_personalization and role == 'mentee':
-             matches = personalize_match_scores(user_id_str, matches, role)
+             try:
+                matches = personalize_match_scores(user_id_str, matches, role)
+             except Exception as e:
+                logger.error(f"⚠️ 개인화 실패: {e}")
 
         final_matches = matches[:limit]
         
@@ -163,7 +195,7 @@ def find_matches_advanced(
         return { "matches": final_matches }
 
     except Exception as e:
-        logger.error(f"매칭 실패: {e}")
+        logger.error(f"❌ 매칭 시스템 치명적 오류: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # 레거시 지원 (유지)
@@ -173,4 +205,13 @@ def find_matches_legacy(
     role: str = Query(...),
     limit: int = Query(10, ge=1, le=100)
 ):
-    return find_matches_advanced(user_id=user_id, role=role, limit=limit)
+    return find_matches_advanced(
+        user_id=user_id, 
+        role=role, 
+        limit=limit,
+        max_distance=50.0,       # Query(...) 객체 대신 숫자 50.0 전달
+        keyword_boost=0.15,      # 숫자 전달
+        use_reranking=True,      # 불리언 전달
+        use_hybrid=True,
+        use_personalization=True
+    )

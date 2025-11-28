@@ -329,9 +329,21 @@ async function fetchTopMentorsWithRealScore() {
   isLoadingTopMentors.value = true;
   
   try {
+    // 🔥 [수정 1] 현재 세션에서 토큰 가져오기
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      throw new Error('로그인 세션이 없습니다.');
+    }
+
+    // 🔥 [수정 2] 헤더에 Authorization 추가
     const response = await axios.get(
       `http://localhost:8000/api/matching/find-matches`,
       {
+        headers: {
+          Authorization: `Bearer ${token}` // 👈 이 부분이 빠져 있었습니다!
+        },
         params: {
           user_id: currentUserId.value,
           role: 'mentee',
@@ -351,13 +363,15 @@ async function fetchTopMentorsWithRealScore() {
           final_score: match.final_score,
           matchingScore: match.final_score,
           textSimilarity: match.text_similarity,
-          distanceKm: match.distance_km
+          distanceKm: match.distance_km,
+          breakdown: match.breakdown
         };
       }
       return null;
     }).filter(Boolean);
     
     topMentorsList.value = mentorsWithScore;
+    
   } catch (error) {
     console.error('❌ TOP 멘토 매칭도 계산 실패:', error);
     topMentorsList.value = networkStore.nodes

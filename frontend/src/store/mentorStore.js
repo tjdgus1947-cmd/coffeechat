@@ -85,4 +85,3 @@ return {
     updateBookingStatus
   };
 });
-// ... (store의 나머지 부분)smm

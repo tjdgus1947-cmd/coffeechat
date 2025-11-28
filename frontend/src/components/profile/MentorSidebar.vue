@@ -1,4 +1,4 @@
-<!-- MentorSidebar.vue -->
+<!-- MentorSidebar.vue (수정본) -->
 <template>
   <aside v-if="mentor" class="sidebar-container">
     <button @click="$emit('close')" class="close-button" aria-label="닫기">X</button>
@@ -52,6 +52,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue';
+import api from '@/services/api'; // ✅ api.js 사용
 
 const props = defineProps({
   mentor: {
@@ -72,7 +73,7 @@ const realMatchScore = ref(0);
 const loadingScore = ref(true);
 const matchDetails = ref(null);
 
-// API 호출 함수
+// ✅ API 호출 함수 (async 추가 및 에러 처리 강화)
 async function fetchMatchingScore() {
   if (!props.mentor || !props.currentUserId) {
     realMatchScore.value = 0;
@@ -83,16 +84,17 @@ async function fetchMatchingScore() {
   loadingScore.value = true;
 
   try {
-    // 백엔드 API 호출
-    const response = await fetch(
-      `http://localhost:8000/api/matching/find-matches?user_id=${props.currentUserId}&role=mentee&limit=50`
-    );
+    // ✅ api.js 사용으로 변경 (axios 기반)
+    const response = await api.get('/matching/find-matches', {
+      params: {
+        user_id: props.currentUserId,
+        role: 'mentee',
+        limit: 50
+      }
+    });
 
-    if (!response.ok) {
-      throw new Error(`API 에러: ${response.status}`);
-    }
-
-    const data = await response.json();
+    // axios는 자동으로 response.data를 제공
+    const data = response.data;
 
     // 현재 멘토의 매칭 점수 찾기
     const matchedMentor = data.matches.find(
@@ -100,11 +102,11 @@ async function fetchMatchingScore() {
     );
 
     if (matchedMentor) {
-      realMatchScore.value = matchedMentor.final_score;
+      realMatchScore.value = Math.round(matchedMentor.final_score || 0);
       matchDetails.value = {
-        text_similarity: matchedMentor.text_similarity,
-        distance_km: matchedMentor.distance_km,
-        distance_score: matchedMentor.distance_score
+        text_similarity: Math.round(matchedMentor.text_similarity || 0),
+        distance_km: (matchedMentor.distance_km || 0).toFixed(1),
+        distance_score: Math.round(matchedMentor.distance_score || 0)
       };
     } else {
       // 매칭 안됨
@@ -116,6 +118,13 @@ async function fetchMatchingScore() {
     console.error('매칭 점수 조회 실패:', error);
     realMatchScore.value = 0;
     matchDetails.value = null;
+    
+    // ✅ 에러 메시지 상세화
+    if (error.response && error.response.status === 401) {
+      console.warn('인증 세션이 만료되었습니다. 다시 로그인해주세요.');
+      // 필요하다면 여기서 로그아웃 함수를 호출하거나 로그인 페이지로 이동시킬 수 있습니다.
+      // 예: router.push('/login');
+    }
   } finally {
     loadingScore.value = false;
   }
@@ -194,7 +203,7 @@ onMounted(() => {
 .progress {
   background-color: #6d28d9;
   height: 100%;
-  transition: width 0.3s ease; /* 🆕 부드러운 애니메이션 */
+  transition: width 0.3s ease;
 }
 /* 🆕 상세 정보 스타일 */
 .match-details {

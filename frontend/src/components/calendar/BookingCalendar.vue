@@ -99,11 +99,6 @@ const availableTimesForSelectedDate = computed(() => {
   return availableSlotsMap.value[key] || [];
 });
 
-function formatDate(isoString) {
-  if (!isoString) return '';
-  const dateObj = new Date(isoString);
-  return toLocalYyyyMmDd(dateObj);
-}
 
 function formatTime(isoString) {
   if (!isoString) return '';

@@ -170,6 +170,13 @@ async function fetchMessages() {
     isLoadingMessages.value = false;
   }
 }
+async function markAsRead(messageId) {
+  try {
+    await api.post(`/chat/messages/${messageId}/read`);
+  } catch (error) {
+    console.error('메시지 읽음 처리 실패:', error);
+  }
+}
 
 async function handleSend() {
   if (!newMessage.value.trim() || isSending.value) return;
