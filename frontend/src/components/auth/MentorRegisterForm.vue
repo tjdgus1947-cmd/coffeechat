@@ -50,10 +50,11 @@
         </div>
         <div class="form-group">
           <label>전문 분야 (쉼표로 구분)</label>
-          <input type="text" v-model="form.topics" placeholder="예: 백엔드, 리더십, 이직상담" required>
+          <!-- 💡 [수정] 정확한 매칭을 위해 구체적 키워드 유도 -->
+          <input type="text" v-model="form.topics" placeholder="예: 백엔드, Spring Boot, 리더십, 이직 상담 (기술 스택 필수)" required>
         </div>
         
-        <!-- ⭐️ 증빙 서류 업로드 (Step 1로 이동) -->
+        <!-- 증빙 서류 업로드 -->
         <div class="form-group upload-box">
           <label>증빙 서류 (필수)</label>
           <input type="file" @change="handleFileChange" accept=".pdf,.jpg,.png,.jpeg" />
@@ -63,10 +64,11 @@
 
         <div class="form-group">
           <label>자기소개 키워드 (초안)</label>
+          <!-- 💡 [수정] 성과 위주의 입력을 유도하는 프롬프트 -->
           <textarea 
             v-model="form.introduction_draft" 
             rows="3" 
-            placeholder="주요 경력이나 멘토링 경험, 강조하고 싶은 역량을 간단히 적어주세요."
+            placeholder="주요 경력 성과(수치), 거쳐온 회사들, 자랑하고 싶은 프로젝트 경험 등을 키워드로 나열해주세요. (AI가 이 내용을 바탕으로 프로필을 작성합니다!)"
           ></textarea>
         </div>
         
@@ -75,7 +77,7 @@
         </button>
       </div>
 
-      <!-- [STEP 2] 멘토 전용 설문 (동일) -->
+      <!-- [STEP 2] 멘토 전용 성향 질문 (AI 매칭 최적화) -->
       <div v-if="step === 2" class="step-section fade-in">
         <h3>💡 어떤 스타일의 멘토이신가요?</h3>
         <p class="sub-desc">답변을 바탕으로 멘티에게 어필할 매력적인 소개글을 만듭니다.</p>
@@ -99,7 +101,7 @@
         </div>
       </div>
 
-      <!-- [STEP 3] 최종 확인 (동일) -->
+      <!-- [STEP 3] 최종 확인 -->
       <div v-if="step === 3" class="step-section fade-in">
         <h3>📝 완성된 멘토 프로필</h3>
         <p class="sub-desc">전문성이 돋보이는지 확인하고 수정해주세요.</p>
@@ -141,7 +143,7 @@ const isLoading = ref(false);
 const isGenerating = ref(false);
 const errorMessage = ref('');
 const proofFile = ref(null); 
-const showFileError = ref(false); // 파일 미첨부 시 에러 표시용
+const showFileError = ref(false);
 
 // 폼 데이터 (멘토용)
 const form = reactive({
@@ -161,13 +163,63 @@ const surveyAnswers = reactive({
   q1: '', q2: '', q3: '', q4: '', q5: ''
 });
 
-// 멘토용 질문 리스트
+// 💡 [수정] 멘토용 핵심 5대 질문 (매칭 알고리즘 최적화)
 const questions = [
-  { key: 'q1', text: '선호하는 멘토링 진행 방식은?', options: ['체계적인 커리큘럼형', '자유로운 질의응답형', '실무 과제 및 코드리뷰형', '커리어 로드맵 설계형'] },
-  { key: 'q2', text: '가장 자신 있는 강점은 무엇인가요?', options: ['직무 전문성 및 기술', '업계 트렌드 및 정보', '면접 및 자소서 코칭', '커리어 방향성 설정'] },
-  { key: 'q3', text: '어떤 멘티를 가장 선호하시나요?', options: ['열정 가득한 취준생', '성장하고픈 주니어', '이직을 준비하는 경력직', '상관 없음'] },
-  { key: 'q4', text: '평소 소통 스타일은 어떠신가요?', options: ['논리적이고 직설적인 편', '공감하고 격려하는 편', '핵심만 짚어주는 효율적인 편', '친근하게 다가가는 편'] },
-  { key: 'q5', text: '멘토링을 통해 얻고 싶은 것은?', options: ['지식 공유의 보람', '리더십 역량 강화', '업계 네트워킹', '부수입 창출'] }
+  { 
+    key: 'q1', 
+    text: '멘티에게 줄 수 있는 가장 확실한 도움은?', 
+    options: [
+      '합격 노하우 전수 (서류 통과/면접 팁)', 
+      '하드 스킬 코칭 (코드 리뷰/실무 기술)', 
+      '커리어 로드맵 설계 (장기적 방향성)', 
+      '조직 적응 가이드 (처세술/리더십)', 
+      '업계 인사이트 (현장 이야기/트렌드)'
+    ] 
+  },
+  { 
+    key: 'q2', 
+    text: '평소 후배를 가르칠 때 어떤 스타일인가요?', 
+    options: [
+      '팩트 중심 (문제점 명확히 지적)', 
+      '동기 부여 (장점 찾아 자신감 UP)', 
+      '솔루션 지향 (구체적 액션플랜 제시)', 
+      '코칭형 (질문으로 스스로 답 찾게 함)', 
+      '스토리텔러 (경험담으로 쉽게 설명)'
+    ] 
+  },
+  { 
+    key: 'q3', 
+    text: '어떤 단계의 멘티와 대화가 잘 통하나요?', 
+    options: [
+      '완전 입문자 (비전공자/학생 기초)', 
+      '성장하는 주니어 (하나를 알려주면 열을 앎)', 
+      '간절한 취업 준비생 (당장 취업이 목표)', 
+      '고민 많은 현직자 (실무 고충/스킬업)', 
+      '경력직/이직러 (커리어 점프/시니어)'
+    ] 
+  },
+  { 
+    key: 'q4', 
+    text: '커피챗을 어떻게 이끌어가고 싶으신가요?', 
+    options: [
+      'Q&A 해결사 (궁금증 속 시원히 해결)', 
+      '면접관 모드 (실력 검증 및 피드백)', 
+      '첨삭 지도 (자소서/코드 디테일 수정)', 
+      '편안한 티타임 (형/누나처럼 대화)', 
+      '미니 세미나 (인사이트 체계적 전달)'
+    ] 
+  },
+  { 
+    key: 'q5', 
+    text: '멘토링 이후 어떤 관계를 지향하시나요?', 
+    options: [
+      '깔끔한 해결 (1회성 임팩트 중시)', 
+      '열린 문 (언제든 편하게 연락 환영)', 
+      '장기 코칭 (성장을 오래 지켜봄)', 
+      '후배 양성 (배우려는 멘티에 애정)', 
+      '업계 동료 (수평적 정보 공유)'
+    ] 
+  }
 ];
 
 // 파일 선택 핸들러
@@ -181,15 +233,13 @@ const handleFileChange = (e) => {
   }
 };
 
-// Step 1 검증 (파일 필수 체크 추가)
+// Step 1 검증
 const goToStep2 = () => {
-  // 기본 필드 체크
   if (!form.email || !form.password || !form.name || !form.company || !form.topics) {
     errorMessage.value = '필수 정보를 모두 입력해주세요.';
     return;
   }
   
-  // ⭐️ 증빙서류 체크
   if (!proofFile.value) {
     showFileError.value = true;
     errorMessage.value = '증빙 서류를 업로드해주세요.';
@@ -240,9 +290,7 @@ const handleSubmit = async () => {
   errorMessage.value = '';
 
   try {
-    // ⭐️ FormData 생성 (파일 전송)
     const formData = new FormData();
-    
     formData.append('email', form.email);
     formData.append('password', form.password);
     formData.append('name', form.name);
@@ -252,11 +300,10 @@ const handleSubmit = async () => {
     formData.append('topics', form.topics);
     formData.append('introduction', form.final_introduction);
     
-    // 좌표값
+    // (임시 위치값)
     formData.append('latitude', '37.5665');
     formData.append('longitude', '126.9780');
 
-    // ⭐️ 파일 추가 (Step 1에서 받았던 파일)
     if (proofFile.value) {
       formData.append('proofFile', proofFile.value);
     }
@@ -277,7 +324,7 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-/* ... (이전 스타일 유지) ... */
+/* 동일한 스타일 유지 */
 .register-form-container {
   max-width: 600px;
   margin: 40px auto;
