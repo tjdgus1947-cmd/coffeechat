@@ -43,88 +43,84 @@ const handleLogout = () => {
 };
 </script>
 
-<style scoped lang="css">
+
+
+<style scoped>
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 40px; /* 상하좌우 여백 조정 */
-  height: 60px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 10px 40px;
+  height: 70px;
+  
+  /* 배경: 아주 연한 크림색 or 흰색 */
+  background-color: #FFFFFF; 
+  /* 테두리: 포인트 컬러를 얇게 사용하여 세련되게 */
+  border-bottom: 3px solid var(--point-color); 
+  box-shadow: 0 4px 15px rgba(54, 18, 5, 0.05);
 }
+
 .logo a {
-text-decoration: none;
-display: flex; 
-align-items: center;
+  text-decoration: none;
+  display: flex; 
+  align-items: center;
 }
 
-/* 6. ⭐️ (추가) 로고 이미지 크기 조절 (Canvas 버전) */
 .logo-image {
-  height: 50px; /* 로고 높이 (Navbar 높이(60px)보다 작게) */
-  width: auto; /* 가로 비율 자동 */
+  height: 50px;
+  width: auto;
 }
 
-
-/* --- 주요 변경 사항 --- */
-
-/* 링크와 버튼을 묶는 오른쪽 정렬 컨테이너 */
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px; /* 요소 사이의 간격 */
+  gap: 15px;
 }
 
-/* '네트워크', '마이페이지', '로그인' 등 일반 링크 스타일 */
 .nav-link {
   display: inline-block;
-  padding: 8px 16px; /* 클릭 영역 확보 및 알약 모양을 위한 패딩 */
-  margin: 0 5px;
+  padding: 8px 16px;
   text-decoration: none;
-  color: #333;
+  color: var(--text-sub); /* 연한 갈색 */
   font-weight: 500;
-  border-radius: 6px; /* 둥근 모서리 */
-  transition: background-color 0.3s ease, color 0.3s ease;
+  border-radius: 20px;
+  transition: all 0.2s ease;
 }
 
-/* 일반 링크 hover 효과 */
 .nav-link:hover {
-  background-color: #f3f4f6; /* 은은한 회색 배경 */
-  color: #000;
+  background-color: var(--bg-cream);
+  color: var(--primary-color);
 }
 
-/* 활성화된 라우터 링크 (알약 모양) */
 .nav-link.router-link-exact-active {
-  background-color: #f3eefc; /* 매우 연한 보라색 */
-  color: #6d28d9;
-  font-weight: 600;
+  background-color: var(--bg-cream);
+  color: var(--point-color); /* 활성화된 메뉴는 포인트 컬러(카라멜) */
+  font-weight: 700;
 }
 
-/* 로그아웃 버튼을 nav-link처럼 보이도록 리셋 */
 .logout-link {
   background: none;
   border: none;
   cursor: pointer;
-  font-family: inherit; /* 폰트 상속 */
-  font-size: inherit; /* 폰트 크기 상속 */
+  font-family: inherit;
+  font-size: inherit;
 }
 
-/* '회원가입' CTA 버튼 스타일 */
+/* 회원가입 버튼: 포인트 컬러(카라멜) 사용 */
 .cta-button {
   display: inline-block;
-  padding: 10px 18px; /* 링크보다 살짝 더 크게 */
-  margin-left: 10px;
+  padding: 10px 24px;
   text-decoration: none;
   color: #ffffff;
-  background-color: #6d28d9; /* 메인 컬러 */
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
+  background-color: var(--point-color); /* ✨ 포인트 컬러 적용 */
+  border-radius: 24px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(223, 135, 35, 0.3);
 }
 
 .cta-button:hover {
-  background-color: #5b21b6; /* 호버 시 살짝 더 어두운 보라색 */
+  background-color: var(--point-hover);
+  transform: translateY(-2px);
 }
 </style>

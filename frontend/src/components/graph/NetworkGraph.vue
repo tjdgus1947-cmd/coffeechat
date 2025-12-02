@@ -1,34 +1,31 @@
+<!-- NetworkGraph.vue (커피챗 테마 버전) -->
+
 <template>
   <VueFlow
-    :nodes="nodes"
-    :edges="edges"
+    :nodes="enhancedNodes"
+    :edges="enhancedEdges"
     :fit-view-on-init="true"
     :nodes-draggable="true"
     @node-click="onNodeClick"
     class="network-graph"
   >
     <Background />
-    
     <Controls />
-    
     <MiniMap />
   </VueFlow>
 </template>
 
 <script setup>
-// 1. VueFlow 핵심 기능 임포트
-import { VueFlow, useVueFlow } from '@vue-flow/core'; 
-// 2. 부가 기능 (배경, 컨트롤, 미니맵) 임포트
+import { computed } from 'vue';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
 
-// 3. VueFlow 기본 스타일 임포트
 import '@vue-flow/core/dist/style.css';
-import '@vue-flow/core/dist/theme-default.css'; // 기본 테마
+import '@vue-flow/core/dist/theme-default.css';
 
-// 4. 부모(NetworkView)로부터 nodes와 edges 데이터를 받음
-defineProps({
+const props = defineProps({
   nodes: {
     type: Array,
     required: true,
@@ -39,19 +36,120 @@ defineProps({
   },
 });
 
-// 5. 노드 클릭 시 부모에게 이벤트를 전달
 const emit = defineEmits(['node-click']);
 
+// 노드에 선택 상태와 찜 상태를 반영
+const enhancedNodes = computed(() => {
+  return props.nodes.map(node => {
+    if (node.data?.type === 'mentor') {
+      const isLiked = node.data?.isLiked;
+      
+      return {
+        ...node,
+        style: {
+          background: isLiked
+            ? 'linear-gradient(135deg, #d4a574 0%, #c9956f 100%)'
+            : 'linear-gradient(135deg, #a8846f 0%, #9a7967 100%)',
+          border: '3px solid #fff5e6',
+          boxShadow: isLiked
+            ? '0 0 0 3px #d4a574, 0 8px 24px rgba(212, 165, 116, 0.35)'
+            : '0 8px 24px rgba(152, 121, 103, 0.2)',
+          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          cursor: 'pointer',
+          width: '90px',
+          height: '90px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '13px',
+          fontWeight: 'bold',
+          color: '#fff5e6',
+          textAlign: 'center',
+          padding: '8px'
+        }
+      };
+    }
+    
+    // 멘티 노드 (중앙)
+    return {
+      ...node,
+      style: {
+        background: 'linear-gradient(135deg, #6f5a47 0%, #5d4a3a 100%)',
+        border: '4px solid #fff5e6',
+        boxShadow: '0 0 0 3px #6f5a47, 0 12px 32px rgba(95, 74, 58, 0.4)',
+        width: '100px',
+        height: '100px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        color: '#fff5e6',
+        textAlign: 'center',
+        padding: '8px'
+      }
+    };
+  });
+});
+
+// 엣지를 직선으로 변경 (커피 테마 색상)
+const enhancedEdges = computed(() => {
+  return props.edges.map(edge => ({
+    ...edge,
+    animated: false,
+    style: {
+      stroke: '#d9c9b8',
+      strokeWidth: 2,
+      strokeDasharray: 'none'
+    },
+    type: 'straight'
+  }));
+});
+
 const onNodeClick = (event) => {
-  // 클릭된 노드의 정보를 부모 컴포넌트로 전달
   emit('node-click', event.node);
 };
 </script>
 
 <style scoped>
-/* 그래프 컴포넌트가 부모 요소(NetworkView)의 크기를 꽉 채우도록 설정 */
 .network-graph {
   width: 100%;
   height: 100%;
+  background: linear-gradient(135deg, #fef8f3 0%, #fef5ee 100%);
+}
+
+/* VueFlow 커스터마이징 */
+:deep(.vue-flow) {
+  background: linear-gradient(135deg, #fef8f3 0%, #fef5ee 100%);
+}
+
+:deep(.vue-flow__minimap) {
+  background-color: #fff5e6;
+  border: 2px solid #e8d7c3;
+  border-radius: 12px;
+}
+
+:deep(.vue-flow__controls) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #e8d7c3;
+}
+
+:deep(.vue-flow__controls button) {
+  border: 1px solid #e8d7c3;
+  color: #6f5a47;
+}
+
+:deep(.vue-flow__controls button:hover) {
+  background-color: #fef5ee;
+  border-color: #a8846f;
+}
+
+/* 노드 선택 상태 */
+:deep(.vue-flow__node.selected) {
+  filter: drop-shadow(0 0 0 4px rgba(212, 165, 116, 0.2));
 }
 </style>
