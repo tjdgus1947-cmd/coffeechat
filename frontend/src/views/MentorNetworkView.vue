@@ -519,11 +519,12 @@ async function fetchMentorRanking() {
 
 // ---------------- 기본 통계/레벨 ----------------
 const stats = computed(() => {
-  const list = mentorStore.receivedBookings || [];
+  const list = mentorStore.receivedBookings;
+  const safeList = Array.isArray(list) ? list : [];
   return {
-    total: list.length,
-    pending: list.filter(b => b.status === 'pending').length,
-    approved: list.filter(b => b.status === 'approved').length
+    total: safeList.length,
+    pending: safeList.filter(b => b.status === 'pending').length,
+    approved: safeList.filter(b => b.status === 'approved').length
   };
 });
 

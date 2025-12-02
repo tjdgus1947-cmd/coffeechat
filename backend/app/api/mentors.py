@@ -18,12 +18,11 @@ def get_mentor_list():
     try:
         response = supabase.table('users') \
                             .select('id, full_name, mentor_profiles(id, career_info, profile_image_url, location, verification_status)') \
-                            .not_('mentor_profiles', 'is', 'null') \
                             .execute()
         
         if response.data:
-            # mentor_profiles가 빈 배열인 경우 제외
-            return [user for user in response.data if user.get('mentor_profiles')]
+            # mentor_profiles가 빈 배열이거나 None인 경우 제외
+            return [user for user in response.data if user.get('mentor_profiles') and len(user.get('mentor_profiles')) > 0]
         return []
 
     except Exception as e:

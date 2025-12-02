@@ -38,6 +38,10 @@ app.json_encoder = json_datetime_encoder
 origins = [
     "http://localhost:5173", # 👈 '수민'님의 Vue.js 주소 (포트 확인!)
     "http://127.0.0.1:5173",
+    "http://localhost:5174", # 5174 포트 추가
+    "http://127.0.0.1:5174",
+    "http://localhost:5176", # 5176 포트 추가
+    "http://127.0.0.1:5176",
     # (만약 '수민'님 Vue.js가 5174 등 다른 포트라면 그것도 추가)
 ]
 
