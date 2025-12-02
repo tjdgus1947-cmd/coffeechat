@@ -72,17 +72,14 @@
 </template>
 
 <script setup>
-// 
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import api from '@/services/api';
-import { supabase } from '@/supabaseClient';
 
 const authStore = useAuthStore();
 const props = defineProps({
   selectedRoom: Object
 });
-const subscription = ref(null);
 
 const messages = ref([]);
 const newMessage = ref('');
@@ -102,65 +99,19 @@ const partnerName = computed(() => {
 });
 
 watch(() => props.selectedRoom, async (newRoom) => {
-  if (subscription.value) {
-    supabase.removeChannel(subscription.value); // 이전 방 구독 해제
-    subscription.value = null;
-  }
-
   if (newRoom) {
     await fetchMessages();
-    subscribeToRealtime(newRoom.id); // ⭐️ 실시간 구독 시작
   }
 }, { immediate: true });
 
-onUnmounted(() => {
-  if (subscription.value) {
-    supabase.removeChannel(subscription.value);
-  }
-});
-
-function subscribeToRealtime(roomId) {
-  subscription.value = supabase
-    .channel(`room-${roomId}`) // 채널 이름 (유니크하면 됨)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT', // 메시지가 추가될 때만 감지
-        schema: 'public',
-        table: 'chat_messages',
-        filter: `chat_room_id=eq.${roomId}` // 현재 방의 메시지만 필터링
-      },
-      (payload) => {
-        // payload.new에 새로 들어온 메시지 데이터가 있음
-        const newMessage = payload.new;
-
-        // 내 메시지는 handleSend에서 이미 추가했을 수도 있지만,
-        // 확실히 하기 위해 중복 방지 체크 후 추가하거나,
-        // handleSend에서는 API 호출만 하고 여기서 UI 업데이트를 해도 됨.
-        // 여기서는 중복 방지 로직을 추가함.
-        const exists = messages.value.some(m => m.id === newMessage.id);
-        if (!exists) {
-          messages.value.push(newMessage);
-          nextTick(() => scrollToBottom());
-
-          // (선택 사항) 상대방이 보낸 메시지라면 '읽음 처리' API 호출 로직 추가 가능
-          if (newMessage.sender_id !== currentUserId.value) {
-             markAsRead(newMessage.id);
-          }
-        }
-      }
-    )
-    .subscribe();
-}
-
 async function fetchMessages() {
   if (!props.selectedRoom) return;
-
+  
   isLoadingMessages.value = true;
   try {
     const response = await api.get(`/chat/rooms/${props.selectedRoom.id}/messages`);
     messages.value = response.data;
-
+    
     await nextTick();
     scrollToBottom();
   } catch (error) {
@@ -173,14 +124,14 @@ async function fetchMessages() {
 
 async function handleSend() {
   if (!newMessage.value.trim() || isSending.value) return;
-
+  
   isSending.value = true;
   try {
     await api.post('/chat/messages', {
       chat_room_id: props.selectedRoom.id,
       message: newMessage.value.trim()
     });
-
+    
     newMessage.value = '';
     await fetchMessages();
   } catch (error) {
@@ -200,32 +151,23 @@ function scrollToBottom() {
 function formatMessageTime(dateString) {
   const date = new Date(dateString);
   const now = new Date();
-
+  
   const isToday = date.toDateString() === now.toDateString();
-
+  
   if (isToday) {
-    return date.toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
+    return date.toLocaleTimeString('ko-KR', { 
+      hour: '2-digit', 
       minute: '2-digit',
-      hour12: false
+      hour12: false 
     });
   } else {
-    return date.toLocaleDateString('ko-KR', {
-      month: 'short',
+    return date.toLocaleDateString('ko-KR', { 
+      month: 'short', 
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
     });
-  }
-}
-
-// db-ksh 브랜치의 채팅 입력/전송 관련 실시간 동기화 및 markAsRead 함수 복구
-async function markAsRead(messageId) {
-  try {
-    await api.post(`/chat/messages/${messageId}/read`);
-  } catch (error) {
-    // 읽음 처리 실패는 무시
   }
 }
 </script>
@@ -235,6 +177,8 @@ async function markAsRead(messageId) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
   background: white;
 }
 
@@ -260,9 +204,10 @@ async function markAsRead(messageId) {
 
 .chat-room {
   height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 
 .chat-header {
@@ -304,7 +249,8 @@ async function markAsRead(messageId) {
 }
 
 .messages-container {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
   overflow-y: auto;
   padding: 20px;
   background: #f9fafb;

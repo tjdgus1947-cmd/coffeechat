@@ -1,11 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/store/auth'; // 1. auth 스토어 가져오기
+
 import HomeView from '@/views/HomeView.vue';
 import NetworkView from '@/views/NetworkView.vue';
 import LoginView from '@/views/LoginView.vue';
 import RegisterView from '@/views/RegisterView.vue';
-import MentorMap from '@/components/map/MentorMap.vue'; // ⭐️ 올바른 경로!
+import MentorMap from '@/components/map/MentorMap.vue';
 import MentorListPanel from '@/components/list/MentorListPanel.vue';
+import MentorLayout from '@/components/layout/MentorLayout.vue';
+import MentorNetworkView from '@/views/MentorNetworkView.vue';
+import MentorNetworkGraphView from '@/views/MentorNetworkGraphView.vue';
 
 const routes = [
   {
@@ -48,7 +52,32 @@ const routes = [
     name: 'MentorList',
     component: MentorListPanel,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/mentor',
+    component: MentorLayout,
+    meta: { requiresAuth: true, role: 'mentor' },
+    children: [
+      {
+        path: '',
+        name: 'mentor-dashboard',
+        component: MentorNetworkView,
+        meta: { requiresAuth: true, role: 'mentor' }
+      },
+      {
+        path: 'network',
+        name: 'mentor-network-graph',
+        component: MentorNetworkGraphView,
+        meta: { requiresAuth: true, role: 'mentor' }
+      },
+      {
+        path: 'chat',
+        name: 'mentor-chat',
+        redirect: { name: 'mentor-dashboard' }
+      }
+    ]
   }
+
 ];
 
 const router = createRouter({

@@ -1,5 +1,3 @@
-# backend/app/api/matching.py
-
 from fastapi import APIRouter, HTTPException, Body, Query
 from pydantic import BaseModel
 from app.core.config import supabase
@@ -11,10 +9,11 @@ from app.services.matching_service import (
 import uuid
 import unicodedata
 import json
-import logging # ⭐️ [추가] 로깅 라이브러리 임포트
-from typing import List, Dict # ⭐️ [추가] 타이핑 임포트
+import logging
+import numpy as np  # ⭐️ [추가] 벡터 연산을 위해 numpy 추가
+from typing import List, Dict
 
-# ⭐️ [추가] 로거 설정
+# 로거 설정
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -47,11 +46,9 @@ def find_profile_in_list(response_data: list, user_id_str: str):
                 return profile
     return None
 
-# ⭐️ [추가] location.py에서 페이지네이션 헬퍼 함수 복사
 def fetch_all_with_pagination(table_name: str, select_query: str, chunk_size: int = 1000) -> List[dict]:
     """
     Supabase에서 데이터를 페이지네이션으로 모두 가져옵니다.
-    (WinError 10035 소켓 오류 해결용)
     """
     all_data = []
     offset = 0
@@ -65,11 +62,9 @@ def fetch_all_with_pagination(table_name: str, select_query: str, chunk_size: in
             
             if response.data:
                 all_data.extend(response.data)
-                
                 if len(response.data) < chunk_size:
                     logger.info(f"Finished fetching {table_name}. Total: {len(all_data)}")
                     break
-                
                 offset += chunk_size
             else:
                 logger.info(f"Finished fetching {table_name}. Total: {len(all_data)}")
@@ -80,10 +75,27 @@ def fetch_all_with_pagination(table_name: str, select_query: str, chunk_size: in
             
     return all_data
 
-# --- (임베딩/위치 업데이트 API - 기존과 동일) ---
+# ⭐️ [추가] 순수 벡터 유사도 계산 헬퍼 함수
+def calculate_cosine_similarity(vec_a, vec_b):
+    """
+    두 벡터 간의 코사인 유사도를 계산합니다 (1.0 = 완전 일치, -1.0 = 완전 반대)
+    """
+    try:
+        norm_a = np.linalg.norm(vec_a)
+        norm_b = np.linalg.norm(vec_b)
+        
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+            
+        return np.dot(vec_a, vec_b) / (norm_a * norm_b)
+    except Exception as e:
+        logger.error(f"Vector calculation error: {e}")
+        return 0.0
 
+# --- (기존 API 엔드포인트들 생략 없이 유지) ---
 @router.post("/api/matching/generate-embedding")
 def create_embedding_and_update(request: EmbeddingRequest):
+    # (기존 코드와 동일)
     try:
         user_id_str = get_clean_user_id(request.user_id)
         if not user_id_str: raise HTTPException(status_code=400, detail="Invalid User ID")
@@ -103,9 +115,9 @@ def create_embedding_and_update(request: EmbeddingRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/api/matching/update-location")
 def update_user_location(request: LocationMatchRequest):
+    # (기존 코드와 동일)
     try:
         user_id_str = get_clean_user_id(request.user_id)
         if not user_id_str: raise HTTPException(status_code=400, detail="Invalid User ID")
@@ -125,22 +137,19 @@ def update_user_location(request: LocationMatchRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- (⭐️⭐️⭐️ 핵심 수정 API ⭐️⭐️⭐️) ---
-
 @router.get("/api/matching/find-matches")
 def find_matches_with_location(
     user_id: str = Query(..., description="현재 사용자 ID"),
     role: str = Query(..., description="'mentor' 또는 'mentee'"),
-    # ⭐️ [수정] 422 오류 해결: le=50 -> le=100 (프론트엔드 요청에 맞춤)
     limit: int = Query(10, ge=1, le=100, description="반환할 최대 매칭 수"),
     max_distance: float = Query(50.0, ge=1, description="최대 거리 기준 (km)")
 ):
+    # (기존 코드와 동일 - 멘티용 매칭 로직)
     try:
         user_id_str = get_clean_user_id(user_id)
         current_table = 'mentee_profiles' if role == 'mentee' else 'mentor_profiles'
         target_table = 'mentor_profiles' if role == 'mentee' else 'mentee_profiles'
 
-        # ⭐️ [수정] 500 오류 해결: 페이지네이션으로 현재 사용자 정보 가져오기
         all_current_profiles_data = fetch_all_with_pagination(
             current_table, "user_id, embedding, location"
         )
@@ -157,35 +166,14 @@ def find_matches_with_location(
         current_embedding = json.loads(current_profile['embedding'])
         current_lat, current_lon = extract_coordinates_from_geography(current_profile['location'])
         
-        # ⭐️ [수정] 500 오류 해결: 페이지네이션으로 모든 매칭 후보 가져오기 (인라인 루프)
-        all_candidates_data = []
-        offset = 0
-        chunk_size = 1000 # 한 번에 1000명씩
+        all_candidates_data = fetch_all_with_pagination(
+            target_table, "user_id, embedding, location"
+        )
         
-        while True:
-            logger.info(f"Fetching candidates from {target_table}: {offset} to {offset + chunk_size - 1}...")
-            candidates_response = supabase.table(target_table) \
-                                          .select("user_id, embedding, location") \
-                                          .not_.is_("embedding", "null") \
-                                          .not_.is_("location", "null") \
-                                          .range(offset, offset + chunk_size - 1) \
-                                          .execute()
-            
-            if candidates_response.data:
-                all_candidates_data.extend(candidates_response.data)
-                if len(candidates_response.data) < chunk_size:
-                    break # 마지막 페이지
-                offset += chunk_size
-            else:
-                break # 데이터 없음
-        
-        logger.info(f"Total candidates fetched: {len(all_candidates_data)}")
-
         matches = []
-        # ⭐️ [수정] candidates_response.data -> all_candidates_data
         for candidate in all_candidates_data:
             if candidate.get('user_id') and get_clean_user_id(candidate['user_id']) == user_id_str:
-                continue # 자기 자신 제외
+                continue 
             
             try:
                 candidate_lat, candidate_lon = extract_coordinates_from_geography(candidate['location'])
@@ -222,17 +210,92 @@ def find_matches_with_location(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+# ⭐️ [추가] 멘토-멘토 네트워크 전용 API (100% 벡터 유사도)
+@router.get("/api/matching/mentor-network")
+def find_mentor_network_matches(
+    user_id: str = Query(..., description="현재 멘토의 User ID"),
+    limit: int = Query(20, ge=1, le=100, description="반환할 최대 유사 멘토 수"),
+    min_similarity: float = Query(0.0, ge=0.0, le=1.0, description="최소 유사도 임계값")
+):
+    """
+    멘토-멘토 간의 네트워크 형성을 위해, 오직 '임베딩 유사도(Cosine Similarity)'만을 기준으로
+    유사한 멘토들을 찾습니다. (위치 정보 배제)
+    """
+    try:
+        user_id_str = get_clean_user_id(user_id)
+        
+        # 1. 모든 멘토 프로필 조회 (DB 구조상 mentor_profiles 테이블 사용)
+        # 네트워크 그래프에 필요한 정보(이름 등)를 위해 필요한 컬럼을 선택
+        all_mentors_data = fetch_all_with_pagination(
+            "mentor_profiles", 
+            "user_id, embedding, career_info"  # users 테이블 조인은 프론트엔드나 별도 쿼리로 처리 가정
+        )
+        
+        # 2. 내 프로필 찾기
+        my_profile = find_profile_in_list(all_mentors_data, user_id_str)
+        
+        if my_profile is None:
+            raise HTTPException(status_code=404, detail="Current mentor profile not found")
+            
+        if not my_profile.get('embedding'):
+            raise HTTPException(status_code=400, detail="Current mentor has no embedding data")
+            
+        my_embedding = np.array(json.loads(my_profile['embedding']))
+        
+        network_matches = []
+        
+        # 3. 다른 멘토들과 유사도 계산 (Loop)
+        for other in all_mentors_data:
+            other_user_id = other.get('user_id')
+            if not other_user_id: continue
+            
+            # 자기 자신 제외
+            if get_clean_user_id(other_user_id) == user_id_str:
+                continue
+                
+            try:
+                if not other.get('embedding'): continue
+                
+                other_embedding = np.array(json.loads(other['embedding']))
+                
+                # 순수 벡터 코사인 유사도 계산
+                similarity = calculate_cosine_similarity(my_embedding, other_embedding)
+                
+                # 최소 임계값 필터링
+                if similarity < min_similarity:
+                    continue
+                
+                network_matches.append({
+                    "user_id": other_user_id,
+                    "similarity": float(similarity), # numpy float -> python float 변환
+                    "career_info": other.get('career_info')
+                })
+                
+            except Exception as e:
+                logger.warning(f"Error calculating similarity for mentor {other_user_id}: {e}")
+                continue
+                
+        # 4. 유사도 순으로 정렬 (내림차순)
+        network_matches.sort(key=lambda x: x['similarity'], reverse=True)
+        
+        return {
+            "center_user_id": user_id_str,
+            "matches": network_matches[:limit]
+        }
+
+    except Exception as e:
+        logger.error(f"🔥 Mentor Network Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/api/matching/debug/{user_id}")
-def debug_user_profile(
-    user_id: str, 
-    role: str = Query(...)
-):
+def debug_user_profile(user_id: str, role: str = Query(...)):
+    # (기존 디버그 코드 유지)
     try:
         user_id_str = get_clean_user_id(user_id)
         table_name = 'mentor_profiles' if role == 'mentor' else 'mentee_profiles'
 
-        # ⭐️ [수정] 디버그 API도 페이지네이션 적용
         all_profiles_data = fetch_all_with_pagination(
             table_name, "user_id, embedding, location"
         )
