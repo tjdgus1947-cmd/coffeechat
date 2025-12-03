@@ -146,6 +146,12 @@ export default {
         }
 
         this.drawMentorLines(this.currentUserLocation, mentor_locations);
+
+        this.$nextTick(() => {
+          this.map.relayout();              // ← 지도 강제 레이아웃
+          window.dispatchEvent(new Event('resize')); // ← 타일 재로드
+        });
+
       } catch (err) {
         console.error('지도 데이터 로드 실패:', err);
         this.loading = false;
@@ -308,7 +314,9 @@ export default {
 .kakao-map {
   width: 100%;
   height: 100%;
+  min-height: 600px; /* ← 추가 */
 }
+
 
 /* 로딩 오버레이 */
 .loading-overlay {
