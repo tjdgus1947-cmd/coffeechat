@@ -102,7 +102,7 @@ const availableTimesForSelectedDate = computed(() => {
 function formatDate(isoString) {
   if (!isoString) return '';
   const dateObj = new Date(isoString);
-  return toLocalYyyyMmDd(dateObj);
+  return toLocalYyyyMmDd(dateObj); 
 }
 
 function formatTime(isoString) {

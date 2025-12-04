@@ -19,7 +19,7 @@ export const useChatStore = defineStore('chat', () => {
 
     try {
       isLoading.value = true;
-      const res = await api.get('/chat/unread-count');
+      const res = await api.get('/api/chat/unread-count');
       unreadCount.value = res.data?.unread_count ?? 0;
     } catch (e) {
       console.error('unread-count 불러오기 실패:', e);

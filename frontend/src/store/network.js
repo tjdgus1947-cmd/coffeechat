@@ -46,14 +46,12 @@ export const useNetworkStore = defineStore('network', () => {
     if (MOCK_DATA) {
       // (이 부분은 이제 실행되지 않음)
     } 
-    else {
-      try {
+    else {
+      try {
         // (수정) /api prefix 추가
-        const response = await api.get(`/mentors/recommended/${authStore.userId}`);
-        
-        const recommendedMentors = response.data; 
-        
-        const menteeNode = {
+        const response = await api.get(`/api/mentors/recommended/${authStore.userId}`);
+        
+        const recommendedMentors = response.data;        const menteeNode = {
           id: 'mentee-main',
           type: 'input',
           // (수정) authStore.userName 사용

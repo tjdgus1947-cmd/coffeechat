@@ -1,12 +1,12 @@
-<!-- MenteeNetworkView.vue -->
-
 <template>
   <div class="network-view-container">
 
-    <!-- 탭 메뉴 -->
-    <div class="view-switcher">
-      <button @click="currentView = 'graph'" :class="{ active: currentView === 'graph' }">
-        네트워크 뷰
+    <div class="cafe-tabs">
+      <button 
+        @click="currentView = 'graph'" 
+        :class="{ active: currentView === 'graph' }"
+      >
+        <span class="icon">☕</span> 네트워크
       </button>
 
       <button @click="currentView = 'map'" :class="{ active: currentView === 'map' }">
@@ -20,118 +20,136 @@
       <button @click="currentView = 'management'" :class="{ active: currentView === 'management' }">
         커피챗 관리
       </button>
-
-      <!-- (멘티 화면에는 채팅 탭 없음 / 플로팅 버튼으로 진입) -->
+      <button 
+        @click="currentView = 'chat'" 
+        :class="{ active: currentView === 'chat' }"
+      >
+        <span class="icon">💬</span> 채팅
+      </button>
     </div>
 
-    <!-- 네트워크 뷰 -->
-    <div v-show="currentView === 'graph'" class="graph-panel-wrapper">
-      <NetworkGraph
-        :nodes="networkStore.nodes"
-        :edges="networkStore.edges"
-        @node-click="handleNodeClick"
-        class="graph-panel"
-      />
-      <TopMentorsPanel
-        :mentors="topMentorsList"
-        :loading="isLoadingTopMentors"
-        @select-mentor="handleTopMentorClick"
-        class="top-mentors-floating"
-      />
-    </div>
-
-    <!-- 지도 뷰 -->
-    <div v-show="currentView === 'map'" class="map-panel-wrapper">
-      <MentorMap />
-    </div>
-
-    <!-- 멘토 목록 뷰 -->
-    <div v-show="currentView === 'list'" class="list-panel-wrapper">
-      <MentorListPanel
-        :mentors="topMentorsList"
-        :loading="isLoadingTopMentors"
-        :currentUserId="currentUserId"
-        @view-profile="handleTopMentorClick"
-        @open-booking="openBookingModal"
-      />
-    </div>
-
-    <!-- 커피챗 관리 뷰 -->
-    <div v-if="currentView === 'management'" class="management-panel">
-      <section class="manage-section completed-section">
-        <div class="section-header">
-          <h3>🎉 완료된 커피챗</h3>
-          <span class="desc">종료된 세션입니다. 멘토님에게 후기를 남겨보세요!</span>
-        </div>
-
-        <div v-if="completedChats.length > 0" class="chat-list">
-          <div v-for="chat in completedChats" :key="chat.id" class="chat-card completed">
-            <div class="chat-info">
-              <span class="mentor-name">{{ chat.mentor?.full_name || '멘토' }}님</span>
-              <span class="chat-time">{{ formatSchedule(chat.start_time, chat.end_time) }}</span>
-            </div>
-
-            <button 
-              class="review-btn" 
-              :class="{ 'reviewed': chat.has_review }"
-              @click="openReviewModal(chat)"
-            >
-              {{ chat.has_review ? '📖 내가 쓴 후기' : '✍️ 후기 작성' }}
-            </button>
+    <div class="paper-panel">
+      
+      <div v-show="currentView === 'graph'" class="view-content graph-wrapper">
+        
+        <div class="info-strip">
+          <div class="tape-left"></div>
+          <div class="info-text">
+            <span class="highlight">Tip.</span> 바리스타(멘토)를 <strong>더블 클릭</strong>하여 찜(❤️) 목록에 담아보세요!
           </div>
-        </div>
-
-        <div v-else class="empty-state-box">
-          완료된 커피챗이 아직 없습니다.
-        </div>
-      </section>
-
-      <section class="manage-section active-section">
-        <div class="section-header">
-          <h3>📨 신청 현황</h3>
-          <span class="desc">승인 대기 중이거나 예정된 일정입니다.</span>
-        </div>
-
-        <div v-if="activeChats.length > 0" class="chat-list">
-          <div v-for="chat in activeChats" :key="chat.id" class="chat-card">
-            <div class="chat-top">
-              <span class="mentor-name">{{ chat.mentor?.full_name || '멘토' }}님</span>
-              <span :class="['status-badge', chat.status]">
-                {{ getStatusLabel(chat.status) }}
-              </span>
-            </div>
-
-            <div class="chat-details">
-              <p v-if="chat.start_time">📅 {{ formatSchedule(chat.start_time, chat.end_time) }}</p>
-              <p v-else class="no-time">시간 정보 없음</p>
-            </div>
+          <div class="like-counter">
+            내가 찜한 바리스타 <span class="badge">{{ likedMentors.length }}</span>명
           </div>
+          <div class="tape-right"></div>
         </div>
 
-        <div v-else class="empty-state-box">
-          신청 내역이 없습니다.
+        <div v-if="graphNodes.length === 0 && !isLoadingTopMentors" class="empty-graph-message">
+          <p>☕ 아직 추천 파트너가 준비되지 않았습니다.</p>
+          <p>잠시만 기다려주시거나, 프로필을 업데이트 해보세요!</p>
         </div>
-      </section>
-    </div>
 
-    <!-- 채팅 뷰 -->
-    <div v-if="currentView === 'chat'" class="chat-view-wrapper">
-      <div class="chat-layout">
-        <ChatRoomList 
-          @select-room="handleSelectRoom" 
-          ref="chatRoomListRef"
-          class="chat-room-list"
+        <NetworkGraph
+          v-else
+          :nodes="graphNodes"
+          :edges="graphEdges"
+          @node-click="handleNodeClick"
+          @node-double-click="handleNodeDoubleClick"
+          class="graph-component"
         />
-        <ChatRoom 
-          :selected-room="selectedChatRoom"
-          class="chat-room"
+        
+        <TopMentorsPanel
+          :mentors="topMentorsList"
+          :loading="isLoadingTopMentors"
+          @select-mentor="handleTopMentorClick"
+          class="top-mentors-floating"
         />
       </div>
+
+      <div v-show="currentView === 'map'" class="view-content map-wrapper">
+        <MentorMap />
+      </div>
+
+      <div v-show="currentView === 'list'" class="view-content list-wrapper">
+        <MentorListPanel
+          :mentors="topMentorsList"
+          :loading="isLoadingTopMentors"
+          :currentUserId="currentUserId"
+          @view-profile="handleTopMentorClick"
+          @open-booking="openBookingModal"
+        />
+      </div>
+
+      <div v-if="currentView === 'management'" class="view-content management-wrapper">
+        <div class="receipt-style-container">
+          <div v-if="bookingStore.isLoading" class="loading-state">
+            <p>🧾 주문 내역을 불러오는 중...</p>
+          </div>
+
+          <div v-else>
+            <section class="manage-section completed-section">
+              <div class="section-header">
+                <h3>🎉 지난 만남 (완료)</h3>
+                <span class="desc">종료된 세션입니다. 후기를 남겨주세요.</span>
+              </div>
+              <div v-if="completedChats.length > 0" class="chat-list">
+                <div v-for="chat in completedChats" :key="chat.id" class="chat-card completed">
+                  <div class="chat-info">
+                    <span class="mentor-name">{{ chat.mentor?.full_name || '바리스타' }}님</span>
+                    <span class="chat-time">{{ formatSchedule(chat.start_time, chat.end_time) }}</span>
+                  </div>
+                  <button class="review-btn" :class="{ 'reviewed': chat.has_review }" @click="openReviewModal(chat)">
+                    {{ chat.has_review ? '📖 후기 확인' : '✍️ 후기 작성' }}
+                  </button>
+                </div>
+              </div>
+              <div v-else class="empty-state-box">아직 완료된 만남이 없습니다.</div>
+            </section>
+
+            <section class="manage-section active-section">
+              <div class="section-header">
+                <h3>📨 약속 현황 (진행 중)</h3>
+                <span class="desc">승인 대기 중이거나 예정된 일정입니다.</span>
+              </div>
+              <div v-if="activeChats.length > 0" class="chat-list">
+                <div v-for="chat in activeChats" :key="chat.id" class="chat-card">
+                  <div class="chat-top">
+                    <span class="mentor-name">{{ chat.mentor?.full_name || '바리스타' }}님</span>
+                    <span :class="['status-badge', chat.status]">
+                      {{ getStatusLabel(chat.status) }}
+                    </span>
+                  </div>
+                  <div class="chat-details">
+                    <p v-if="chat.start_time">📅 {{ formatSchedule(chat.start_time, chat.end_time) }}</p>
+                    <p v-else class="no-time">시간 정보 없음</p>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="empty-state-box">
+                <p>현재 진행 중인 약속이 없습니다.</p>
+                <button class="link-btn" @click="currentView = 'list'">👉 파트너 찾으러 가기</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="currentView === 'chat'" class="view-content chat-view-wrapper">
+        <div class="chat-layout">
+          <ChatRoomList 
+            @select-room="handleSelectRoom" 
+            class="chat-room-list"
+          />
+          <ChatRoom 
+            :selected-room="selectedChatRoom"
+            class="chat-room"
+          />
+        </div>
+      </div>
+
     </div>
 
-    <!-- 사이드 패널 및 모달 -->
-    <MentorSidebar
-      v-if="(currentView === 'graph' || currentView === 'list') && selectedMentor"
+    <MentorProfileModal
+      v-if="selectedMentor"
       :mentor="selectedMentor"
       :currentUserId="currentUserId"
       @close="closeSidebar"
@@ -190,6 +208,7 @@ import MentorMap from '@/components/map/MentorMap.vue';
 import TopMentorsPanel from '@/components/ranking/TopMentorsPanel.vue';
 import MentorListPanel from '@/components/list/MentorListPanel.vue';
 import ReviewModal from '@/components/review/ReviewModal.vue';
+import MentorProfileModal from '@/components/profile/MentorSidebar.vue';
 
 // 채팅 컴포넌트
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
@@ -211,15 +230,20 @@ const isLoadingTopMentors = ref(false);
 const isReviewModalOpen = ref(false);
 const selectedChatForReview = ref(null);
 const reviewStatusMap = ref({});
+const likedMentors = ref([]);
 
-// 채팅 관련 state
+// 채팅 관련 상태
 const selectedChatRoom = ref(null);
-const chatRoomListRef = ref(null);
+function handleSelectRoom(room) { selectedChatRoom.value = room; }
+
+// 그래프 데이터
+const graphNodes = computed(() => networkStore.nodes || []);
+const graphEdges = computed(() => networkStore.edges || []);
 
 onMounted(async () => {
-  if (route.query.tab === 'list') {
-    currentView.value = 'list';
-  }
+  // 🔥 [수정] 쿼리 파라미터 확인 후 뷰 전환
+  if (route.query.tab === 'list') currentView.value = 'list';
+  if (route.query.view === 'chat') currentView.value = 'chat'; 
 
   networkStore.fetchNetworkData();
 
@@ -377,6 +401,40 @@ const handleNodeClick = (node) => {
   }
 };
 
+const handleNodeDoubleClick = async (node) => {
+  if (node.data?.type === 'mentor') {
+    const mentorId = node.data.id || node.data.user_id;
+    if (!mentorId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_likes')
+        .select('id')
+        .eq('user_id', currentUserId.value)
+        .eq('liked_mentor_id', mentorId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('찜 상태 확인 실패:', error);
+        return;
+      }
+      
+      if (data) {
+        await supabase.from('user_likes').delete().eq('id', data.id);
+        likedMentors.value = likedMentors.value.filter(id => id !== mentorId);
+      } else {
+        await supabase.from('user_likes').insert({
+          user_id: currentUserId.value,
+          liked_mentor_id: mentorId
+        });
+        likedMentors.value.push(mentorId);
+      }
+    } catch (error) {
+      console.error('찜하기 오류:', error);
+    }
+  }
+};
+
 const handleTopMentorClick = (mentor) => {
   selectedMentor.value = mentor;
 };
@@ -394,11 +452,6 @@ const closeBookingModal = () => {
   isModalOpen.value = false;
   mentorForBooking.value = null;
 };
-
-// 채팅방 선택 핸들러
-function handleSelectRoom(room) {
-  selectedChatRoom.value = room;
-}
 </script>
 
 <style scoped>
@@ -438,24 +491,19 @@ function handleSelectRoom(room) {
   overflow-y: auto;
 }
 
-.graph-panel,
-.map-panel-wrapper,
-.list-panel-wrapper {
-  width: 100%;
+/* 🌟 그래프 뷰 래퍼 스타일 */
+.graph-wrapper {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 500px;
 }
 
-.sidebar-panel {
-  position: absolute;
-  right: 0;
-  top: 48px;
-  bottom: 0;
-  height: auto;
-  width: 300px;
-  background-color: #ffffff;
-  border-left: 1px solid #e0e0e0;
-  z-index: 10;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+.graph-component {
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  background-color: #FCF9F2;
 }
 
 .top-mentors-floating {
@@ -578,96 +626,47 @@ function handleSelectRoom(room) {
   font-size: 14px;
 }
 
-/* 채팅 뷰 스타일 */
+/* 🔥 [추가] 채팅 뷰 스타일 */
 .chat-view-wrapper {
-  flex: 1;
   height: 100%;
-  overflow: hidden;
   padding: 20px;
-  box-sizing: border-box;
 }
 
 .chat-layout {
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 320px 1fr;
   height: 100%;
-  gap: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #D1A872;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  background: white;
+  box-shadow: 0 4px 12px rgba(54, 18, 5, 0.05);
 }
 
 .chat-room-list {
   border-right: 1px solid #e5e7eb;
 }
 
-/* 💬 네트워크 뷰 왼쪽 아래 플로팅 채팅 버튼 */
-.floating-chat-btn {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  width: 54px;
-  height: 54px;
-  border-radius: 999px;
-  background: #6d28d9;
-  border: none;
-  font-size: 24px;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
-  z-index: 20;
-}
-
-/* 인스타 DM 느낌의 빨간 배지 */
-.chat-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background-color: #ff3040;
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  box-shadow: 0 0 0 2px white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 반응형 */
+/* 반응형 채팅 */
 @media (max-width: 768px) {
   .chat-layout {
     grid-template-columns: 1fr;
   }
-  
   .chat-room-list {
-    display: none;
+    display: none; /* 모바일에선 목록/방 전환 필요 */
   }
 }
 
-/* 스크롤바 숨기기 */
-.graph-panel-wrapper::-webkit-scrollbar,
-.map-panel-wrapper::-webkit-scrollbar,
-.list-panel-wrapper::-webkit-scrollbar,
-.management-panel::-webkit-scrollbar,
-.sidebar-panel::-webkit-scrollbar,
-.top-mentors-floating::-webkit-scrollbar {
-  display: none;
-}
-.graph-panel-wrapper,
-.map-panel-wrapper,
-.list-panel-wrapper,
-.management-panel,
-.sidebar-panel,
-.top-mentors-floating {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+/* 기타 스타일 (그래프 등) */
+.graph-info-bar { display: flex; justify-content: space-between; padding: 10px 20px; background: #FFF8E7; border-bottom: 1px dashed #D1A872; }
+.info-strip { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: #FFF8E7; padding: 8px 30px; border: 1px dashed #DF8723; border-radius: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; gap: 20px; align-items: center; }
+.tape-left { position: absolute; left: -20px; top: -8px; width: 60px; height: 20px; background: rgba(223, 135, 35, 0.4); transform: rotate(-3deg); }
+.tape-right { position: absolute; right: -20px; bottom: -8px; width: 60px; height: 20px; background: rgba(223, 135, 35, 0.4); transform: rotate(3deg); }
+.info-text strong { color: #DF8723; }
+.like-counter { border-left: 2px solid #E6DCCD; padding-left: 20px; font-weight: 600; }
+.badge { background: #E06C75; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 4px; }
+.top-mentors-floating { position: absolute; top: 80px; right: 30px; z-index: 5; }
+.floating-chat-btn { position: absolute; left: 30px; bottom: 30px; width: 60px; height: 60px; border-radius: 50%; background: #361205; color: white; border: 3px solid #D1A872; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 12px rgba(0,0,0,0.2); z-index: 20; }
+.chat-badge { position: absolute; top: 0; right: 0; background: #E06C75; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; border: 2px solid #361205; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
 </style>

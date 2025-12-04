@@ -152,9 +152,14 @@ def find_matches_with_location(
         user_id_str = get_clean_user_id(user_id)
         current_table = 'mentee_profiles' if role == 'mentee' else 'mentor_profiles'
         target_table = 'mentor_profiles' if role == 'mentee' else 'mentee_profiles'
+        
+        # Define text columns and keyword boost based on role
+        current_text_column = 'interest' if role == 'mentee' else 'career_info'
+        target_text_column = 'career_info' if role == 'mentee' else 'interest'
+        keyword_boost = 0.15
 
         all_current_profiles_data = fetch_all_with_pagination(
-            current_table, "user_id, embedding, location"
+            current_table, "user_id, embedding, location, " + current_text_column
         )
         current_profile = find_profile_in_list(all_current_profiles_data, user_id_str)
         
@@ -174,7 +179,7 @@ def find_matches_with_location(
         logger.info("📍 1단계: 기본 매칭 시작")
         
         all_candidates_data = fetch_all_with_pagination(
-            target_table, "user_id, embedding, location"
+            target_table, "user_id, embedding, location, " + target_text_column
         )
         
         matches = []
