@@ -7,9 +7,9 @@ import sys
 
 router = APIRouter()
 
-# 1. API 키 설정 (공백 제거 필수)
-raw_api_key = "AIzaSyBV42GSy0-WxfONNktGD51COfEJ-Y5SWHc" 
-GOOGLE_API_KEY = raw_api_key.strip()
+
+# 1. API 키를 .env에서 불러오기
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "").strip()
 
 # 2. transport='rest' 옵션 추가
 genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
