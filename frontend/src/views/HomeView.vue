@@ -1,92 +1,109 @@
 <template>
   <div class="main-container">
     
+    <!-- 1. Hero Section -->
     <section class="hero-section">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-
       <div class="content-wrapper hero-grid">
+        
+        <!-- Hero Text -->
         <div class="hero-text">
+          
           <div class="badge">
-            <span class="icon">✨</span>
-            <span>AI 기반 스마트 매칭</span>
+            <span class="icon">☕</span>
+            <span>AI 바리스타의 오늘의 추천 블렌딩</span>
           </div>
 
-          <h1>
-            당신의 성장을 위한<br />
-            <span class="gradient-text coffee-brown">완벽한 멘토</span>를 만나세요
+          <!-- H1: 간격 조정 클래스 적용 및 이모티콘 변경 -->
+          <h1 class="h1-line-spacing">
+            햇살 가득한 공간에서,<br />
+            당신의 성장을 블렌딩하세요 
+            <span class="emoji-accent">💬💖</span>
           </h1>
+          
+          <div class="vintage-divider"></div>
 
+          <!-- 설명 텍스트 -->
           <p class="hero-description">
-            AI가 당신의 목표와 관심사를 분석하여 최적의 멘토를 추천합니다.
-            전문가들과의 진솔한 대화로 커리어의 새로운 기회를 발견하세요.
+            AI 바리스타가 당신의 커리어 목표와 성장 취향을 분석하여<br />
+            가장 완벽한 '커피챗' 레시피를 만들어 드립니다. 
           </p>
 
           <div class="hero-buttons">
-            <router-link to="/register" class="btn btn-gradient">
-              <span>✨</span> AI 매칭 시작하기
+            <router-link to="/register" class="btn btn-primary">
+              <span>💬</span> 바리스타에게 주문하기
             </router-link>
-            <router-link to="/network?tab=list" class="btn btn-amber">
-              멘토 둘러보기 <span>→</span>
+            <router-link to="/network?tab=list" class="btn btn-outline">
+              오늘의 메뉴판 둘러보기 <span>▶</span>
             </router-link>
           </div>
         </div>
 
+        <!-- Hero Image -->
         <div class="hero-image-wrapper">
-          <div class="image-backdrop"></div>
+          <div class="image-frame-border"></div>
           <img
-            src="https://images.pexels.com/photos/590548/pexels-photo-590548.jpeg?auto=compress&w=800"
-            alt="카페에서 두 사람이 커피를 앞에 놓고 대화하는 모습"
+            src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Coffee chat meeting scene"
             class="hero-image"
           />
         </div>
       </div>
     </section>
 
+    <!-- 2. Steps Section (AI 바리스타의 추천 블렌딩) -->
     <section id="how-it-works" class="steps-section">
       <div class="content-wrapper">
         <div class="section-header">
-          <h2>이용 방법</h2>
-          <p>간단한 3단계로 시작하세요</p>
+          <h2>AI 바리스타의 추천 블렌딩 레시피</h2>
+          <div class="vintage-divider mx-auto"></div>
+          <p>✨ 최고의 커피챗 경험을 위한 3단계 레시피 ✨</p>
         </div>
 
         <div class="steps-grid">
+          
           <div class="step-card">
-            <div class="step-icon bg-blue">1️⃣</div>
-            <h3>프로필 작성</h3>
-            <p>관심사와 목표를 입력하세요</p>
+            <div class="step-icon">
+              <span>📝</span>
+            </div>
+            <h3>원두 선택 (프로필)</h3>
+            <p>당신의 커리어 취향과 목표를 알려주세요</p>
           </div>
 
           <div class="step-card">
-            <div class="step-icon bg-purple">2️⃣</div>
-            <h3>멘토 매칭</h3>
-            <p>AI가 최적의 멘토를 추천합니다</p>
+            <div class="step-icon">
+              <span>💡</span>
+            </div>
+            <h3>최적의 레시피 블렌딩</h3>
+            <p>AI가 가장 잘 맞는 멘토를 추출해 드립니다</p>
           </div>
 
           <div class="step-card">
-            <div class="step-icon bg-blue">3️⃣</div>
-            <h3>커피챗 시작</h3>
-            <p>멘토와 만나 성장하세요</p>
+            <div class="step-icon">
+              <span>🫂</span>
+            </div>
+            <h3>따뜻한 한 잔의 대화</h3>
+            <p>멘토와 만나 성장의 향을 음미하세요</p>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- 3. Footer (밝은 톤과 부드러운 색상 유지) -->
     <footer class="main-footer">
       <div class="content-wrapper">
         <div class="footer-grid">
-          <div>
-            <div class="flex items-center gap-2 mb-3">
-              <span class="footer-logo">☕</span>
-              <span class="brand-title">CoffeeChat AI</span>
-            </div>
+          
+          <!-- Brand -->
+          <div class="footer-brand">
+            <div class="brand-title">CoffeeChat AI</div>
             <div class="brand-slogan">Connect. Share. Grow.</div>
             <p class="brand-desc">
-              AI 기반 스마트 멘토링 매칭 서비스를 통해 커피챗 문화를 만들어갑니다.
+              AI 기반 스마트 매칭으로 당신의 성장을 돕는 커피챗 플랫폼
             </p>
           </div>
 
-          <div>
+          <!-- Service Links -->
+          <div class="footer-links">
             <h4>서비스</h4>
             <ul>
               <li><a href="#mentors">멘토 찾기</a></li>
@@ -96,26 +113,29 @@
             </ul>
           </div>
 
-          <div>
-            <h4>팀</h4>
+          <!-- Company Links -->
+          <div class="footer-links">
+            <h4>회사</h4>
             <ul>
-              <li><a href="#">팀원 소개</a></li>
+              <li><a href="#">회사 소개</a></li>
               <li><a href="#">채용</a></li>
               <li><a href="#">블로그</a></li>
               <li><a href="#">공지사항</a></li>
             </ul>
           </div>
 
-          <div>
+          <!-- Contact -->
+          <div class="footer-links">
             <h4>문의</h4>
             <ul class="contact-list">
-              <li class="flex items-center gap-2"><span>📧</span> <span>coffeechat@email.ai</span></li>
-              <li class="flex items-center gap-2"><span>📞</span> <span>051-000-0000</span></li>
-              <li class="flex items-center gap-2"><span>💬</span> <span>부경대학교 스마트 아카데미 5조</span></li>
+              <li><span>✉️</span> coffeechat@pknu.ai</li>
+              <li><span>📞</span> 051-000-0000</li>
+              <li><span>📍</span> 부경대학교 스마트 아카데미 5조</li>
             </ul>
           </div>
         </div>
 
+        <!-- Footer Bottom -->
         <div class="footer-bottom">
           <p>© 2025 CoffeeChat AI. All rights reserved.</p>
           <div class="bottom-links">
@@ -126,341 +146,392 @@
         </div>
       </div>
     </footer>
-
   </div>
 </template>
 
 <script setup>
-// 삭제된 섹션에 사용되던 popularTags는 더 이상 필요 없으므로 제거했습니다.
+// Vue 컴포넌트의 script setup은 비어 있습니다.
 </script>
 
+<style>
+/* Google Font Import (Gowun Dodum) */
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+</style>
+
 <style scoped>
-/* 공통 설정 */
+
+/* ---------------------------------------------------- */
+/* Global / Layout Reset */
+/* ---------------------------------------------------- */
+
 .main-container {
-  width: 100%;
-  overflow-x: hidden;
-  background-color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Gowun Dodum', sans-serif;
+    color: #4A352D;
+    background-color: #F8F7F3;
+    width: 100%;
+    overflow-x: hidden;
+    min-height: 100vh;
 }
 
 .content-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
-/* 1. Hero Section 스타일 */
-.hero-section {
-  position: relative;
-  padding: 80px 0;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f5f3ff 100%);
-  overflow: hidden;
+/* ---------------------------------------------------- */
+/* Typography & Decoratives */
+/* ---------------------------------------------------- */
+
+h1, h2, h3, h4 { 
+    font-family: 'Gowun Dodum', sans-serif;
+    font-weight: 700; 
+} 
+
+/* H1 스타일 */
+.hero-text h1 {
+    font-size: 3.5rem; 
+    font-weight: 800;
+    color: #4A352D;
+    margin-bottom: 0;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
-  position: relative;
-  z-index: 1;
+.h1-line-spacing {
+    line-height: 1.5; /* 요청하신 줄 간격 */
 }
 
-@media (max-width: 960px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-  .hero-text {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .hero-stats {
-    justify-content: center;
-  }
-}
-
-/* 뱃지 */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: white;
-  padding: 8px 16px;
-  border-radius: 50px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  border: 1px solid #e5e7eb;
-  margin-bottom: 24px;
-  font-size: 14px;
-  color: #555;
-}
-.badge .icon { color: #2563eb; }
-
-/* 헤드라인 */
-h1 {
-  font-size: 3.5rem;
-  font-weight: 800;
-  line-height: 1.2;
-  color: #111827;
-  margin-bottom: 24px;
+.emoji-accent {
+    font-size: 3.5rem; 
+    color: #CC9966;
 }
 
 @media (max-width: 768px) {
-  h1 { font-size: 2.5rem; }
-}
-
-.gradient-text {
-  background: linear-gradient(to right, #2563eb, #9333ea);
-  -webkit-background-clip: text;
-  background-clip: text;
-
-  -webkit-text-fill-color: transparent;
-}
-
-.coffee-brown {
-  background: linear-gradient(90deg, #6f4e37 0%, #a97453 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-fill-color: transparent;
+    .hero-text h1, .emoji-accent { font-size: 2.5rem; }
+    .hero-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .hero-text {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 }
 
 .hero-description {
-  font-size: 1.125rem;
-  color: #4b5563;
-  line-height: 1.6;
-  margin-bottom: 40px;
-  max-width: 560px;
+    font-size: 1.125rem; 
+    color: #4A352D;
+    line-height: 1.6;
+    margin-bottom: 40px;
+    max-width: 560px;
+    font-weight: 400;
 }
 
-/* 버튼 */
+/* Vintage Divider */
+.vintage-divider {
+    width: 100px;
+    height: 2px;
+    background-color: #D4C3A3;
+    opacity: 0.8;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.vintage-divider.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFFFFF;
+    padding: 8px 16px;
+    border-radius: 12px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border: 1px solid #D4C3A3;
+    margin-bottom: 24px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.badge .icon { 
+    color: #CC9966; 
+}
+
+/* ---------------------------------------------------- */
+/* Buttons */
+/* ---------------------------------------------------- */
+
 .hero-buttons {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 48px;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 48px;
 }
 
 @media (max-width: 480px) {
-  .hero-buttons { flex-direction: column; width: 100%; }
+    .hero-buttons { flex-direction: column; width: 100%; }
 }
 
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 32px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1.1rem;
-  transition: all 0.2s ease;
-  text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    box-shadow: 2px 2px 0 #D4C3A3;
+    font-family: 'Gowun Dodum', sans-serif;
 }
 
-.btn-gradient {
-  background: linear-gradient(90deg, #f59e42 0%, #eab308 100%);
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.2);
+.btn-primary {
+    background: #CC9966;
+    color: white;
+    border: 2px solid #CC9966;
 }
-.btn-gradient:hover {
-  background: linear-gradient(90deg, #eab308 0%, #f59e42 100%);
-  color: #fff;
-}
-.btn-amber {
-  background: #fff8e1;
-  border: 2px solid #f59e42;
-  color: #eab308;
-}
-.btn-amber:hover {
-  background: #f59e42;
-  color: #fff;
+.btn-primary:hover {
+    transform: translate(0, 0);
+    background: #DDAA66;
+    box-shadow: 1px 1px 0 #D4C3A3;
 }
 
-/* 통계 (Hero 내부) */
-.hero-stats {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+.btn-outline {
+    border: 2px solid #CC9966;
+    color: #4A352D;
+    background: #FFFFFF;
+}
+.btn-outline:hover {
+    border-color: #CC9966;
+    color: white;
+    background: #CC9966;
 }
 
-.stat-item strong {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #2563eb;
-}
-.stat-item span {
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-.divider {
-  width: 1px;
-  height: 40px;
-  background-color: #e5e7eb;
+/* ---------------------------------------------------- */
+/* Sections Layout */
+/* ---------------------------------------------------- */
+
+.hero-section {
+    padding: 80px 0;
+    background-color: #F8F7F3;
+    overflow: hidden;
 }
 
-/* 오른쪽 이미지 */
-.hero-image-wrapper {
-  position: relative;
-}
-.image-backdrop {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, #60a5fa, #c084fc);
-  border-radius: 24px;
-  filter: blur(40px);
-  opacity: 0.3;
-  transform: translateY(20px) scale(0.9);
-}
-.hero-image {
-  position: relative;
-  width: 100%;
-  height: 500px;
-  object-fit: cover;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
 }
 
-/* 배경 애니메이션 Blobs */
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
-  animation: blob-bounce 7s infinite;
-  z-index: 0;
-}
-.blob-1 {
-  top: -10%;
-  left: -10%;
-  width: 500px;
-  height: 500px;
-  background-color: #bfdbfe; /* blue-200 */
-  animation-delay: 0s;
-}
-.blob-2 {
-  bottom: -10%;
-  right: -10%;
-  width: 500px;
-  height: 500px;
-  background-color: #e9d5ff; /* purple-200 */
-  animation-delay: 2s;
-}
-@keyframes blob-bounce {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0, 0) scale(1); }
-}
-
-
-/* 2. Steps Section */
 .steps-section {
-  padding: 80px 0;
-  background-color: #f9fafb;
+    padding: 80px 0;
+    background-color: #FFFFFF;
+    border-top: 1px solid #D4C3A3;
+    border-bottom: 1px solid #D4C3A3;
 }
+
 .section-header {
-  text-align: center;
-  margin-bottom: 48px;
+    text-align: center;
+    margin-bottom: 48px;
 }
+
 .section-header h2 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: #111827;
-  margin-bottom: 8px;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #4A352D;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
 }
-.section-header p { color: #6b7280; }
+
+.section-header p {
+    color: #4A352D;
+    font-style: italic;
+    font-size: 1rem;
+}
 
 .steps-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
 }
 @media (max-width: 768px) {
-  .steps-grid { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: 1fr; }
 }
 
+
+/* ---------------------------------------------------- */
+/* Component Specific Styles */
+/* ---------------------------------------------------- */
+
+/* Hero Image */
+.hero-image-wrapper {
+    position: relative;
+    padding: 20px;
+}
+.image-frame-border {
+    position: absolute;
+    inset: 0;
+    border: 4px solid #D4C3A3;
+    border-radius: 12px;
+    transform: rotate(-1deg);
+    z-index: 10;
+    box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.08);
+}
+.hero-image {
+    width: 100%;
+    height: 450px;
+    object-fit: cover;
+    border-radius: 8px;
+    filter: brightness(1.05) contrast(1.0);
+    position: relative;
+    z-index: 20;
+}
+
+/* Steps */
 .step-card {
-  text-align: center;
+    text-align: center;
+    padding: 24px;
+    background-color: #F8F7F3;
+    border: 1px solid #D4C3A3;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
+
+.step-card h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #4A352D;
+}
+
+.step-card p {
+    color: #4A352D;
+    font-size: 1rem;
+}
+
 .step-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin: 0 auto 20px;
+    border: 3px solid #CC9966;
+    box-shadow: 1px 1px 0 #D4C3A3;
+    background-color: #FFFFFF;
 }
-.bg-blue { background-color: #dbeafe; }
-.bg-purple { background-color: #f3e8ff; }
 
-.step-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
-.step-card p { color: #6b7280; }
-
-
-/* 3. Footer */
+/* Footer */
 .main-footer {
-  background-color: #111827;
-  color: #e5e7eb;
-  padding: 60px 0 20px;
-}
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
-  gap: 40px;
-  margin-bottom: 40px;
-}
-@media (max-width: 900px) {
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 600px) {
-  .footer-grid { grid-template-columns: 1fr; }
+    background-color: #FFFFFF;
+    color: #4A352D;
+    padding: 60px 0 20px;
+    border-top: 1px solid #D4C3A3;
 }
 
-.brand-title { font-size: 1.5rem; font-weight: 800; color: white; }
-.brand-slogan { font-size: 0.9rem; color: #9ca3af; margin-bottom: 16px; }
-.brand-desc { font-size: 0.9rem; color: #9ca3af; line-height: 1.5; }
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid #D4C3A3;
+}
+
+@media (max-width: 900px) {
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 600px) {
+    .footer-grid { grid-template-columns: 1fr; }
+}
+
+.brand-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #4A352D;
+}
+
+.brand-slogan {
+    font-size: 0.9rem;
+    color: #4A352D;
+    margin-bottom: 16px;
+}
+
+.brand-desc {
+    font-size: 0.9rem;
+    color: #4A352D;
+    line-height: 1.5;
+}
 
 .footer-links h4 {
-  color: white;
-  font-weight: 600;
-  margin-bottom: 20px;
+    color: #4A352D;
+    font-weight: 600;
+    margin-bottom: 20px;
+    font-size: 1.125rem;
 }
-.footer-links ul {
-  list-style: none;
-  padding: 0;
-}
-.footer-links li { margin-bottom: 12px; }
-.footer-links a {
-  color: #d1d5db;
-  text-decoration: none;
-  font-size: 0.95rem;
-  transition: color 0.2s;
-}
-.footer-links a:hover { color: #60a5fa; }
 
-.contact-list li { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; }
+.footer-links ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-links li {
+    margin-bottom: 12px;
+}
+
+.footer-links a {
+    color: #4A352D;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: #CC9966;
+}
+
+.contact-list li { 
+    display: flex; 
+    gap: 8px; 
+    align-items: center; 
+    font-size: 0.9rem; 
+    color: #4A352D;
+}
 
 .footer-bottom {
-  border-top: 1px solid #374151;
-  padding-top: 24px;
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-size: 0.9rem;
-  color: #9ca3af;
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.9rem;
+    color: #4A352D;
 }
-.bottom-links { display: flex; gap: 24px; }
-.bottom-links a { color: #9ca3af; text-decoration: none; }
-.bottom-links a:hover { color: #60a5fa; }
-.footer-logo {
-  font-size: 1.7rem;
-  color: #eab308;
+
+.bottom-links {
+    display: flex;
+    gap: 24px;
+}
+
+.bottom-links a {
+    color: #4A352D;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.bottom-links a:hover {
+    color: #CC9966;
 }
 </style>
