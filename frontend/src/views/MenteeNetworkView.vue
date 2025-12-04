@@ -1,9 +1,6 @@
-<!-- MenteeNetworkView.vue -->
-
 <template>
   <div class="network-view-container">
 
-    <!-- 1. 탭 메뉴 -->
     <div class="cafe-tabs">
       <button 
         @click="currentView = 'graph'" 
@@ -29,15 +26,18 @@
       >
         <span class="icon">🧾</span> 약속 관리
       </button>
+      <button 
+        @click="currentView = 'chat'" 
+        :class="{ active: currentView === 'chat' }"
+      >
+        <span class="icon">💬</span> 채팅
+      </button>
     </div>
 
-    <!-- 2. 메인 컨텐츠 영역 -->
     <div class="paper-panel">
       
-      <!-- 네트워크 뷰 -->
       <div v-show="currentView === 'graph'" class="view-content graph-wrapper">
         
-        <!-- 상단 정보 스트립 -->
         <div class="info-strip">
           <div class="tape-left"></div>
           <div class="info-text">
@@ -49,13 +49,11 @@
           <div class="tape-right"></div>
         </div>
 
-        <!-- 데이터가 없을 때 안내 문구 -->
         <div v-if="graphNodes.length === 0 && !isLoadingTopMentors" class="empty-graph-message">
           <p>☕ 아직 추천 파트너가 준비되지 않았습니다.</p>
           <p>잠시만 기다려주시거나, 프로필을 업데이트 해보세요!</p>
         </div>
 
-        <!-- 그래프 컴포넌트 -->
         <NetworkGraph
           v-else
           :nodes="graphNodes"
@@ -73,12 +71,10 @@
         />
       </div>
 
-      <!-- 지도 뷰 -->
       <div v-show="currentView === 'map'" class="view-content map-wrapper">
         <MentorMap />
       </div>
 
-      <!-- 멘토 목록 뷰 -->
       <div v-show="currentView === 'list'" class="view-content list-wrapper">
         <MentorListPanel
           :mentors="topMentorsList"
@@ -89,10 +85,8 @@
         />
       </div>
 
-      <!-- 커피챗 관리 뷰 -->
       <div v-if="currentView === 'management'" class="view-content management-wrapper">
         <div class="receipt-style-container">
-          <!-- 로딩 중 -->
           <div v-if="bookingStore.isLoading" class="loading-state">
             <p>🧾 주문 내역을 불러오는 중...</p>
           </div>
@@ -144,9 +138,22 @@
           </div>
         </div>
       </div>
+
+      <div v-if="currentView === 'chat'" class="view-content chat-view-wrapper">
+        <div class="chat-layout">
+          <ChatRoomList 
+            @select-room="handleSelectRoom" 
+            class="chat-room-list"
+          />
+          <ChatRoom 
+            :selected-room="selectedChatRoom"
+            class="chat-room"
+          />
+        </div>
+      </div>
+
     </div>
 
-    <!-- 모달 및 플로팅 버튼 -->
     <MentorProfileModal
       v-if="selectedMentor"
       :mentor="selectedMentor"
@@ -226,8 +233,15 @@ const selectedChatForReview = ref(null);
 const reviewStatusMap = ref({});
 const likedMentors = ref([]);
 
+// 🔥 [추가] 채팅 관련 상태
+const selectedChatRoom = ref(null);
+function handleSelectRoom(room) { selectedChatRoom.value = room; }
+
 onMounted(async () => {
+  // 🔥 [수정] 쿼리 파라미터 확인 후 뷰 전환
   if (route.query.tab === 'list') currentView.value = 'list';
+  if (route.query.view === 'chat') currentView.value = 'chat'; 
+
   networkStore.fetchNetworkData();
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -412,18 +426,18 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   overflow-y: auto; 
 }
 
-/* 🌟 [수정] 그래프 뷰 래퍼 스타일 (높이 확보) */
+/* 🌟 그래프 뷰 래퍼 스타일 */
 .graph-wrapper {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 500px; /* 최소 높이 보장 */
+  min-height: 500px;
 }
 
 .graph-component {
   flex-grow: 1;
   width: 100%;
-  height: 100%; /* 부모 높이 채우기 */
+  height: 100%;
   background-color: #FCF9F2;
 }
 
@@ -556,6 +570,37 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   padding: 60px;
   color: #8A5A34;
   font-size: 1.1rem;
+}
+
+/* 🔥 [추가] 채팅 뷰 스타일 */
+.chat-view-wrapper {
+  height: 100%;
+  padding: 20px;
+}
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100%;
+  border: 1px solid #D1A872;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 12px rgba(54, 18, 5, 0.05);
+}
+
+.chat-room-list {
+  border-right: 1px solid #e5e7eb;
+}
+
+/* 반응형 채팅 */
+@media (max-width: 768px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+  .chat-room-list {
+    display: none; /* 모바일에선 목록/방 전환 필요 */
+  }
 }
 
 /* 기타 스타일 (그래프 등) */
