@@ -14,7 +14,7 @@
 
           <h1>
             당신의 성장을 위한<br />
-            <span class="gradient-text">완벽한 멘토</span>를 만나세요
+            <span class="gradient-text coffee-brown">완벽한 멘토</span>를 만나세요
           </h1>
 
           <p class="hero-description">
@@ -23,10 +23,10 @@
           </p>
 
           <div class="hero-buttons">
-            <router-link to="/register" class="btn btn-primary">
+            <router-link to="/register" class="btn btn-gradient">
               <span>✨</span> AI 매칭 시작하기
             </router-link>
-            <router-link to="/network?tab=list" class="btn btn-outline">
+            <router-link to="/network?tab=list" class="btn btn-amber">
               멘토 둘러보기 <span>→</span>
             </router-link>
           </div>
@@ -35,8 +35,8 @@
         <div class="hero-image-wrapper">
           <div class="image-backdrop"></div>
           <img
-            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800"
-            alt="Coffee Chat Meeting"
+            src="https://images.pexels.com/photos/590548/pexels-photo-590548.jpeg?auto=compress&w=800"
+            alt="카페에서 두 사람이 커피를 앞에 놓고 대화하는 모습"
             class="hero-image"
           />
         </div>
@@ -75,15 +75,18 @@
     <footer class="main-footer">
       <div class="content-wrapper">
         <div class="footer-grid">
-          <div class="footer-brand">
-            <div class="brand-title">CoffeeChat AI</div>
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <span class="footer-logo">☕</span>
+              <span class="brand-title">CoffeeChat AI</span>
+            </div>
             <div class="brand-slogan">Connect. Share. Grow.</div>
             <p class="brand-desc">
-              AI 기반 스마트 매칭으로 당신의 성장을 돕는 커피챗 플랫폼
+              AI 기반 스마트 멘토링 매칭 서비스를 통해 커피챗 문화를 만들어갑니다.
             </p>
           </div>
 
-          <div class="footer-links">
+          <div>
             <h4>서비스</h4>
             <ul>
               <li><a href="#mentors">멘토 찾기</a></li>
@@ -93,22 +96,22 @@
             </ul>
           </div>
 
-          <div class="footer-links">
-            <h4>회사</h4>
+          <div>
+            <h4>팀</h4>
             <ul>
-              <li><a href="#">회사 소개</a></li>
+              <li><a href="#">팀원 소개</a></li>
               <li><a href="#">채용</a></li>
               <li><a href="#">블로그</a></li>
               <li><a href="#">공지사항</a></li>
             </ul>
           </div>
 
-          <div class="footer-links">
+          <div>
             <h4>문의</h4>
             <ul class="contact-list">
-              <li><span>✉️</span> coffeechat@pknu.ai</li>
-              <li><span>📞</span> 051-000-0000</li>
-              <li><span>📍</span> 부경대학교 스마트 아카데미 5조</li>
+              <li class="flex items-center gap-2"><span>📧</span> <span>coffeechat@email.ai</span></li>
+              <li class="flex items-center gap-2"><span>📞</span> <span>051-000-0000</span></li>
+              <li class="flex items-center gap-2"><span>💬</span> <span>부경대학교 스마트 아카데미 5조</span></li>
             </ul>
           </div>
         </div>
@@ -215,6 +218,14 @@ h1 {
   -webkit-text-fill-color: transparent;
 }
 
+.coffee-brown {
+  background: linear-gradient(90deg, #6f4e37 0%, #a97453 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+}
+
 .hero-description {
   font-size: 1.125rem;
   color: #4b5563;
@@ -247,24 +258,23 @@ h1 {
   text-decoration: none;
 }
 
-.btn-primary {
-  background: linear-gradient(to right, #2563eb, #9333ea);
-  color: white;
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+.btn-gradient {
+  background: linear-gradient(90deg, #f59e42 0%, #eab308 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.2);
 }
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+.btn-gradient:hover {
+  background: linear-gradient(90deg, #eab308 0%, #f59e42 100%);
+  color: #fff;
 }
-
-.btn-outline {
-  background: white;
-  border: 2px solid #e5e7eb;
-  color: #374151;
+.btn-amber {
+  background: #fff8e1;
+  border: 2px solid #f59e42;
+  color: #eab308;
 }
-.btn-outline:hover {
-  border-color: #2563eb;
-  color: #2563eb;
+.btn-amber:hover {
+  background: #f59e42;
+  color: #fff;
 }
 
 /* 통계 (Hero 내부) */
@@ -449,4 +459,8 @@ h1 {
 .bottom-links { display: flex; gap: 24px; }
 .bottom-links a { color: #9ca3af; text-decoration: none; }
 .bottom-links a:hover { color: #60a5fa; }
+.footer-logo {
+  font-size: 1.7rem;
+  color: #eab308;
+}
 </style>
