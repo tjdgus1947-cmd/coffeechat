@@ -103,8 +103,7 @@ export default {
         }
 
         const res = await axios.get(`http://localhost:8000/api/locations/map-data/${this.userId}`);
-        this.loading = false;
-
+        
         const { mentee_location, mentor_locations } = res.data;
 
         this.currentUserLocation = mentee_location;
@@ -112,6 +111,13 @@ export default {
 
         const centerLat = mentee_location?.lat || 37.5665;
         const centerLon = mentee_location?.lon || 126.9780;
+
+        // loading을 먼저 false로 변경하여 지도 컨테이너가 완전히 표시되도록 함
+        this.loading = false;
+
+        // DOM이 완전히 렌더링된 후 지도 초기화
+        await this.$nextTick();
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         const options = {
           center: new window.kakao.maps.LatLng(centerLat, centerLon),
@@ -147,10 +153,15 @@ export default {
 
         this.drawMentorLines(this.currentUserLocation, mentor_locations);
 
-        this.$nextTick(() => {
-          this.map.relayout();              // ← 지도 강제 레이아웃
-          window.dispatchEvent(new Event('resize')); // ← 타일 재로드
-        });
+        // 지도 타일 강제 새로고침
+        setTimeout(() => {
+          this.map.relayout();
+          this.map.setCenter(new window.kakao.maps.LatLng(centerLat, centerLon));
+        }, 100);
+
+        setTimeout(() => {
+          this.map.relayout();
+        }, 500);
 
       } catch (err) {
         console.error('지도 데이터 로드 실패:', err);
