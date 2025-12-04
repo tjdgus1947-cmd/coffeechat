@@ -2,7 +2,6 @@
 
 <template>
   <div class="network-view-container">
-
     <!-- 1. 탭 메뉴 -->
     <div class="cafe-tabs">
       <button 
@@ -30,13 +29,10 @@
         <span class="icon">🧾</span> 약속 관리
       </button>
     </div>
-
     <!-- 2. 메인 컨텐츠 영역 -->
     <div class="paper-panel">
-      
       <!-- 네트워크 뷰 -->
       <div v-show="currentView === 'graph'" class="view-content graph-wrapper">
-        
         <!-- 상단 정보 스트립 -->
         <div class="info-strip">
           <div class="tape-left"></div>
@@ -48,13 +44,11 @@
           </div>
           <div class="tape-right"></div>
         </div>
-
         <!-- 데이터가 없을 때 안내 문구 -->
         <div v-if="graphNodes.length === 0 && !isLoadingTopMentors" class="empty-graph-message">
           <p>☕ 아직 추천 파트너가 준비되지 않았습니다.</p>
           <p>잠시만 기다려주시거나, 프로필을 업데이트 해보세요!</p>
         </div>
-
         <!-- 그래프 컴포넌트 -->
         <NetworkGraph
           v-else
@@ -64,7 +58,6 @@
           @node-double-click="handleNodeDoubleClick"
           class="graph-component"
         />
-        
         <TopMentorsPanel
           :mentors="topMentorsList"
           :loading="isLoadingTopMentors"
@@ -72,12 +65,10 @@
           class="top-mentors-floating"
         />
       </div>
-
       <!-- 지도 뷰 -->
       <div v-show="currentView === 'map'" class="view-content map-wrapper">
         <MentorMap />
       </div>
-
       <!-- 멘토 목록 뷰 -->
       <div v-show="currentView === 'list'" class="view-content list-wrapper">
         <MentorListPanel
@@ -88,7 +79,6 @@
           @open-booking="openBookingModal"
         />
       </div>
-
       <!-- 커피챗 관리 뷰 -->
       <div v-if="currentView === 'management'" class="view-content management-wrapper">
         <div class="receipt-style-container">
@@ -96,7 +86,6 @@
           <div v-if="bookingStore.isLoading" class="loading-state">
             <p>🧾 주문 내역을 불러오는 중...</p>
           </div>
-
           <div v-else>
             <section class="manage-section completed-section">
               <div class="section-header">
@@ -116,7 +105,6 @@
               </div>
               <div v-else class="empty-state-box">아직 완료된 만남이 없습니다.</div>
             </section>
-
             <section class="manage-section active-section">
               <div class="section-header">
                 <h3>📨 약속 현황 (진행 중)</h3>
@@ -145,7 +133,6 @@
         </div>
       </div>
     </div>
-
     <!-- 모달 및 플로팅 버튼 -->
     <MentorProfileModal
       v-if="selectedMentor"
@@ -157,7 +144,6 @@
       @toggle-like="toggleLike"
       class="modal-overlay"
     />
-
     <BookingModal
       :show="isModalOpen"
       :mentor-id="mentorForBooking?.id"
@@ -165,7 +151,6 @@
       @close="closeBookingModal"
       @booking-confirmed="closeBookingModal"
     />
-
     <ReviewModal
       :show="isReviewModalOpen"
       :chat="selectedChatForReview"
@@ -173,7 +158,6 @@
       @close="closeReviewModal"
       @review-submitted="handleReviewSubmitted"
     />
-
     <button
       v-if="currentView === 'graph'"
       class="floating-chat-btn"
@@ -185,7 +169,6 @@
         {{ chatStore.unreadCount > 9 ? '9+' : chatStore.unreadCount }}
       </span>
     </button>
-
   </div>
 </template>
 
