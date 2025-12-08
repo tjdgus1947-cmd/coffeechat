@@ -1,3 +1,4 @@
+<!-- MenteeNetworkView.vue -->
 <template>
   <div class="network-view-container">
 
@@ -28,7 +29,7 @@
       <div class="info-strip">  
           <div class="tape-left"></div>
           <div class="info-text">
-            <span class="highlight">Tip.</span> 바리스타(멘토)를 <strong>더블 클릭</strong>하여 찜(❤️) 목록에 담아보세요!
+            <span class="highlight">Tip.</span> 바리스타(멘토)를 <strong> 클릭</strong>하여 찜(❤️) 목록에 담아보세요!
           </div>
           <div class="like-counter">
             내가 찜한 바리스타 <span class="badge">{{ likedMentors.length }}</span>명
@@ -167,6 +168,7 @@
     />
 
     <BookingModal
+      v-if="isModalOpen"
       :show="isModalOpen"
       :mentor-id="mentorForBooking?.id"
       :mentor-name="mentorForBooking?.name"
@@ -198,7 +200,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { supabase } from '@/supabaseClient';
 import { useRoute, useRouter } from 'vue-router';
@@ -353,7 +355,20 @@ const handleNodeClick = (node) => { selectedMentor.value = node.data?.type === '
 const handleNodeDoubleClick = (node) => { if (node.data?.type === 'mentor') toggleLike(node.data.id || node.data.user_id); };
 const handleTopMentorClick = (mentor) => { selectedMentor.value = mentor; };
 const closeSidebar = () => { selectedMentor.value = null; };
-const openBookingModal = (mentor) => { mentorForBooking.value = mentor; isModalOpen.value = true; };
+const openBookingModal = (mentor) => {
+  // 1) 프로필 모달 닫기
+  selectedMentor.value = null;
+
+  // 2) 예약용 멘토 정보 세팅
+  mentorForBooking.value = {
+    id: mentor.id || mentor.user_id,
+    name: mentor.full_name || mentor.name,
+  };
+
+  // 3) 예약 모달(캘린더) 열기
+  isModalOpen.value = true;
+};
+
 const closeBookingModal = () => { isModalOpen.value = false; mentorForBooking.value = null; bookingStore.fetchBookings(); }; 
 
 async function fetchReviewStatus() {
@@ -511,9 +526,86 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   }
 }
 
+/* --- ☕ 상단 안내바 디자인 (마스킹 테이프 스타일) --- */
+.info-strip {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  background-color: #fffaee; /* 연한 종이 색 */
+  border: 1px solid #e0d0b0;
+  padding: 12px 24px;
+  border-radius: 2px;
+  box-shadow: 0 4px 10px rgba(54, 18, 5, 0.1);
+  
+  width: 90%;
+  max-width: 600px;
+  min-width: 320px;
+}
+
+/* 마스킹 테이프 효과 */
+.tape-left, .tape-right {
+  position: absolute;
+  top: -8px;
+  width: 40px;
+  height: 12px;
+  background-color: rgba(223, 135, 35, 0.5);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border-left: 1px dashed rgba(255,255,255,0.3);
+  border-right: 1px dashed rgba(255,255,255,0.3);
+}
+
+.tape-left {
+  left: -10px;
+  transform: rotate(-25deg);
+}
+
+.tape-right {
+  right: -10px;
+  transform: rotate(25deg);
+}
+
+/* 텍스트 스타일 */
+.info-text {
+  font-size: 0.95rem;
+  color: #5a4a42;
+}
+
+.highlight {
+  color: #DF8723;
+  font-weight: 800;
+  margin-right: 4px;
+}
+
+/* 찜 개수 카운터 */
+.like-counter {
+  font-size: 0.9rem;
+  color: #8A5A34;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.badge {
+  background-color: #E06C75;
+  color: white;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 0 4px;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 /* 기타 스타일 생략 (기존과 동일) */
-.graph-wrapper, .map-wrapper, .list-wrapper, .management-wrapper { /* ... */ }
-.graph-info-bar, .info-strip, .tape-left, .tape-right, .info-text, .like-counter, .badge { /* ... */ }
+
+
+
 .top-mentors-floating { position: absolute; top: 80px; right: 30px; z-index: 5; }
 .floating-chat-btn { position: absolute; left: 30px; bottom: 30px; width: 60px; height: 60px; border-radius: 50%; background: #361205; color: white; border: 3px solid #D1A872; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 12px rgba(0,0,0,0.2); z-index: 20; }
 .chat-badge { position: absolute; top: 0; right: 0; background: #E06C75; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; border: 2px solid #361205; }
