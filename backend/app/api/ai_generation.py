@@ -8,7 +8,7 @@ import sys
 router = APIRouter()
 
 # 1. API 키 설정 (공백 제거 필수)
-raw_api_key = "AIzaSyCPYuZgF7NJLvnTRvrwZi-WIIw-Mh4v21c" 
+raw_api_key = "AIzaSyAgvZA7r15YixRJmjdwI7ZX_z4QpV3u_ho" 
 GOOGLE_API_KEY = raw_api_key.strip()
 
 # 2. transport='rest' 옵션 추가
@@ -29,7 +29,7 @@ def generate_introduction(request: IntroGenerationRequest):
     """
     try:
         # 사용 가능한 최신 모델 지정
-        target_model = 'gemini-2.0-flash'
+        target_model = 'gemini-2.5-flash'
         print(f"🚀 [AI 생성 시작] Role: {request.role}, Model: {target_model}")
         
         model = genai.GenerativeModel(target_model)

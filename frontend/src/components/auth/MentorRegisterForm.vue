@@ -50,7 +50,6 @@
         </div>
         <div class="form-group">
           <label>전문 분야 (쉼표로 구분)</label>
-          <!-- 💡 [수정] 정확한 매칭을 위해 구체적 키워드 유도 -->
           <input type="text" v-model="form.topics" placeholder="예: 백엔드, Spring Boot, 리더십, 이직 상담 (기술 스택 필수)" required>
         </div>
         
@@ -64,7 +63,6 @@
 
         <div class="form-group">
           <label>자기소개 키워드 (초안)</label>
-          <!-- 💡 [수정] 성과 위주의 입력을 유도하는 프롬프트 -->
           <textarea 
             v-model="form.introduction_draft" 
             rows="3" 
@@ -137,7 +135,6 @@ import api from '@/services/api';
 const authStore = useAuthStore();
 const router = useRouter();
 
-// 상태 관리
 const step = ref(1);
 const isLoading = ref(false);
 const isGenerating = ref(false);
@@ -145,7 +142,6 @@ const errorMessage = ref('');
 const proofFile = ref(null); 
 const showFileError = ref(false);
 
-// 폼 데이터 (멘토용)
 const form = reactive({
   email: '',
   password: '',
@@ -158,12 +154,10 @@ const form = reactive({
   final_introduction: '',
 });
 
-// 설문 데이터
 const surveyAnswers = reactive({
   q1: '', q2: '', q3: '', q4: '', q5: ''
 });
 
-// 💡 [수정] 멘토용 핵심 5대 질문 (매칭 알고리즘 최적화)
 const questions = [
   { 
     key: 'q1', 
@@ -222,7 +216,6 @@ const questions = [
   }
 ];
 
-// 파일 선택 핸들러
 const handleFileChange = (e) => {
   const file = e.target.files[0];
   if (file) {
@@ -233,7 +226,6 @@ const handleFileChange = (e) => {
   }
 };
 
-// Step 1 검증
 const goToStep2 = () => {
   if (!form.email || !form.password || !form.name || !form.company || !form.topics) {
     errorMessage.value = '필수 정보를 모두 입력해주세요.';
@@ -250,7 +242,6 @@ const goToStep2 = () => {
   step.value = 2;
 };
 
-// AI 생성
 const handleGenerateAI = async () => {
   if (Object.values(surveyAnswers).some(v => !v)) {
     errorMessage.value = '모든 성향 질문에 답해주세요.';
@@ -279,7 +270,6 @@ const handleGenerateAI = async () => {
   }
 };
 
-// 최종 가입
 const handleSubmit = async () => {
   if (!form.final_introduction.trim()) {
     errorMessage.value = '자기소개 내용을 확인해주세요.';
@@ -299,8 +289,6 @@ const handleSubmit = async () => {
     formData.append('experienceYears', form.experienceYears || 0);
     formData.append('topics', form.topics);
     formData.append('introduction', form.final_introduction);
-    
-    // (임시 위치값)
     formData.append('latitude', '37.5665');
     formData.append('longitude', '126.9780');
 
@@ -346,19 +334,19 @@ const handleSubmit = async () => {
   font-size: 14px;
   font-weight: 500;
 }
-.step-item.active { color: #6d28d9; font-weight: 700; }
+.step-item.active { color: #8A5A34; font-weight: 700; }
 .circle {
   width: 32px; height: 32px; border-radius: 50%;
   background-color: #e5e7eb; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-weight: bold; margin-bottom: 6px; transition: background-color 0.3s;
 }
-.step-item.active .circle { background-color: #6d28d9; }
+.step-item.active .circle { background-color: #D4A574; }
 .line {
   flex-grow: 1; height: 2px; background-color: #e5e7eb;
   margin: 0 10px; margin-bottom: 20px; position: relative; top: -13px; z-index: 1;
 }
-.line.active { background-color: #6d28d9; }
+.line.active { background-color: #D4A574; }
 
 .form-content {
   background: white; padding: 30px; border-radius: 16px;
@@ -374,13 +362,17 @@ input, textarea, select {
   width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px;
   font-size: 15px; outline: none; transition: border-color 0.2s; box-sizing: border-box;
 }
-input:focus, textarea:focus, select:focus { border-color: #6d28d9; box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1); }
+input:focus, textarea:focus, select:focus { 
+  border-color: #D4A574; 
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1); 
+}
 
 .btn-primary {
-  background-color: #6d28d9; color: white; border: none; padding: 14px;
+  background-color: #D4A574;
+  color: white; border: none; padding: 14px;
   border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;
 }
-.btn-primary:hover:not(:disabled) { background-color: #5b21b6; }
+.btn-primary:hover:not(:disabled) { background-color: #C9956F; }
 .btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; }
 
 .btn-secondary {

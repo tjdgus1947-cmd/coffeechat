@@ -165,7 +165,7 @@ def find_matches_advanced(
         logger.info(f"✅ 매칭 완료: 총 {len(matches)}명 발견 (스킵됨: {skip_count}명)")
         
         matches.sort(key=lambda x: x['final_score'], reverse=True)
-        
+        matches = matches[:100]
         # 3. 하이브리드 / 리랭킹 / 개인화 (기존 로직 유지)
         if use_hybrid and len(matches) > 0:
              try:

@@ -46,13 +46,11 @@
         
         <div class="form-group">
           <label>관심 분야 (쉼표로 구분)</label>
-          <!-- 💡 [수정] 구체적인 기술 스택이나 직무명을 유도 -->
           <input type="text" v-model="form.topics" placeholder="예: Java, Spring, 마케팅, 데이터 분석 (구체적인 기술/직무명)" required>
         </div>
         
         <div class="form-group">
           <label>자기소개 키워드 (초안)</label>
-          <!-- 💡 [수정] 팩트 위주의 입력을 유도하는 프롬프트 -->
           <textarea 
             v-model="form.introduction_draft" 
             rows="3" 
@@ -126,13 +124,11 @@ import api from '@/services/api';
 const authStore = useAuthStore();
 const router = useRouter();
 
-// 상태 관리
 const step = ref(1);
 const isLoading = ref(false);
 const isGenerating = ref(false);
 const errorMessage = ref('');
 
-// 입력 폼 데이터
 const form = reactive({
   email: '',
   password: '',
@@ -143,12 +139,10 @@ const form = reactive({
   final_introduction: '', 
 });
 
-// 설문 데이터 (Step 2)
 const surveyAnswers = reactive({
   q1: '', q2: '', q3: '', q4: '', q5: ''
 });
 
-// 💡 [수정] 멘티용 핵심 5대 질문 (매칭 알고리즘 최적화)
 const questions = [
   { 
     key: 'q1', 
@@ -207,7 +201,6 @@ const questions = [
   }
 ];
 
-// Step 1 -> Step 2 이동
 const goToStep2 = () => {
   if (!form.email || !form.password || !form.name || !form.situation || !form.topics) {
     errorMessage.value = '필수 정보를 모두 입력해주세요.';
@@ -217,7 +210,6 @@ const goToStep2 = () => {
   step.value = 2;
 };
 
-// AI 생성 요청 (Step 2 -> Step 3)
 const handleGenerateAI = async () => {
   if (Object.values(surveyAnswers).some(v => !v)) {
     errorMessage.value = '모든 질문에 답해주세요.';
@@ -233,7 +225,7 @@ const handleGenerateAI = async () => {
       situation: form.situation,
       topics: form.topics,
       survey_answers: surveyAnswers,
-      role: 'mentee' // 역할 명시
+      role: 'mentee'
     });
 
     form.final_introduction = response.data.generated_text;
@@ -246,7 +238,6 @@ const handleGenerateAI = async () => {
   }
 };
 
-// 최종 가입 요청 (Step 3)
 const handleSubmit = async () => {
   if (!form.final_introduction.trim()) {
     errorMessage.value = '자기소개 내용을 확인해주세요.';
@@ -264,8 +255,6 @@ const handleSubmit = async () => {
     formData.append('topics', form.topics);
     formData.append('situation', form.situation);
     formData.append('introduction', form.final_introduction);
-    
-    // (임시 위치값)
     formData.append('latitude', '37.5665'); 
     formData.append('longitude', '126.9780');
 
@@ -309,7 +298,7 @@ const handleSubmit = async () => {
   font-weight: 500;
 }
 .step-item.active {
-  color: #6d28d9;
+  color: #8A5A34; /* 카페 테마 색상 */
   font-weight: 700;
 }
 .circle {
@@ -326,7 +315,7 @@ const handleSubmit = async () => {
   transition: background-color 0.3s;
 }
 .step-item.active .circle {
-  background-color: #6d28d9;
+  background-color: #D4A574; /* 연한 갈색 */
 }
 .line {
   flex-grow: 1;
@@ -339,7 +328,7 @@ const handleSubmit = async () => {
   z-index: 1;
 }
 .line.active {
-  background-color: #6d28d9;
+  background-color: #D4A574; /* 연한 갈색 */
 }
 
 /* 폼 컨텐츠 */
@@ -385,13 +374,13 @@ input, textarea, select {
   box-sizing: border-box;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: #6d28d9;
-  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1);
+  border-color: #D4A574; /* 연한 갈색 */
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
 }
 
-/* 버튼 */
+/* 버튼 - 카페 테마 색상으로 변경 */
 .btn-primary {
-  background-color: #6d28d9;
+  background-color: #D4A574; /* 연한 갈색 */
   color: white;
   border: none;
   padding: 14px;
@@ -401,8 +390,13 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
   transition: background-color 0.2s;
 }
-.btn-primary:hover:not(:disabled) { background-color: #5b21b6; }
-.btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+.btn-primary:hover:not(:disabled) { 
+  background-color: #C9956F; /* 조금 더 진한 갈색 */
+}
+.btn-primary:disabled { 
+  background-color: #cbd5e1; 
+  cursor: not-allowed; 
+}
 
 .btn-secondary {
   background-color: #f3f4f6;
