@@ -1,14 +1,13 @@
-<!-- frontend/src/components/chat/ChatRoomList.vue -->
 <template>
   <div class="chat-room-list-container">
     <div class="list-header">
-      <h3>💬 채팅방 목록</h3>
-      <span class="room-count">{{ chatRooms.length }}개</span>
+      <h3>📜 Today's Orders</h3>
+      <span class="room-count">{{ chatRooms.length }} TABLES</span>
     </div>
 
     <div v-if="isLoading" class="loading-state">
       <div class="spinner"></div>
-      <p>채팅방을 불러오는 중...</p>
+      <p>주문 내역 확인 중...</p>
     </div>
 
     <div v-else-if="chatRooms.length > 0" class="room-list">
@@ -20,7 +19,7 @@
         @click="selectRoom(room)"
       >
         <div class="room-avatar">
-          {{ getPartnerName(room).charAt(0) }}
+          <span class="latte-art">☕</span>
         </div>
 
         <div class="room-info">
@@ -31,7 +30,7 @@
 
           <div class="room-preview">
             <p class="last-message">
-              {{ room.last_message || '메시지가 없습니다.' }}
+              {{ room.last_message || '대화를 시작해보세요!' }}
             </p>
             <span v-if="room.unread_count > 0" class="unread-badge">
               {{ room.unread_count }}
@@ -43,15 +42,14 @@
 
     <div v-else class="empty-state">
       <p class="empty-icon">📭</p>
-      <p class="empty-text">채팅방이 없습니다</p>
-      <p class="empty-hint">승인된 커피챗이 있으면 채팅방이 생성됩니다.</p>
+      <p class="empty-text">아직 주문(채팅)이 없습니다</p>
+      <p class="empty-hint">커피챗을 신청하고 승인받아보세요!</p>
     </div>
   </div>
 </template>
 
 <script setup>
-// 'onUnmounted'를 꼭 추가해야 합니다!
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import api from '@/services/api';
 import { supabase } from '@/services/supabase';
@@ -66,7 +64,7 @@ const emit = defineEmits(['select-room']);
 
 onMounted(async () => {
   await fetchChatRooms();
-  subscribeToListUpdates(); // ⭐️ 목록 실시간 구독 시작
+  subscribeToListUpdates(); // 목록 실시간 구독 시작
 });
 
 onUnmounted(() => {
@@ -74,7 +72,6 @@ onUnmounted(() => {
     supabase.removeChannel(listSubscription.value);
   }
 });
-
 
 function subscribeToListUpdates() {
   listSubscription.value = supabase
@@ -140,6 +137,8 @@ function getPartnerName(room) {
 
 function selectRoom(room) {
   selectedRoomId.value = room.id;
+  // 선택 시 뱃지 초기화 (UI 상에서만 먼저 반영)
+  room.unread_count = 0; 
   emit('select-room', room);
 }
 
@@ -165,37 +164,44 @@ defineExpose({ fetchChatRooms });
 </script>
 
 <style scoped>
+/* 🎨 카페 테마 적용 스타일 */
 .chat-room-list-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: white;
+  background-color: #fffbf7; /* 아주 연한 크림색 배경 */
+  border-right: 1px dashed var(--border-color, #D1A872); /* 우측 점선 테두리 */
 }
 
+/* 헤더 스타일 */
 .list-header {
   padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid var(--primary-color, #361205); /* 헤더 구분선은 진하게 */
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #fcf9f2;
 }
 
 .list-header h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-color, #361205);
   margin: 0;
+  font-family: 'Courier New', monospace; /* 영수증 폰트 느낌 */
+  letter-spacing: -0.5px;
 }
 
 .room-count {
-  font-size: 14px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-weight: 600;
+  font-size: 0.8rem;
+  color: #fff;
+  background-color: var(--point-color, #DF8723);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
+/* 로딩 상태 */
 .loading-state {
   flex: 1;
   display: flex;
@@ -203,13 +209,14 @@ defineExpose({ fetchChatRooms });
   align-items: center;
   justify-content: center;
   padding: 40px;
+  color: #8A5A34;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
   border: 4px solid #e5e7eb;
-  border-top-color: #6d28d9;
+  border-top-color: var(--point-color, #DF8723);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -219,6 +226,7 @@ defineExpose({ fetchChatRooms });
   to { transform: rotate(360deg); }
 }
 
+/* 채팅방 리스트 */
 .room-list {
   flex: 1;
   overflow-y: auto;
@@ -230,31 +238,42 @@ defineExpose({ fetchChatRooms });
   gap: 12px;
   padding: 16px 20px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-bottom: 1px solid #f3f4f6;
+  transition: all 0.2s;
+  border-bottom: 1px solid #efe5d9; /* 연한 갈색 구분선 */
 }
 
 .room-item:hover {
-  background-color: #f9fafb;
+  background-color: #f2ebe0; /* 호버 시 베이지색 */
 }
 
+/* 🔥 선택된 방 스타일 변경 */
 .room-item.active {
-  background-color: #ede9fe;
-  border-left: 3px solid #6d28d9;
+  background-color: #fff;
+  border-left: 5px solid var(--primary-color, #361205); /* 진한 갈색 포인트바 */
+  box-shadow: 0 4px 12px rgba(54, 18, 5, 0.1);
 }
 
+.room-item.active .partner-name {
+  color: var(--point-color, #DF8723);
+  font-weight: 900;
+}
+
+/* 라떼 아트 아바타 */
 .room-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6d28d9, #a78bfa);
-  color: white;
+  background-color: #eaddcf; /* 라떼 거품 색 */
+  border: 2px solid #d1bfa8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: bold;
   flex-shrink: 0;
+}
+
+.latte-art {
+  font-size: 20px;
+  filter: grayscale(0.2);
 }
 
 .room-info {
@@ -271,13 +290,13 @@ defineExpose({ fetchChatRooms });
 
 .partner-name {
   font-size: 15px;
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #4e342e;
 }
 
 .room-time {
-  font-size: 12px;
-  color: #9ca3af;
+  font-size: 11px;
+  color: #a1887f;
 }
 
 .room-preview {
@@ -288,25 +307,27 @@ defineExpose({ fetchChatRooms });
 
 .last-message {
   flex: 1;
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 13px;
+  color: #8d6e63;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0;
 }
 
+/* 뱃지: 커피 체리(레드) 색상 */
 .unread-badge {
-  background: #ef4444;
+  background-color: #b71c1c; 
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  min-width: 18px;
   text-align: center;
 }
 
+/* 빈 상태 */
 .empty-state {
   flex: 1;
   display: flex;
@@ -315,23 +336,24 @@ defineExpose({ fetchChatRooms });
   justify-content: center;
   padding: 60px 20px;
   text-align: center;
+  color: #8A5A34;
 }
 
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
+  opacity: 0.5;
 }
 
 .empty-text {
   font-size: 18px;
   font-weight: 600;
-  color: #374151;
   margin: 0 0 8px 0;
 }
 
 .empty-hint {
   font-size: 14px;
-  color: #9ca3af;
   margin: 0;
+  opacity: 0.8;
 }
 </style>

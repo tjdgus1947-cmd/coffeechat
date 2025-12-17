@@ -49,10 +49,85 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
-.error { color: red; font-size: 14px; }
-button { width: 100%; padding: 10px; background-color: #6d28d9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:disabled { background-color: #ccc; }
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+
+form {
+  font-family: 'Gowun Dodum', sans-serif;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #4A352D;
+  font-size: 1rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border: 2px solid #D4C3A3;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: 'Gowun Dodum', sans-serif;
+  background-color: #FFFFFF;
+  color: #4A352D;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #CC9966;
+  box-shadow: 0 0 0 3px rgba(204, 153, 102, 0.1);
+}
+
+.form-group input::placeholder {
+  color: #A89F94;
+}
+
+.error {
+  color: #D64545;
+  font-size: 0.875rem;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #FFE5E5;
+  border-radius: 8px;
+  border-left: 4px solid #D64545;
+}
+
+button {
+  width: 100%;
+  padding: 14px 24px;
+  background-color: #CC9966;
+  color: white;
+  border: 2px solid #CC9966;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: 'Gowun Dodum', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  box-shadow: 2px 2px 0 #D4C3A3;
+  margin-top: 8px;
+}
+
+button:hover:not(:disabled) {
+  background-color: #DDAA66;
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 #D4C3A3;
+}
+
+button:disabled {
+  background-color: #D4C3A3;
+  border-color: #D4C3A3;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 </style>

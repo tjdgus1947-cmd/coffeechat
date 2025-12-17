@@ -1,60 +1,72 @@
 <template>
   <div class="request-list-container">
-    <div v-if="mentorStore.isLoading" class="loading">
-      <p>받은 신청 목록을 불러오는 중...</p>
+    
+    <div v-if="mentorStore.isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>주문서를 확인하고 있습니다...</p>
     </div>
 
     <ul v-else-if="mentorStore.receivedBookings.length > 0" class="request-list">
-      <li v-for="request in mentorStore.receivedBookings" :key="request.id" class="request-card">
+      <li v-for="request in mentorStore.receivedBookings" :key="request.id" class="ticket-card">
         
-        <div class="mentee-info">
-          <div class="name-row">
-            <strong>{{ request.mentee?.full_name || '알 수 없음' }}</strong> 멘티님의 신청
-          </div>
-          
-          <div class="mentee-details">
-            <p v-if="request.mentee?.current_situation" class="detail-item">
-              <span class="icon">📚</span>
-              <span class="label">현재 상황:</span>
-              <span class="value">{{ request.mentee.current_situation }}</span>
-            </p>
-            <p v-if="request.mentee?.career_goal" class="detail-item">
-              <span class="icon">🎯</span>
-              <span class="label">진로 목표:</span>
-              <span class="value">{{ request.mentee.career_goal }}</span>
-            </p>
+        <div class="ticket-hole"></div>
+
+        <div class="ticket-content">
+          <div class="ticket-header">
+            <span class="order-num">ORDER #{{ request.id.slice(0, 4) }}</span>
+            <span class="request-date">{{ formatDate(request.created_at) }}</span>
           </div>
 
-          <div v-if="request.concern" class="concern-box">
-            <p class="concern-label">💬 고민 내용</p>
-            <p class="concern-text">{{ request.concern }}</p>
+          <div class="mentee-profile">
+            <div class="mentee-avatar">{{ request.mentee?.full_name?.charAt(0) || 'U' }}</div>
+            <div class="mentee-text">
+              <strong>{{ request.mentee?.full_name || '익명 멘티' }}</strong>
+              <span class="sub-text">{{ request.mentee?.current_situation || '정보 없음' }}</span>
+            </div>
           </div>
-          
-          <div class="time-info">
-             <p>
-               📅 희망 일정: 
-               <strong>{{ formatSchedule(request.start_time, request.end_time) }}</strong>
-             </p>
-             <span class="applied-at">
-               (신청일: {{ formatDate(request.created_at) }})
-             </span>
+
+          <div class="request-details">
+            <div class="detail-row">
+              <span class="icon">🎯</span> 
+              <span class="value">{{ request.mentee?.career_goal || '-' }}</span>
+            </div>
+            <div class="detail-row highlight">
+              <span class="icon">📅</span>
+              <span class="value">{{ formatSchedule(request.start_time, request.end_time) }}</span>
+            </div>
+          </div>
+
+          <div v-if="request.concern" class="concern-note">
+            <p class="note-label">📝 멘티의 고민:</p>
+            <p class="note-text">"{{ request.concern }}"</p>
           </div>
         </div>
         
-        <div class="actions">
+        <div class="ticket-actions">
           <template v-if="request.status === 'pending'">
-            <button class="btn approve" @click="handleApprove(request.id)">수락</button>
-            <button class="btn reject" @click="handleReject(request.id)">거절</button>
+            <button class="action-btn approve" @click="handleApprove(request.id)" title="수락">
+              ✅
+            </button>
+            <button class="action-btn reject" @click="handleReject(request.id)" title="거절">
+              ❌
+            </button>
           </template>
-          <span v-else-if="request.status === 'approved'" class="status approved">수락됨</span>
-          <span v-else-if="request.status === 'rejected'" class="status rejected">거절됨</span>
+
+          <div v-else-if="request.status === 'approved'" class="stamp approved">
+            <span>APPROVED</span>
+          </div>
+          <div v-else-if="request.status === 'rejected'" class="stamp rejected">
+            <span>REJECTED</span>
+          </div>
         </div>
 
+        <div class="jagged-edge"></div>
       </li>
     </ul>
 
     <div v-else class="no-requests">
-      <p>아직 받은 커피챗 신청이 없습니다.</p>
+      <div class="empty-icon">📭</div>
+      <p>아직 도착한 주문(신청)이 없습니다.</p>
     </div>
   </div>
 </template>
@@ -63,33 +75,19 @@
 import { onMounted } from 'vue';
 import { useMentorStore } from '@/store/mentorStore'; 
 
-
 const mentorStore = useMentorStore();
 
 onMounted(() => {
   mentorStore.fetchReceivedBookings();
 });
 
-// 🔥 수정됨: 수락 버튼 핸들러
 const handleApprove = async (requestId) => {
-  if (!confirm('이 시간에 커피챗을 진행하시겠습니까?\n(수락 시 채팅방이 자동 생성됩니다)')) return;
-
+  if (!confirm('이 시간에 커피챗을 진행하시겠습니까?\n(수락 시 채팅방이 생성됩니다)')) return;
   try {
-    // 1. 예약 상태를 '승인'으로 변경
     await mentorStore.updateBookingStatus(requestId, 'approved');
-
-    // 2. 채팅방 생성 API 호출
-    // (백엔드 주소나 포트가 다르다면 수정해주세요)
-    
-
-    alert('✅ 수락되었습니다! [채팅] 탭에서 대화를 시작해보세요.');
-    
-    // (선택사항) 여기서 페이지 새로고침을 하거나 목록을 다시 불러올 수 있습니다.
-    // await mentorStore.fetchReceivedBookings();
-
   } catch (error) {
-    console.error('수락 처리 중 오류 발생:', error);
-    alert('수락 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    console.error('수락 실패:', error);
+    alert('오류가 발생했습니다.');
   }
 };
 
@@ -98,127 +96,205 @@ const handleReject = async (requestId) => {
   try {
     await mentorStore.updateBookingStatus(requestId, 'rejected');
   } catch (error) {
-    console.error('거절 처리 실패:', error);
-    alert('처리 중 오류가 발생했습니다.');
+    console.error('거절 실패:', error);
   }
 };
 
 const formatDate = (isoString) => {
   if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('ko-KR');
+  return new Date(isoString).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 };
 
 const formatSchedule = (start, end) => {
   if (!start || !end) return '시간 정보 없음';
   const startDate = new Date(start);
-  const endDate = new Date(end);
-  
-  const datePart = startDate.toLocaleDateString('ko-KR', { 
-    year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' 
-  });
-  const startTimePart = startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  const endTimePart = endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  
-  return `${datePart} ${startTimePart} ~ ${endTimePart}`;
+  const startTime = startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const endTime = new Date(end).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${startDate.toLocaleDateString()} ${startTime} ~ ${endTime}`;
 };
 </script>
 
 <style scoped>
+.request-list-container {
+  padding: 10px;
+}
+
 .request-list {
-  list-style: none; padding: 0; margin-top: 15px;
-}
-.request-card {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 20px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 15px;
-  background-color: #fafafa; transition: all 0.2s;
-}
-.request-card:hover {
-    border-color: #6d28d9; background-color: #fff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.mentee-info { flex-grow: 1; }
-.name-row { font-size: 1.15rem; margin-bottom: 10px; color: #333; }
-
-/* 🔥 멘티 상세 정보 스타일 */
-.mentee-details {
-  background-color: #f0f9ff;
-  border-left: 3px solid #3b82f6;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-}
-
-.detail-item {
-  margin: 6px 0;
-  font-size: 14px;
-  color: #1e40af;
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 🎟️ 티켓 카드 스타일 */
+.ticket-card {
+  background-color: #fff;
+  background-image: radial-gradient(#f0f0f0 1px, transparent 1px);
+  background-size: 10px 10px;
+  border-radius: 2px; /* 종이 느낌을 위해 둥글지 않게 */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  border-left: 5px solid #8d6e63; /* 왼쪽 포인트 컬러 */
+}
+
+/* 상단 구멍 (펀치) */
+.ticket-hole {
+  position: absolute;
+  top: 15px;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: #f7f4e8; /* 배경색과 동일하게 */
+  border-radius: 50%;
+  box-shadow: inset -1px -1px 2px rgba(0,0,0,0.1);
+  z-index: 2;
+}
+
+.ticket-content {
+  flex: 1;
+  padding: 20px 20px 30px; /* 하단 지그재그 여백 */
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  border-bottom: 1px dashed #ccc;
+  padding-bottom: 5px;
+  font-family: 'Courier New', monospace;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+/* 멘티 프로필 */
+.mentee-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.mentee-avatar {
+  width: 40px; height: 40px;
+  background-color: #a1887f;
+  color: #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.mentee-text strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #3e2723;
+}
+
+.mentee-text .sub-text {
+  font-size: 0.85rem;
+  color: #6d4c41;
+}
+
+/* 상세 정보 */
+.request-details {
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.detail-row {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.detail-item .icon {
-  font-size: 16px;
-}
-
-.detail-item .label {
+.detail-row.highlight {
+  color: #d84315; /* 날짜 강조 (오렌지/레드) */
   font-weight: 600;
-  min-width: 80px;
 }
 
-.detail-item .value {
-  flex: 1;
-  color: #374151;
+/* 고민 메모 (포스트잇 느낌) */
+.concern-note {
+  background-color: #fff9c4; /* 노란색 포스트잇 */
+  padding: 10px 15px;
+  border-radius: 2px;
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+  font-size: 0.9rem;
+  color: #4e342e;
+  transform: rotate(-1deg);
+}
+.note-label { font-size: 0.75rem; color: #fbc02d; font-weight: bold; margin-bottom: 4px; }
+.note-text { margin: 0; line-height: 1.4; font-style: italic; }
+
+/* 오른쪽 액션 영역 */
+.ticket-actions {
+  width: 80px;
+  border-left: 2px dashed #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background-color: #fafafa;
 }
 
-/* 🔥 고민 내용 스타일 */
-.concern-box {
-  background-color: #fef3c7;
-  border-left: 3px solid #f59e0b;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
+.action-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.action-btn:hover { transform: scale(1.1); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.action-btn.approve:hover { border-color: #4caf50; background-color: #e8f5e9; }
+.action-btn.reject:hover { border-color: #f44336; background-color: #ffebee; }
+
+/* 도장 (Stamp) 효과 */
+.stamp {
+  border: 3px double;
+  border-radius: 4px;
+  padding: 5px 2px;
+  font-weight: 900;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  transform: rotate(-15deg);
+  opacity: 0.8;
+  font-size: 0.8rem;
+  width: 70px;
+}
+.stamp.approved { color: #2e7d32; border-color: #2e7d32; }
+.stamp.rejected { color: #c62828; border-color: #c62828; }
+
+/* 하단 지그재그 */
+.jagged-edge {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 10px;
+  background: linear-gradient(-45deg, transparent 16px, #fff 0), linear-gradient(45deg, transparent 16px, #fff 0);
+  background-size: 20px 20px;
+  background-repeat: repeat-x;
 }
 
-.concern-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: #b45309;
-  margin: 0 0 6px 0;
+/* 로딩 & 빈 상태 */
+.loading-state, .no-requests {
+  text-align: center;
+  padding: 40px;
+  color: #8d6e63;
 }
+.spinner {
+  border: 4px solid #efebe9;
+  border-top: 4px solid #8d6e63;
+  border-radius: 50%;
+  width: 30px; height: 30px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+.empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
 
-.concern-text {
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.6;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.time-info p { margin: 5px 0; font-size: 1.05rem; color: #444; }
-.time-info strong { color: #6d28d9; }
-.applied-at { font-size: 0.85rem; color: #888; }
-
-.actions {
-  display: flex; flex-direction: column;
-  gap: 8px; min-width: 80px;
-}
-.btn {
-  padding: 8px 14px; border: none; border-radius: 8px;
-  cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: opacity 0.2s;
-}
-.btn:hover { opacity: 0.9; }
-.btn.approve { background-color: #6d28d9; color: white; }
-.btn.reject { background-color: #f1f5f9; color: #64748b; }
-
-.status {
-  text-align: center; padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;
-}
-.status.approved { background-color: #dcfce7; color: #15803d; }
-.status.rejected { background-color: #fef2f2; color: #dc2626; }
-
-.no-requests, .loading {
-  padding: 40px; text-align: center; color: #999; font-size: 1.1rem;
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>

@@ -346,19 +346,19 @@ const handleSubmit = async () => {
   font-size: 14px;
   font-weight: 500;
 }
-.step-item.active { color: #6d28d9; font-weight: 700; }
+.step-item.active { color: #8B4513; font-weight: 700; }
 .circle {
   width: 32px; height: 32px; border-radius: 50%;
   background-color: #e5e7eb; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-weight: bold; margin-bottom: 6px; transition: background-color 0.3s;
 }
-.step-item.active .circle { background-color: #6d28d9; }
+.step-item.active .circle { background-color: #8B4513; }
 .line {
   flex-grow: 1; height: 2px; background-color: #e5e7eb;
   margin: 0 10px; margin-bottom: 20px; position: relative; top: -13px; z-index: 1;
 }
-.line.active { background-color: #6d28d9; }
+.line.active { background-color: #8B4513; }
 
 .form-content {
   background: white; padding: 30px; border-radius: 16px;
@@ -374,13 +374,13 @@ input, textarea, select {
   width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px;
   font-size: 15px; outline: none; transition: border-color 0.2s; box-sizing: border-box;
 }
-input:focus, textarea:focus, select:focus { border-color: #6d28d9; box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1); }
+input:focus, textarea:focus, select:focus { border-color: #8B4513; box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1); }
 
 .btn-primary {
-  background-color: #6d28d9; color: white; border: none; padding: 14px;
+  background-color: #8B4513; color: white; border: none; padding: 14px;
   border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;
 }
-.btn-primary:hover:not(:disabled) { background-color: #5b21b6; }
+.btn-primary:hover:not(:disabled) { background-color: #6B3410; }
 .btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; }
 
 .btn-secondary {
@@ -396,7 +396,7 @@ input:focus, textarea:focus, select:focus { border-color: #6d28d9; box-shadow: 0
 .survey-list { display: flex; flex-direction: column; gap: 20px; }
 .q-label { display: block; font-weight: 600; margin-bottom: 8px; color: #111; }
 
-.final-textarea { background-color: #fcfaff; border-color: #e9d5ff; line-height: 1.6; }
+.final-textarea { background-color: #FFF8F0; border-color: #F5E6D3; line-height: 1.6; }
 .error-msg { color: #dc2626; margin-top: 20px; text-align: center; font-size: 14px; font-weight: 500; }
 .error-text { color: #dc2626; font-size: 13px; margin-top: 5px; }
 .fade-in { animation: fadeIn 0.3s ease-out forwards; }

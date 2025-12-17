@@ -1,60 +1,54 @@
 <template>
-  <div class="mentor-container">
+  <div class="mentor-container cafe-theme">
 
-    <div class="view-switcher">
+    <div class="cafe-tabs">
       <button 
         @click="currentView = 'dashboard'" 
         :class="{ active: currentView === 'dashboard' }"
       >
-        📊 대시보드
+        <span class="icon">📊</span> 매니저 대시보드
       </button>
 
       <button 
         @click="currentView = 'chat'" 
         :class="{ active: currentView === 'chat' }"
       >
-        💬 채팅
+        <span class="icon">💬</span> 채팅 (상담)
       </button>
     </div>
 
     <div v-show="currentView === 'dashboard'" class="mentor-dashboard">
       <section class="top-section">
-        <div class="welcome-card">
+        <div class="welcome-card wood-texture">
           
           <div class="card-top">
             <div class="greeting-text">
-              <span class="sub-label">MENTOR DASHBOARD</span>
-              <h2>안녕하세요, {{ authStore.userName || '멘토' }}님 👋</h2>
-              <p>이번 달 멘토링 활동 현황을 확인하세요.</p>
+              <span class="sub-label">HEAD BARISTA DESK</span>
+              <h2>안녕하세요, {{ authStore.userName || '멘토' }}님 ☕</h2>
+              <p>오늘도 멘티들에게 따뜻한 성장을 내려주세요.</p>
             </div>
-            <div class="goal-badge">
-              🎯 목표 달성률 <strong>{{ goalProgress }}%</strong> · <strong>{{ stats.total }}건</strong> 신청 처리
+            <div class="goal-badge paper-texture">
+              🎯 이번 달 목표 달성률 <strong>{{ goalProgress }}%</strong>
             </div>
           </div>
 
           <div class="stats-row">
-            <div class="stat-item">
-              <div class="stat-icon blue">📅</div>
-              <div class="stat-text">
-                <span class="label">전체 신청</span>
-                <strong class="value">{{ stats.total }}</strong>
-              </div>
+            <div class="stat-ticket blue">
+              <span class="pin">📍</span>
+              <div class="stat-label">전체 신청</div>
+              <div class="stat-value">{{ stats.total }}</div>
             </div>
 
-            <div class="stat-item">
-              <div class="stat-icon yellow">🕒</div>
-              <div class="stat-text">
-                <span class="label">응답 대기</span>
-                <strong class="value">{{ stats.pending }}</strong>
-              </div>
+            <div class="stat-ticket yellow">
+              <span class="pin">📍</span>
+              <div class="stat-label">응답 대기</div>
+              <div class="stat-value">{{ stats.pending }}</div>
             </div>
 
-            <div class="stat-item">
-              <div class="stat-icon green">✅</div>
-              <div class="stat-text">
-                <span class="label">확정 세션</span>
-                <strong class="value">{{ stats.approved }}</strong>
-              </div>
+            <div class="stat-ticket green">
+              <span class="pin">📍</span>
+              <div class="stat-label">확정 세션</div>
+              <div class="stat-value">{{ stats.approved }}</div>
             </div>
           </div>
 
@@ -67,7 +61,7 @@
           <div class="content-grid">
             <div class="main-panel">
               <div class="panel-header">
-                <h3>다가오는 커피챗 / 신청 목록</h3>
+                <h3>📜 Incoming Orders (신청 목록)</h3>
                 <span class="count-badge">{{ stats.total }}건</span>
               </div>
               <div class="panel-body list-scroll-area">
@@ -77,30 +71,30 @@
 
             <div class="side-panel">
               <div class="panel-header">
-                <h3>멘토 레벨</h3>
+                <h3>🎖️ Barista Level</h3>
                 <span class="level-badge">Lv. {{ mentorLevel.level }}</span>
               </div>
               <div class="panel-body level-body">
                 <div class="xp-info">
                   <p class="xp-total">
                     {{ mentorLevel.totalXP }}
-                    <span class="unit"> P</span>
+                    <span class="unit"> XP</span>
                   </p>
-                  <p class="xp-weekly">이번 주 XP {{ mentorLevel.weeklyXP }}</p>
+                  <p class="xp-weekly">이번 주 획득 +{{ mentorLevel.weeklyXP }}</p>
                 </div>
 
                 <div class="xp-progress">
                   <div class="progress-header">
-                    <span>다음 레벨까지</span>
-                    <span>{{ mentorLevel.currentXP }} / {{ mentorLevel.nextLevelXP }} XP</span>
+                    <span>Next Level</span>
+                    <span>{{ mentorLevel.currentXP }} / {{ mentorLevel.nextLevelXP }}</span>
                   </div>
-                  <div class="progress-bar">
+                  <div class="progress-bar-bg">
                     <div class="progress-fill" :style="{ width: mentorLevel.progress + '%' }"></div>
                   </div>
                 </div>
 
                 <div class="badges-section">
-                  <h4>획득한 배지 ({{ earnedBadges }} / {{ totalBadges }})</h4>
+                  <h4>내 컬렉션 ({{ earnedBadges }} / {{ totalBadges }})</h4>
                   <div class="badges-grid">
                     <div
                       v-for="badge in badges"
@@ -114,16 +108,15 @@
                   </div>
                 </div>
 
-                <div class="ranking-box">
-                  <div class="ranking-content">
-                    <div>
-                      <p class="ranking-label">내 순위</p>
-                      <p class="ranking-value">{{ myRanking.rank ? `#${myRanking.rank}` : '데이터 없음' }}</p>
-                      <p class="ranking-points">포인트 {{ myRanking.points }}P</p>
+                <div class="ranking-board">
+                  <div class="chalk-text">
+                    <p class="rank-title">🏆 이달의 우수 멘토</p>
+                    <div class="rank-row">
+                      <span class="my-rank">내 순위: #{{ myRanking.rank || '-' }}</span>
+                      <span class="my-points">{{ myRanking.points }} P</span>
                     </div>
-                    <div class="ranking-trend" :class="rankingTrendClass">
-                      <span class="trend-icon">{{ rankingTrendIcon }}</span>
-                      <span class="trend-text">{{ rankingTrendText }}</span>
+                    <div class="rank-trend" :class="getTrendColor(myRanking.diff)">
+                      {{ getTrendIcon(myRanking.diff) }} {{ getTrendText(myRanking.diff) }}
                     </div>
                   </div>
                 </div>
@@ -134,99 +127,51 @@
           <div class="bottom-grid">
             <article class="review-panel">
               <div class="panel-header">
-                <div>
-                  <h3>최근 받은 리뷰</h3>
-                  <p class="panel-desc">멘티 피드백을 확인하세요.</p>
-                </div>
+                <h3>💬 Guest Reviews (후기)</h3>
                 <div class="rating-badge">
-                  <span class="star-icon">⭐</span>
-                  <span class="rating-value">{{ averageRating }}</span>
+                  ⭐ {{ averageRating }}
                 </div>
               </div>
 
               <div class="panel-body">
                 <div v-if="recentReviews.length > 0" class="review-list">
-                  <div v-for="review in recentReviews" :key="review.id" class="review-item">
-                    <div class="review-header">
-                      <div class="reviewer-info">
-                        <img
-                          :src="review.avatar || 'https://via.placeholder.com/40'"
-                          :alt="review.menteeName"
-                          class="reviewer-avatar"
-                        />
-                        <div class="reviewer-details">
-                          <span class="reviewer-name">{{ review.menteeName }}</span>
-                          <span class="review-date">{{ review.dateLabel }}</span>
-                        </div>
-                      </div>
-                      <div class="review-stars">
-                        <span
-                          v-for="i in 5"
-                          :key="i"
-                          :class="i <= review.rating ? 'star filled' : 'star'"
-                        >★</span>
-                      </div>
+                  <div v-for="review in recentReviews" :key="review.id" class="review-sticky">
+                    <div class="pin-top">📌</div>
+                    <p class="review-comment">"{{ review.comment }}"</p>
+                    <div class="review-footer">
+                      <span class="reviewer">- {{ review.menteeName }}</span>
+                      <span class="stars">{{ '★'.repeat(review.rating) }}</span>
                     </div>
-                    <p class="review-session">{{ review.session }}</p>
-                    <p class="review-comment">{{ review.comment }}</p>
                   </div>
                 </div>
 
                 <div v-else class="empty-reviews">
-                  <p class="emoji">📝</p>
-                  <p>아직 리뷰가 없습니다. 커피챗이 완료되면 멘티에게 후기를 요청해보세요.</p>
+                  <p>아직 작성된 후기가 없습니다.</p>
                 </div>
               </div>
             </article>
 
             <article class="ranking-panel">
               <div class="panel-header">
-                <div>
-                  <h3>멘토 랭킹</h3>
-                  <p class="panel-desc">이번 달 상위 멘토 현황</p>
-                </div>
-                <div class="top-badge">
-                  상위 10위까지 {{ pointsToTopTen }}P
-                </div>
+                <h3>🏆 Hall of Fame</h3>
+                <p class="top-ten-info">TOP 10 진입까지 {{ pointsToTopTen }}P</p>
               </div>
 
               <div class="panel-body">
-                <div class="my-rank-box">
-                  <div class="rank-content">
-                    <div class="rank-left">
-                      <div class="rank-number">
-                        {{ myRanking.rank ? `#${myRanking.rank}` : '-' }}
-                      </div>
-                      <div class="rank-info">
-                        <p class="rank-label">내 순위</p>
-                        <p class="rank-name">{{ authStore.userName || '멘토' }}</p>
-                      </div>
-                    </div>
-                    <div class="rank-right">
-                      <p class="rank-label">포인트</p>
-                      <p class="rank-points">{{ myRanking.points }}P</p>
-                    </div>
-                  </div>
-                </div>
-
                 <div v-if="topMentors.length > 0" class="top-mentors-list">
                   <div
                     v-for="mentor in topMentors"
                     :key="mentor.id"
-                    class="mentor-rank-item"
+                    class="mentor-rank-row"
                   >
-                    <div class="mentor-rank-left">
-                      <span class="mentor-rank-number">#{{ mentor.rank }}</span>
-                      <div class="mentor-info">
-                        <p class="mentor-name">{{ mentor.name }}</p>
-                        <p class="mentor-category">포인트 {{ mentor.points }}P</p>
-                      </div>
-                    </div>
+                    <span class="rank-num">#{{ mentor.rank }}</span>
+                    <span class="rank-name">{{ mentor.name }}</span>
+                    <span class="dots"></span>
+                    <span class="rank-p">{{ mentor.points }}P</span>
                   </div>
                 </div>
-
                 <div v-else class="empty-ranking">
-                  <p>상위 멘토 데이터가 아직 준비되지 않았습니다.</p>
+                  <p>데이터 집계 중...</p>
                 </div>
               </div>
             </article>
@@ -258,19 +203,15 @@ import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useMentorStore } from '@/store/mentorStore';
 import { supabase } from '@/supabaseClient';
-import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 
-// 🔥 채팅 컴포넌트 import
+import MentorRequestList from '@/components/profile/MentorRequestList.vue';
 import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatRoom from '@/components/chat/ChatRoom.vue';
 
 const authStore = useAuthStore();
 const mentorStore = useMentorStore();
 
-// 🔥 뷰 상태 관리 (dashboard | chat)
 const currentView = ref('dashboard');
-
-// 🔥 채팅 관련 state
 const selectedChatRoom = ref(null);
 const chatRoomListRef = ref(null);
 
@@ -279,6 +220,7 @@ const topMentors = ref([]);
 const myRanking = ref({ rank: 0, diff: 0, points: 0 });
 const pointsToTopTen = ref(0);
 
+// --- 초기 데이터 로딩 ---
 onMounted(async () => {
   mentorStore.fetchReceivedBookings();
   await Promise.all([
@@ -287,7 +229,6 @@ onMounted(async () => {
   ]);
 });
 
-// 🔥 채팅방 선택 핸들러
 function handleSelectRoom(room) {
   selectedChatRoom.value = room;
 }
@@ -312,20 +253,11 @@ async function fetchReceivedReviews() {
     }
 
     const menteeIds = [...new Set(reviews.map(r => r.mentee_id))];
-
     const { data: mentees, error: menteeError } = await supabase
-      .from('users')
-      .select('id, full_name')
-      .in('id', menteeIds);
-
-    if (menteeError) {
-      console.error('멘티 정보 조회 실패:', menteeError);
-    }
+      .from('users').select('id, full_name').in('id', menteeIds);
 
     const menteeMap = {};
-    (mentees || []).forEach(m => {
-      menteeMap[m.id] = m;
-    });
+    (mentees || []).forEach(m => { menteeMap[m.id] = m; });
 
     receivedReviews.value = reviews.map(review => ({
       ...review,
@@ -343,26 +275,14 @@ async function fetchMentorRanking() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: reviewRows, error: reviewsError } = await supabase
-      .from('reviews')
-      .select('mentor_id, rating');
-
-    if (reviewsError) throw reviewsError;
-
-    if (!reviewRows || reviewRows.length === 0) {
-      topMentors.value = [];
-      myRanking.value = { rank: 0, diff: 0, points: 0 };
-      pointsToTopTen.value = 0;
-      return;
-    }
+    const { data: reviewRows } = await supabase.from('reviews').select('mentor_id, rating');
+    if (!reviewRows || reviewRows.length === 0) return;
 
     const statsMap = {};
     for (const row of reviewRows) {
       const mId = row.mentor_id;
       if (!mId) continue;
-      if (!statsMap[mId]) {
-        statsMap[mId] = { mentor_id: mId, reviewCount: 0, totalRating: 0 };
-      }
+      if (!statsMap[mId]) statsMap[mId] = { mentor_id: mId, reviewCount: 0, totalRating: 0 };
       statsMap[mId].reviewCount += 1;
       statsMap[mId].totalRating += row.rating || 0;
     }
@@ -370,29 +290,17 @@ async function fetchMentorRanking() {
     const mentorStats = Object.values(statsMap).map(s => {
       const avgRating = s.reviewCount > 0 ? s.totalRating / s.reviewCount : 0;
       const points = s.reviewCount * 10 + avgRating * 20;
-      return {
-        mentor_id: s.mentor_id,
-        reviewCount: s.reviewCount,
-        avgRating,
-        points
-      };
+      return { mentor_id: s.mentor_id, points };
     });
 
     mentorStats.sort((a, b) => b.points - a.points);
     const mentorIds = mentorStats.map(m => m.mentor_id);
 
-    const { data: mentorsInfo, error: mentorsError } = await supabase
-      .from('users')
-      .select('id, full_name, role')
-      .in('id', mentorIds)
-      .eq('role', 'mentor');
-
-    if (mentorsError) throw mentorsError;
+    const { data: mentorsInfo } = await supabase
+      .from('users').select('id, full_name').in('id', mentorIds);
 
     const mentorNameMap = {};
-    (mentorsInfo || []).forEach(m => {
-      mentorNameMap[m.id] = m.full_name;
-    });
+    (mentorsInfo || []).forEach(m => { mentorNameMap[m.id] = m.full_name; });
 
     topMentors.value = mentorStats.slice(0, 10).map((m, index) => ({
       id: m.mentor_id,
@@ -403,30 +311,16 @@ async function fetchMentorRanking() {
 
     const myIdx = mentorStats.findIndex(m => m.mentor_id === user.id);
     if (myIdx !== -1) {
-      const myPoints = Math.round(mentorStats[myIdx].points);
-      myRanking.value = { rank: myIdx + 1, diff: 0, points: myPoints };
-
-      let topTenThreshold = 0;
-      if (mentorStats.length >= 10) {
-        topTenThreshold = mentorStats[9].points;
-      } else {
-        topTenThreshold = mentorStats[mentorStats.length - 1].points;
-      }
-      const gap = topTenThreshold - mentorStats[myIdx].points;
-      pointsToTopTen.value = gap > 0 ? Math.round(gap) : 0;
-    } else {
-      myRanking.value = { rank: 0, diff: 0, points: 0 };
-      pointsToTopTen.value = 0;
+      myRanking.value = { rank: myIdx + 1, diff: 0, points: Math.round(mentorStats[myIdx].points) };
+      const lastRankPoint = mentorStats[Math.min(9, mentorStats.length - 1)].points;
+      pointsToTopTen.value = Math.max(0, Math.round(lastRankPoint - myRanking.value.points));
     }
   } catch (error) {
     console.error('멘토 랭킹 조회 실패:', error);
-    topMentors.value = [];
-    myRanking.value = { rank: 0, diff: 0, points: 0 };
-    pointsToTopTen.value = 0;
   }
 }
 
-// ---------------- 기본 통계/레벨 ----------------
+// ---------------- 통계/레벨 ----------------
 const stats = computed(() => {
   const list = mentorStore.receivedBookings || [];
   return {
@@ -445,121 +339,87 @@ const mentorLevel = computed(() => {
   const totalXP = stats.value.approved * 100 + stats.value.total * 20;
   const level = Math.floor(totalXP / 500) + 1;
   const currentXP = totalXP % 500;
-  const nextLevelXP = 500;
-  const progress = Math.round((currentXP / nextLevelXP) * 100);
-  const weeklyXP = Math.min(totalXP, 300);
-  return { level, totalXP, currentXP, nextLevelXP, progress, weeklyXP };
+  return { level, totalXP, currentXP, nextLevelXP: 500, progress: Math.round((currentXP / 500) * 100), weeklyXP: Math.min(totalXP, 300) };
 });
 
 const badges = computed(() => [
-  { icon: '🏆', name: '첫 수락', earned: stats.value.approved > 0 },
-  { icon: '⭐', name: '완료 전문가', earned: stats.value.approved >= 5 },
+  { icon: '🌱', name: '첫 수락', earned: stats.value.approved > 0 },
+  { icon: '☕', name: '숙련가', earned: stats.value.approved >= 5 },
   { icon: '⚡', name: '빠른 응답', earned: stats.value.pending === 0 && stats.value.total > 0 },
-  { icon: '🎖️', name: '10회 달성', earned: stats.value.approved >= 10 },
-  { icon: '👑', name: '20회 달성', earned: stats.value.approved >= 20 }
+  { icon: '🏅', name: '10회 달성', earned: stats.value.approved >= 10 },
+  { icon: '👑', name: '마스터', earned: stats.value.approved >= 20 }
 ]);
 
 const earnedBadges = computed(() => badges.value.filter(b => b.earned).length);
 const totalBadges = computed(() => badges.value.length);
 
-// 트렌드 관련
-const rankingTrendClass = computed(() => {
-  if (!stats.value.total) return 'text-gray-400';
-  if (myRanking.value.diff > 0) return 'text-green-600';
-  if (myRanking.value.diff < 0) return 'text-red-600';
-  return 'text-gray-500';
-});
-
-const rankingTrendIcon = computed(() => {
-  if (!stats.value.total) return '📊';
-  if (myRanking.value.diff > 0) return '📈';
-  if (myRanking.value.diff < 0) return '📉';
-  return '➡️';
-});
-
-const rankingTrendText = computed(() => {
-  if (!stats.value.total) return '변동 없음';
-  if (myRanking.value.diff > 0) return `+${myRanking.value.diff}`;
-  if (myRanking.value.diff < 0) return `${myRanking.value.diff}`;
-  return '변동 없음';
-});
-
-// ---------------- 리뷰 파생 데이터 ----------------
 const recentReviews = computed(() => {
   return receivedReviews.value.slice(0, 3).map(review => ({
     id: review.id,
     menteeName: review.mentee?.full_name || '멘티',
     rating: review.rating ?? 5,
     comment: review.content || '후기 내용이 없습니다.',
-    session: '커피챗',
-    dateLabel: formatRelativeTime(review.created_at),
-    avatar: null
   }));
 });
 
 const averageRating = computed(() => {
-  if (receivedReviews.value.length === 0) return 'N/A';
-  const total = receivedReviews.value.reduce(
-    (sum, r) => sum + (r.rating ?? 0),
-    0
-  );
+  if (receivedReviews.value.length === 0) return '0.0';
+  const total = receivedReviews.value.reduce((sum, r) => sum + (r.rating ?? 0), 0);
   return (total / receivedReviews.value.length).toFixed(1);
 });
 
-// ---------------- 공통 유틸 ----------------
-function formatRelativeTime(dateString) {
-  if (!dateString) return '최근';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  if (diffDays < 7) return `${diffDays}일 전`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-  return `${Math.floor(diffDays / 30)}개월 전`;
-}
+// 트렌드 헬퍼
+const getTrendColor = (diff) => diff > 0 ? 'up' : (diff < 0 ? 'down' : 'same');
+const getTrendIcon = (diff) => diff > 0 ? '🔺' : (diff < 0 ? '🔻' : '-');
+const getTrendText = (diff) => diff === 0 ? '변동 없음' : Math.abs(diff);
 </script>
 
 <style scoped>
+/* ☕ 전체 테마 설정 */
 .mentor-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - 70px); /* 네비바 제외 높이 */
+  background-color: #f7f4e8; /* 크림색 배경 */
+  color: #3e2723;
   overflow: hidden;
-  background-color: #f9fafb;
 }
 
-/* 🔥 탭 메뉴 스타일 */
-.view-switcher {
+/* 탭 메뉴 */
+.cafe-tabs {
   display: flex;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 0 40px;
+  gap: 8px;
+  padding-left: 40px;
+  margin-top: 20px;
+  margin-bottom: -1px;
+  z-index: 10;
   flex-shrink: 0;
 }
-.view-switcher button {
-  padding: 16px 20px;
-  border: none;
-  background: none;
+
+.cafe-tabs button {
+  padding: 12px 24px;
+  border: 1px solid #d7ccc8;
+  border-bottom: none;
+  background-color: #efebe9;
+  color: #8d6e63;
+  border-radius: 12px 12px 0 0;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  color: #6b7280;
-  border-bottom: 3px solid transparent;
+  font-weight: 600;
   transition: all 0.2s;
 }
-.view-switcher button:hover {
-  color: #111827;
-}
-.view-switcher button.active {
-  border-bottom: 3px solid #6d28d9;
-  font-weight: 700;
-  color: #6d28d9;
+
+.cafe-tabs button.active {
+  background-color: #fff;
+  color: #3e2723;
+  padding-bottom: 14px;
+  border-top: 3px solid #3e2723;
+  font-weight: 800;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
 }
 
-/* 대시보드 스크롤 영역 */
+.cafe-tabs .icon { margin-right: 6px; }
+
+/* 대시보드 영역 */
 .mentor-dashboard {
   flex: 1;
   overflow-y: auto;
@@ -567,575 +427,170 @@ function formatRelativeTime(dateString) {
   flex-direction: column;
 }
 
-/* 상단 섹션 */
-.top-section {
-  padding: 30px 40px;
-  background: #fff;
-}
+/* 상단 환영 카드 (우드 텍스처) */
+.top-section { padding: 30px 40px; }
 
-.welcome-card {
-  max-width: 1200px;
-  margin: 0 auto;
-  background-color: #f8f9fa;
-  border-radius: 20px;
+.welcome-card.wood-texture {
+  background-color: #5d4037;
+  background-image: linear-gradient(135deg, #6d4c41 0%, #5d4037 100%);
+  border: 4px solid #4e342e;
+  border-radius: 16px;
   padding: 30px 40px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  color: #fff;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
 }
 
 .card-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
 }
 
 .sub-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #6d28d9;
-  letter-spacing: 0.5px;
-  display: block;
-  margin-bottom: 6px;
+  font-size: 0.8rem; letter-spacing: 2px; color: #d7ccc8; font-weight: bold;
 }
 
 .greeting-text h2 {
-  font-size: 26px;
-  color: #111827;
-  margin: 0 0 6px 0;
+  font-size: 1.8rem; margin: 5px 0; font-family: serif;
 }
 
-.greeting-text p {
-  color: #6b7280;
-  margin: 0;
-  font-size: 15px;
+.goal-badge.paper-texture {
+  background-color: #fff8e1;
+  color: #3e2723;
+  padding: 10px 20px;
+  border-radius: 2px;
+  transform: rotate(2deg);
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
 }
 
-.goal-badge {
-  background: #fff;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 13px;
-  color: #4b5563;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.goal-badge strong { color: #6d28d9; }
-
+/* 통계 티켓 (포스트잇 느낌) */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
-.stat-item {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-  transition: transform 0.2s;
+.stat-ticket {
+  background-color: #fff;
+  padding: 15px 20px;
+  border-radius: 2px;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  color: #3e2723;
+  transform: rotate(-1deg);
+}
+.stat-ticket:nth-child(2) { transform: rotate(1deg); }
+
+.stat-ticket.blue { border-top: 4px solid #4fc3f7; }
+.stat-ticket.yellow { border-top: 4px solid #ffb74d; }
+.stat-ticket.green { border-top: 4px solid #81c784; }
+
+.stat-ticket .pin {
+  position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+  font-size: 20px; text-shadow: 2px 2px 2px rgba(0,0,0,0.2);
 }
 
-.stat-item:hover { transform: translateY(-2px); }
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-
-.stat-icon.blue { background: #eff6ff; }
-.stat-icon.yellow { background: #fefce8; }
-.stat-icon.green { background: #f0fdf4; }
-
-.stat-text .label {
-  font-size: 13px;
-  color: #6b7280;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.stat-text .value {
-  font-size: 24px;
-  font-weight: 800;
-  color: #111827;
-}
+.stat-label { font-size: 0.9rem; color: #8d6e63; font-weight: 700; margin-bottom: 5px; }
+.stat-value { font-size: 2rem; font-weight: 900; }
 
 /* 콘텐츠 섹션 */
-.content-section {
-  flex: 1;
-  padding: 30px 40px 40px;
-}
+.content-section { flex: 1; padding: 0 40px 40px; }
+.content-wrapper { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px; }
+.content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+.bottom-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
 
-.content-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
-}
-
-.bottom-grid {
-  display: grid;
-  grid-template-columns: 1.8fr 1.2fr;
-  gap: 24px;
-}
-
-/* 패널 공통 스타일 */
+/* 패널 공통 */
 .main-panel, .side-panel, .review-panel, .ranking-panel {
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
 .panel-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #f3f4f6;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 15px 20px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #eee;
+  display: flex; justify-content: space-between; align-items: center;
 }
+.panel-header h3 { font-size: 1.1rem; color: #3e2723; margin: 0; font-weight: 800; }
 
-.panel-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
+/* 리스트 패널 */
+.list-scroll-area { padding: 10px; max-height: 400px; overflow-y: auto; }
 
-.panel-desc {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 4px 0 0 0;
-}
+/* 레벨 & 배지 패널 */
+.level-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.xp-total { font-size: 2rem; font-weight: 900; color: #3e2723; margin: 0; }
+.xp-weekly { font-size: 0.8rem; color: #8d6e63; }
 
-.count-badge, .level-badge, .top-badge {
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
+.progress-header { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; color: #5d4037; }
+.progress-bar-bg { height: 10px; background: #efebe9; border-radius: 5px; overflow: hidden; }
+.progress-fill { height: 100%; background: #8d6e63; width: 50%; border-radius: 5px; }
 
-.count-badge { background: #f3f4f6; color: #4b5563; }
-.level-badge { background: #f5f3ff; color: #6d28d9; }
-.top-badge { background: #eff6ff; color: #2563eb; }
-
-.rating-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.star-icon { font-size: 20px; }
-.rating-value { font-size: 22px; font-weight: 800; color: #111827; }
-
-.panel-body {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.list-scroll-area { padding: 10px; }
-
-/* 레벨 패널 */
-.level-body {
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.xp-total {
-  font-size: 32px;
-  font-weight: 800;
-  color: #111827;
-  margin: 0;
-}
-
-.xp-total .unit {
-  font-size: 16px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.xp-weekly {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 4px 0 0 0;
-}
-
-.xp-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.progress-bar {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6d28d9, #8b5cf6);
-  transition: width 0.3s;
-}
-
-.badges-section h4 {
-  font-size: 14px;
-  font-weight: 700;
-  color: #374151;
-  margin: 0 0 12px 0;
-}
-
-.badges-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
+.badges-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .badge-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #9ca3af;
+  display: flex; align-items: center; gap: 8px; padding: 8px;
+  border: 1px dashed #d7ccc8; border-radius: 6px; color: #bdbdbd;
 }
-
 .badge-item.earned {
-  background: #f5f3ff;
-  border-color: #c4b5fd;
-  color: #6d28d9;
+  border-color: #ffb74d; background-color: #fff8e1; color: #e65100; font-weight: bold;
 }
 
-.badge-icon { font-size: 18px; }
-.badge-name { font-size: 13px; font-weight: 600; }
-
-.ranking-box {
-  background: #f9fafb;
-  border-radius: 12px;
-  padding: 16px;
+/* 칠판 스타일 랭킹 보드 */
+.ranking-board {
+  background-color: #3e2723;
+  padding: 15px; border-radius: 6px; border: 4px solid #6d4c41;
+  color: #fff; text-align: center;
 }
+.chalk-text { font-family: 'Courier New', monospace; }
+.rank-title { font-size: 0.9rem; color: #ffecb3; margin-bottom: 10px; }
+.rank-row { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
+.rank-trend.up { color: #69f0ae; }
+.rank-trend.down { color: #ff5252; }
+.rank-trend.same { color: #bdbdbd; }
 
-.ranking-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ranking-label {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0 0 4px 0;
-}
-
-.ranking-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: #111827;
-  margin: 0 0 2px 0;
-}
-
-.ranking-points {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0;
-}
-
-.ranking-trend {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.trend-icon { font-size: 16px; }
-.trend-text { font-size: 13px; font-weight: 600; }
-
-.text-green-600 { color: #059669; }
-.text-red-600 { color: #dc2626; }
-.text-gray-400 { color: #9ca3af; }
-.text-gray-500 { color: #6b7280; }
-
-/* 리뷰 패널 */
+/* 리뷰 (포스트잇) */
 .review-list {
-  padding: 16px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding: 20px; background-color: #f7f4e8;
+  display: flex; gap: 15px; overflow-x: auto;
 }
-
-.review-item {
-  background: #f9fafb;
-  border-radius: 12px;
-  padding: 16px;
+.review-sticky {
+  min-width: 200px; background: #fff9c4; padding: 15px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.1); transform: rotate(-2deg);
+  position: relative; font-family: 'Nanum Pen Script', serif; font-size: 1.1rem;
 }
+.review-sticky:nth-child(even) { background: #e1bee7; transform: rotate(2deg); }
+.pin-top { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; }
+.review-footer { margin-top: 10px; font-size: 0.9rem; text-align: right; color: #555; }
 
-.review-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+/* 랭킹 (메뉴판 리스트) */
+.top-mentors-list { padding: 15px 20px; }
+.mentor-rank-row {
+  display: flex; align-items: center; padding: 8px 0; border-bottom: 1px dotted #ccc;
 }
+.rank-num { font-weight: 900; width: 30px; color: #8d6e63; }
+.rank-name { font-weight: bold; color: #3e2723; }
+.dots { flex: 1; border-bottom: 2px dotted #ccc; margin: 0 10px; position: relative; top: -4px; }
+.rank-p { font-size: 0.9rem; color: #5d4037; }
 
-.reviewer-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.reviewer-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.reviewer-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111827;
-  display: block;
-}
-
-.review-date {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.review-stars {
-  display: flex;
-  gap: 2px;
-}
-
-.star {
-  color: #d1d5db;
-  font-size: 14px;
-}
-
-.star.filled {
-  color: #fbbf24;
-}
-
-.review-session {
-  font-size: 13px;
-  font-weight: 600;
-  color: #4b5563;
-  margin: 0 0 8px 0;
-}
-
-.review-comment {
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.empty-reviews {
-  padding: 60px 20px;
-  text-align: center;
-  color: #9ca3af;
-}
-
-.empty-reviews .emoji {
-  font-size: 40px;
-  margin-bottom: 12px;
-}
-
-/* 랭킹 패널 */
-.my-rank-box {
-  margin: 20px 24px;
-  background: linear-gradient(135deg, #eff6ff, #f5f3ff);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid #e0e7ff;
-}
-
-.rank-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.rank-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.rank-number {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #6d28d9, #8b5cf6);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.rank-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.rank-right {
-  text-align: right;
-}
-
-.rank-points {
-  font-size: 18px;
-  font-weight: 800;
-  color: #6d28d9;
-  margin: 0;
-}
-
-.top-mentors-list {
-  padding: 0 24px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mentor-rank-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-}
-
-.mentor-rank-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mentor-rank-number {
-  font-size: 14px;
-  font-weight: 700;
-  color: #6b7280;
-  min-width: 24px;
-}
-
-.mentor-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.mentor-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.mentor-category {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 2px 0 0 0;
-}
-
-.empty-ranking {
-  padding: 60px 20px;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 14px;
-}
-
-/* 🔥 채팅 뷰 스타일 추가 */
+/* 채팅 뷰 */
 .chat-view-wrapper {
-  flex: 1;
-  height: 100%;
-  overflow: hidden;
-  padding: 20px 40px; /* 대시보드와 여백 맞춤 */
-  box-sizing: border-box;
+  padding: 20px 40px; height: 100%; box-sizing: border-box;
 }
-
 .chat-layout {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  height: 100%;
-  gap: 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  background: white;
+  display: grid; grid-template-columns: 350px 1fr; height: 100%;
+  border: 1px solid #d7ccc8; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff;
 }
-
-.chat-room-list {
-  border-right: 1px solid #e5e7eb;
-}
+.chat-room-list { border-right: 1px solid #eee; }
 
 /* 반응형 */
 @media (max-width: 1024px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .bottom-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .top-section,
-  .content-section,
-  .view-switcher,
-  .chat-view-wrapper {
-    padding: 20px;
-  }
-  
-  .welcome-card {
-    padding: 20px;
-  }
-  
-  .card-top {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .chat-layout {
-    grid-template-columns: 1fr;
-  }
-  
-  .chat-room-list {
-    display: none; /* 모바일 대응 필요시 수정 */
-  }
+  .content-grid, .bottom-grid, .stats-row { grid-template-columns: 1fr; }
 }
 </style>

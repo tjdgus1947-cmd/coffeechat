@@ -1,55 +1,48 @@
 <!-- MenteeNetworkView.vue -->
-
 <template>
   <div class="network-view-container">
-    <!-- 1. 탭 메뉴 -->
+
     <div class="cafe-tabs">
-      <button 
-        @click="currentView = 'graph'" 
-        :class="{ active: currentView === 'graph' }"
-      >
+      <button @click="switchView('graph')" :class="{ active: currentView === 'graph' }">
         <span class="icon">☕</span> 네트워크
       </button>
-      <button 
-        @click="currentView = 'map'" 
-        :class="{ active: currentView === 'map' }"
-      >
+      <button @click="switchView('map')" :class="{ active: currentView === 'map' }">
         <span class="icon">🗺️</span> 지도
       </button>
-      <button 
-        @click="currentView = 'list'" 
-        :class="{ active: currentView === 'list' }"
-      >
+      <button @click="switchView('list')" :class="{ active: currentView === 'list' }">
         <span class="icon">📋</span> 파트너 목록
       </button>
-      <button 
-        @click="currentView = 'management'" 
-        :class="{ active: currentView === 'management' }"
-      >
+      <button @click="switchView('management')" :class="{ active: currentView === 'management' }">
         <span class="icon">🧾</span> 약속 관리
       </button>
+      <button @click="switchView('chat')" :class="{ active: currentView === 'chat' }">
+        <span class="icon">💬</span> 채팅
+        <span v-if="chatStore.unreadCount > 0" class="tab-badge">
+          {{ chatStore.unreadCount }}
+        </span>
+      </button>
     </div>
-    <!-- 2. 메인 컨텐츠 영역 -->
+
     <div class="paper-panel">
-      <!-- 네트워크 뷰 -->
       <div v-show="currentView === 'graph'" class="view-content graph-wrapper">
-        <!-- 상단 정보 스트립 -->
-        <div class="info-strip">
+        
+      <div class="info-strip">  
           <div class="tape-left"></div>
           <div class="info-text">
-            <span class="highlight">Tip.</span> 바리스타(멘토)를 <strong>더블 클릭</strong>하여 찜(❤️) 목록에 담아보세요!
+            <span class="highlight">Tip.</span> 바리스타(멘토)를 <strong> 클릭</strong>하여 찜(❤️) 목록에 담아보세요!
           </div>
           <div class="like-counter">
             내가 찜한 바리스타 <span class="badge">{{ likedMentors.length }}</span>명
           </div>
           <div class="tape-right"></div>
         </div>
-        <!-- 데이터가 없을 때 안내 문구 -->
+
+
         <div v-if="graphNodes.length === 0 && !isLoadingTopMentors" class="empty-graph-message">
           <p>☕ 아직 추천 파트너가 준비되지 않았습니다.</p>
           <p>잠시만 기다려주시거나, 프로필을 업데이트 해보세요!</p>
         </div>
-        <!-- 그래프 컴포넌트 -->
+
         <NetworkGraph
           v-else
           :nodes="graphNodes"
@@ -58,6 +51,7 @@
           @node-double-click="handleNodeDoubleClick"
           class="graph-component"
         />
+        
         <TopMentorsPanel
           :mentors="topMentorsList"
           :loading="isLoadingTopMentors"
@@ -65,27 +59,28 @@
           class="top-mentors-floating"
         />
       </div>
-      <!-- 지도 뷰 -->
+
       <div v-show="currentView === 'map'" class="view-content map-wrapper">
         <MentorMap />
       </div>
-      <!-- 멘토 목록 뷰 -->
-      <div v-show="currentView === 'list'" class="view-content list-wrapper">
-        <MentorListPanel
-          :mentors="topMentorsList"
-          :loading="isLoadingTopMentors"
-          :currentUserId="currentUserId"
-          @view-profile="handleTopMentorClick"
-          @open-booking="openBookingModal"
-        />
-      </div>
-      <!-- 커피챗 관리 뷰 -->
+
+     <div v-show="currentView === 'list'" class="view-content list-wrapper">
+  <MentorListPanel
+    :mentors="topMentorsList"
+    :loading="isLoadingTopMentors"
+    :currentUserId="currentUserId"
+    
+    :likedMentorIds="likedMentors"  @view-profile="handleTopMentorClick"
+    @open-booking="openBookingModal"
+  />
+</div>
+
       <div v-if="currentView === 'management'" class="view-content management-wrapper">
         <div class="receipt-style-container">
-          <!-- 로딩 중 -->
           <div v-if="bookingStore.isLoading" class="loading-state">
             <p>🧾 주문 내역을 불러오는 중...</p>
           </div>
+
           <div v-else>
             <section class="manage-section completed-section">
               <div class="section-header">
@@ -105,6 +100,7 @@
               </div>
               <div v-else class="empty-state-box">아직 완료된 만남이 없습니다.</div>
             </section>
+
             <section class="manage-section active-section">
               <div class="section-header">
                 <h3>📨 약속 현황 (진행 중)</h3>
@@ -132,8 +128,35 @@
           </div>
         </div>
       </div>
+
+      <div v-show="currentView === 'chat'" class="view-content chat-view-wrapper">
+        <div class="chat-layout">
+          
+          <div class="list-pane" :class="{ 'hidden-mobile': selectedChatRoom }">
+            <ChatRoomList 
+              @select-room="handleSelectRoom" 
+              class="chat-room-list"
+            />
+          </div>
+
+          <div class="room-pane" :class="{ 'hidden-mobile': !selectedChatRoom }">
+            <div v-if="selectedChatRoom" class="mobile-back-header">
+              <button @click="selectedChatRoom = null" class="back-btn">
+                ← 목록으로
+              </button>
+            </div>
+            
+            <ChatRoom 
+              :selected-room="selectedChatRoom"
+              class="chat-room"
+            />
+          </div>
+
+        </div>
+      </div>
+
     </div>
-    <!-- 모달 및 플로팅 버튼 -->
+
     <MentorProfileModal
       v-if="selectedMentor"
       :mentor="selectedMentor"
@@ -142,15 +165,17 @@
       @close="closeSidebar"
       @book="openBookingModal"
       @toggle-like="toggleLike"
-      class="modal-overlay"
     />
+
     <BookingModal
+      v-if="isModalOpen"
       :show="isModalOpen"
       :mentor-id="mentorForBooking?.id"
       :mentor-name="mentorForBooking?.name"
       @close="closeBookingModal"
       @booking-confirmed="closeBookingModal"
     />
+
     <ReviewModal
       :show="isReviewModalOpen"
       :chat="selectedChatForReview"
@@ -158,6 +183,7 @@
       @close="closeReviewModal"
       @review-submitted="handleReviewSubmitted"
     />
+
     <button
       v-if="currentView === 'graph'"
       class="floating-chat-btn"
@@ -169,14 +195,15 @@
         {{ chatStore.unreadCount > 9 ? '9+' : chatStore.unreadCount }}
       </span>
     </button>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { supabase } from '@/supabaseClient';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import { useNetworkStore } from '@/store/network';
 import { useBookingStore } from '@/store/bookingstore'; 
@@ -193,6 +220,7 @@ import ChatRoomList from '@/components/chat/ChatRoomList.vue';
 import ChatRoom from '@/components/chat/ChatRoom.vue';
 
 const route = useRoute();
+const router = useRouter();
 const networkStore = useNetworkStore();
 const bookingStore = useBookingStore();
 const chatStore = useChatStore();
@@ -209,21 +237,45 @@ const selectedChatForReview = ref(null);
 const reviewStatusMap = ref({});
 const likedMentors = ref([]);
 
+// 🔥 채팅 관련 상태
+const selectedChatRoom = ref(null);
+
 onMounted(async () => {
   if (route.query.tab === 'list') currentView.value = 'list';
+  if (route.query.view === 'chat') currentView.value = 'chat'; 
+
   networkStore.fetchNetworkData();
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       currentUserId.value = user.id;
       await fetchTopMentorsWithRealScore();
       await bookingStore.fetchBookings();
       await loadLikedMentors();
       await fetchReviewStatus();
+      chatStore.fetchUnreadCount();
     }
   } catch (err) { console.error('Auth 에러:', err); }
 });
 
+// 뷰 전환 함수
+function switchView(viewName) {
+  currentView.value = viewName;
+  // 채팅 탭을 나갔다 들어오면 선택된 방 초기화 (선택 사항)
+  // if (viewName !== 'chat') selectedChatRoom.value = null;
+}
+
+// 🔥 채팅방 선택 핸들러 (연결 핵심)
+function handleSelectRoom(room) {
+  console.log('채팅방 선택됨:', room); // 디버깅용 로그
+  selectedChatRoom.value = room;
+}
+
+function goToChat() {
+  currentView.value = 'chat';
+}
+
+// --- 기타 로직들 (기존 유지) ---
 async function loadLikedMentors() {
   try {
     const { data } = await supabase.from('user_likes').select('liked_mentor_id').eq('user_id', currentUserId.value);
@@ -286,10 +338,7 @@ const completedChats = computed(() => {
       if (!chat.end_time) return false;
       return new Date(chat.end_time) < now; 
     })
-    .map(chat => ({
-      ...chat,
-      has_review: !!reviewStatusMap.value[chat.id]
-    }));
+    .map(chat => ({ ...chat, has_review: !!reviewStatusMap.value[chat.id] }));
 });
 
 const activeChats = computed(() => {
@@ -306,9 +355,21 @@ const handleNodeClick = (node) => { selectedMentor.value = node.data?.type === '
 const handleNodeDoubleClick = (node) => { if (node.data?.type === 'mentor') toggleLike(node.data.id || node.data.user_id); };
 const handleTopMentorClick = (mentor) => { selectedMentor.value = mentor; };
 const closeSidebar = () => { selectedMentor.value = null; };
-const openBookingModal = (mentor) => { mentorForBooking.value = mentor; isModalOpen.value = true; };
+const openBookingModal = (mentor) => {
+  // 1) 프로필 모달 닫기
+  selectedMentor.value = null;
+
+  // 2) 예약용 멘토 정보 세팅
+  mentorForBooking.value = {
+    id: mentor.id || mentor.user_id,
+    name: mentor.full_name || mentor.name,
+  };
+
+  // 3) 예약 모달(캘린더) 열기
+  isModalOpen.value = true;
+};
+
 const closeBookingModal = () => { isModalOpen.value = false; mentorForBooking.value = null; bookingStore.fetchBookings(); }; 
-function goToChat() { currentView.value = 'chat'; }
 
 async function fetchReviewStatus() {
   try {
@@ -331,7 +392,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100vh - 70px); 
+  height: calc(100vh - 70px); /* 네비바 제외 */
   position: relative;
   background-color: #F7F4E8;
   padding: 20px;
@@ -339,7 +400,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   overflow: hidden; 
 }
 
-/* ☕ 탭 메뉴 */
+/* 탭 메뉴 */
 .cafe-tabs {
   display: flex;
   gap: 8px;
@@ -350,7 +411,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
 }
 
 .cafe-tabs button {
-  padding: 12px 24px;
+  padding: 12px 20px;
   border: 1px solid #D1A872;
   border-bottom: none;
   background-color: #EFE5D9;
@@ -360,6 +421,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   font-weight: 600;
   font-size: 15px;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .cafe-tabs button.active {
@@ -372,9 +434,19 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   border-top: 3px solid #DF8723;
 }
 
+.tab-badge {
+  background-color: #ef4444;
+  color: white;
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: top;
+}
+
 .cafe-tabs .icon { margin-right: 6px; }
 
-/* ☕ 메인 컨텐츠 영역 */
+/* 메인 패널 */
 .paper-panel {
   flex-grow: 1;
   background-color: #FFFFFF;
@@ -387,7 +459,6 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   flex-direction: column;
 }
 
-/* 모든 뷰의 공통 스타일 */
 .view-content {
   width: 100%;
   height: 100%;
@@ -395,162 +466,163 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   overflow-y: auto; 
 }
 
-/* 🌟 [수정] 그래프 뷰 래퍼 스타일 (높이 확보) */
-.graph-wrapper {
+/* 🔥 채팅 뷰 스타일 */
+.chat-view-wrapper {
+  padding: 0;
+  height: 100%;
+}
+
+.chat-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100%;
+}
+
+.list-pane {
+  height: 100%;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.room-pane {
+  height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 500px; /* 최소 높이 보장 */
 }
 
-.graph-component {
-  flex-grow: 1;
-  width: 100%;
-  height: 100%; /* 부모 높이 채우기 */
-  background-color: #FCF9F2;
+.mobile-back-header {
+  display: none; /* PC에선 숨김 */
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  background: #f9f9f9;
 }
 
-/* 빈 상태 메시지 */
-.empty-graph-message {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: #8A5A34;
-  font-size: 1.1rem;
-  z-index: 5;
-}
-
-/* 🌟 관리 뷰 래퍼 스타일 */
-.management-wrapper {
-  background-color: #FAFAFA;
-  padding: 0;
-}
-
-.receipt-style-container {
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 0 20px 60px; 
-}
-
-/* 관리 섹션 스타일 */
-.manage-section {
-  margin-bottom: 40px;
-  background-color: #FFFFFF;
-  padding: 24px;
-  border-radius: 8px;
-  border: 1px dashed #D1A872; 
-  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-}
-
-.section-header h3 {
-  font-size: 1.2rem;
-  color: #361205;
-  border-bottom: 2px solid #361205;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  display: inline-block;
-}
-
-.desc {
-  display: block;
-  color: #8A5A34;
-  margin-bottom: 20px;
-  font-size: 0.95rem;
-}
-
-/* 채팅 리스트 카드 */
-.chat-card {
-  background: #FFFFFF;
-  border: 1px solid #E6DCCD;
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: transform 0.2s;
-}
-
-.chat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(54, 18, 5, 0.08);
-  border-color: #DF8723;
-}
-
-.chat-card.completed {
-  border-left: 4px solid #DF8723; 
-}
-
-.mentor-name {
-  font-weight: 700;
-  color: #361205;
-  font-size: 1.1rem;
-}
-
-.chat-time {
-  font-size: 0.9rem;
-  color: #8A5A34;
-  margin-top: 4px;
-  display: block;
-}
-
-/* 버튼 스타일 */
-.review-btn {
-  background-color: #F7F4E8;
-  color: #361205;
-  border: 1px solid #D1A872;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.review-btn:hover {
-  background-color: #DF8723;
-  color: white;
-  border-color: #DF8723;
-}
-
-.link-btn {
+.back-btn {
   background: none;
   border: none;
-  color: #DF8723;
   font-weight: bold;
+  color: #361205;
   cursor: pointer;
-  text-decoration: underline;
-  margin-top: 10px;
 }
 
-/* 빈 상태 스타일 */
-.empty-state-box {
-  text-align: center;
-  padding: 40px;
-  color: #A67857;
-  font-style: italic;
-  background-color: #FDFBF7;
-  border-radius: 8px;
+/* 📱 모바일 반응형 (핵심 수정) */
+@media (max-width: 768px) {
+  .chat-layout {
+    grid-template-columns: 1fr; /* 1열로 변경 */
+  }
+
+  .hidden-mobile {
+    display: none; /* 상태에 따라 숨김 */
+  }
+
+  .mobile-back-header {
+    display: block; /* 모바일에서만 뒤로가기 버튼 보임 */
+  }
+  
+  .cafe-tabs button {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
 }
 
-.loading-state {
-  text-align: center;
-  padding: 60px;
+/* --- ☕ 상단 안내바 디자인 (마스킹 테이프 스타일) --- */
+.info-strip {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  background-color: #fffaee; /* 연한 종이 색 */
+  border: 1px solid #e0d0b0;
+  padding: 12px 24px;
+  border-radius: 2px;
+  box-shadow: 0 4px 10px rgba(54, 18, 5, 0.1);
+  
+  width: 90%;
+  max-width: 600px;
+  min-width: 320px;
+}
+
+/* 마스킹 테이프 효과 */
+.tape-left, .tape-right {
+  position: absolute;
+  top: -8px;
+  width: 40px;
+  height: 12px;
+  background-color: rgba(223, 135, 35, 0.5);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border-left: 1px dashed rgba(255,255,255,0.3);
+  border-right: 1px dashed rgba(255,255,255,0.3);
+}
+
+.tape-left {
+  left: -10px;
+  transform: rotate(-25deg);
+}
+
+.tape-right {
+  right: -10px;
+  transform: rotate(25deg);
+}
+
+/* 텍스트 스타일 */
+.info-text {
+  font-size: 0.95rem;
+  color: #5a4a42;
+}
+
+.highlight {
+  color: #DF8723;
+  font-weight: 800;
+  margin-right: 4px;
+}
+
+/* 찜 개수 카운터 */
+.like-counter {
+  font-size: 0.9rem;
   color: #8A5A34;
-  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
 }
 
-/* 기타 스타일 (그래프 등) */
-.graph-info-bar { display: flex; justify-content: space-between; padding: 10px 20px; background: #FFF8E7; border-bottom: 1px dashed #D1A872; }
-.info-strip { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: #FFF8E7; padding: 8px 30px; border: 1px dashed #DF8723; border-radius: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; gap: 20px; align-items: center; }
-.tape-left { position: absolute; left: -20px; top: -8px; width: 60px; height: 20px; background: rgba(223, 135, 35, 0.4); transform: rotate(-3deg); }
-.tape-right { position: absolute; right: -20px; bottom: -8px; width: 60px; height: 20px; background: rgba(223, 135, 35, 0.4); transform: rotate(3deg); }
-.info-text strong { color: #DF8723; }
-.like-counter { border-left: 2px solid #E6DCCD; padding-left: 20px; font-weight: 600; }
-.badge { background: #E06C75; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 4px; }
+.badge {
+  background-color: #E06C75;
+  color: white;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 0 4px;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 기타 스타일 생략 (기존과 동일) */
+
+
+
 .top-mentors-floating { position: absolute; top: 80px; right: 30px; z-index: 5; }
 .floating-chat-btn { position: absolute; left: 30px; bottom: 30px; width: 60px; height: 60px; border-radius: 50%; background: #361205; color: white; border: 3px solid #D1A872; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 12px rgba(0,0,0,0.2); z-index: 20; }
 .chat-badge { position: absolute; top: 0; right: 0; background: #E06C75; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; border: 2px solid #361205; }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.empty-graph-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #8A5A34; font-size: 1.1rem; z-index: 5; }
+.receipt-style-container { max-width: 800px; margin: 40px auto; padding: 0 20px 60px; }
+.manage-section { margin-bottom: 40px; background-color: #FFFFFF; padding: 24px; border-radius: 8px; border: 1px dashed #D1A872; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+.section-header h3 { font-size: 1.2rem; color: #361205; border-bottom: 2px solid #361205; padding-bottom: 10px; margin-bottom: 10px; display: inline-block; }
+.desc { display: block; color: #8A5A34; margin-bottom: 20px; font-size: 0.95rem; }
+.chat-card { background: #FFFFFF; border: 1px solid #E6DCCD; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+.chat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(54, 18, 5, 0.08); border-color: #DF8723; }
+.chat-card.completed { border-left: 4px solid #DF8723; }
+.mentor-name { font-weight: 700; color: #361205; font-size: 1.1rem; }
+.chat-time { font-size: 0.9rem; color: #8A5A34; margin-top: 4px; display: block; }
+.review-btn { background-color: #F7F4E8; color: #361205; border: 1px solid #D1A872; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.review-btn:hover { background-color: #DF8723; color: white; border-color: #DF8723; }
+.link-btn { background: none; border: none; color: #DF8723; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 10px; }
+.empty-state-box { text-align: center; padding: 40px; color: #A67857; font-style: italic; background-color: #FDFBF7; border-radius: 8px; }
+.loading-state { text-align: center; padding: 60px; color: #8A5A34; font-size: 1.1rem; }
 </style>

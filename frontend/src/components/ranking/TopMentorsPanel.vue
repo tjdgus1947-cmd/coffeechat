@@ -1,14 +1,15 @@
 <template>
   <div class="top-mentors-panel">
+    <!-- 패널 헤더: 카페 메뉴판 제목 느낌 -->
     <div class="panel-header">
-      <h3>🏆 AI 매칭도 TOP 5</h3>
-      <p class="subtitle">나와 가장 잘 맞는 멘토들</p>
+      <h3>☕ 오늘의 추천 바리스타</h3>
+      <p class="subtitle">나와 취향(Fit)이 맞는 파트너 TOP 5</p>
     </div>
 
     <!-- 로딩 상태 -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <p>매칭도 계산 중...</p>
+      <p>최적의 원두를 고르는 중...</p>
     </div>
 
     <!-- TOP 5 리스트 -->
@@ -20,7 +21,7 @@
         :class="{ 'rank-1': index === 0 }"
         @click="$emit('select-mentor', mentor)"
       >
-        <!-- 순위 배지 -->
+        <!-- 순위 배지 (스탬프 느낌) -->
         <div class="rank-badge" :class="`rank-${index + 1}`">
           <span v-if="index === 0">👑</span>
           <span v-else>{{ index + 1 }}</span>
@@ -33,8 +34,9 @@
             <span class="company">{{ mentor.company }}</span>
           </div>
           
-          <!-- 매칭도 점수 -->
+          <!-- 매칭도 점수 (커피 농도 느낌) -->
           <div class="match-score">
+            <span class="score-label">Fit</span>
             <div class="score-bar">
               <div 
                 class="score-fill" 
@@ -44,23 +46,16 @@
             <span class="score-text">{{ mentor.matchingScore }}%</span>
           </div>
 
-          <!-- 🔥 거리 정보 (컴팩트하게) -->
+          <!-- 거리 정보 -->
           <div v-if="mentor.distanceKm !== undefined" class="distance-info">
-            <span class="distance-main">
-              <span class="icon">📍</span>
-              <span class="val">{{ formatDistance(mentor.distanceKm) }}</span>
-            </span>
-            
-            <!-- 상세 정보는 공간 절약을 위해 작은 글씨로 -->
-            <span class="distance-detail" v-if="mentor.breakdown">
-              (텍스트 {{ mentor.breakdown.text_contribution.toFixed(0) }}% + 거리 {{ mentor.breakdown.distance_contribution.toFixed(0) }}%)
-            </span>
-            <span class="distance-detail" v-else>
-              (텍스트 {{ parseFloat(mentor.textSimilarity).toFixed(0) }}% + 거리 {{ calculateDistanceScore(mentor.distanceKm) }}%)
+            <span class="icon">📍</span>
+            {{ formatDistance(mentor.distanceKm) }}
+            <span class="distance-detail" v-if="!mentor.breakdown">
+              (거리 점수 {{ calculateDistanceScore(mentor.distanceKm) }}%)
             </span>
           </div>
 
-          <!-- 전문 분야 태그 (최대 2개, 작게) -->
+          <!-- 전문 분야 태그 -->
           <div v-if="mentor.tags && mentor.tags.length > 0" class="tags">
             <span
               v-for="tag in mentor.tags.slice(0, 2)"
@@ -71,17 +66,14 @@
             </span>
           </div>
         </div>
-
-        <!-- 화살표 아이콘 -->
-        <div class="arrow-icon">→</div>
       </div>
     </div>
 
     <!-- 데이터 없음 -->
     <div v-else class="empty-state">
-      <p>😔</p>
-      <p>추천 멘토가 없습니다.</p>
-      <small>프로필을 완성하면 더 정확한 추천을 받을 수 있어요!</small>
+      <p class="empty-icon">☕</p>
+      <p>추천 바리스타가 없습니다.</p>
+      <small>프로필을 더 자세히 작성해보세요!</small>
     </div>
   </div>
 </template>
@@ -102,20 +94,20 @@ const props = defineProps({
 
 defineEmits(['select-mentor']);
 
-// TOP 5 데이터 가공 (로직 동일)
+// 데이터 가공 로직 (기존 유지)
 const topMentors = computed(() => {
   if (!props.mentors || props.mentors.length === 0) return [];
   
   return [...props.mentors]
     .sort((a, b) => {
-      const scoreA = parseFloat(a.final_score) || 0;
-      const scoreB = parseFloat(b.final_score) || 0;
+      const scoreA = parseFloat(a.final_score) || parseFloat(a.matchingScore) || 0;
+      const scoreB = parseFloat(b.final_score) || parseFloat(b.matchingScore) || 0;
       return scoreB - scoreA;
     })
     .slice(0, 5)
     .map(mentor => ({
       ...mentor,
-      matchingScore: parseFloat(mentor.final_score || 0).toFixed(1),
+      matchingScore: parseFloat(mentor.final_score || mentor.matchingScore || 0).toFixed(1),
       textSimilarity: mentor.textSimilarity ? parseFloat(mentor.textSimilarity).toFixed(1) : '0.0',
       distanceKm: mentor.distanceKm !== undefined ? parseFloat(mentor.distanceKm).toFixed(1) : undefined,
       breakdown: mentor.breakdown 
@@ -135,45 +127,51 @@ function formatDistance(km) {
 }
 
 function calculateDistanceScore(km) {
-  if (km === undefined || km === null) return '0'; // 소수점 제거하여 공간 확보
+  if (km === undefined || km === null) return '0';
   const distance = parseFloat(km);
   const maxDistance = 50;
-  
   if (distance >= maxDistance) return '0';
-  
   const rawScore = 100 * (1 - distance / maxDistance);
   const weightedScore = rawScore * 0.3; 
-  
-  return weightedScore.toFixed(0); // 소수점 제거
+  return weightedScore.toFixed(0);
 }
 </script>
 
 <style scoped>
+/* 패널 전체: 메모지/메뉴판 느낌 */
 .top-mentors-panel {
-  background: white;
-  border-radius: 16px;
-  /* ✅ 패딩을 줄여서 공간 확보 */
-  padding: 16px; 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  max-width: 400px;
-  height: auto; /* 높이 자동 */
+  background: #FFF8E7; /* 연한 크림색 (메모지) */
+  border: 1px solid #D1A872; /* 라떼색 테두리 */
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 15px rgba(54, 18, 5, 0.1);
+  width: 280px; /* 적절한 너비 고정 */
+  
+  /* 종이 질감 패턴 (격자 무늬) */
+  background-image: 
+    linear-gradient(#F7F4E8 2px, transparent 2px), 
+    linear-gradient(90deg, #F7F4E8 2px, transparent 2px);
+  background-size: 20px 20px;
+  background-position: -2px -2px;
 }
 
 .panel-header {
-  /* ✅ 헤더 여백 축소 */
-  margin-bottom: 12px; 
+  margin-bottom: 12px;
+  text-align: center;
+  border-bottom: 2px dashed #D1A872; /* 점선 구분선 */
+  padding-bottom: 10px;
 }
 
 .panel-header h3 {
-  font-size: 18px; /* 폰트 약간 축소 */
-  font-weight: bold;
-  color: #333;
-  margin: 0 0 2px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #361205; /* 에스프레소 */
+  margin: 0 0 4px 0;
 }
 
 .subtitle {
-  font-size: 12px;
-  color: #666;
+  font-size: 11px;
+  color: #8A5A34; /* 중간 브라운 */
   margin: 0;
 }
 
@@ -183,194 +181,185 @@ function calculateDistanceScore(km) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 30px 0;
+  color: #8A5A34;
+  font-size: 13px;
 }
 
 .spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #6d28d9;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #E6DCCD;
+  border-top-color: #DF8723; /* 포인트 컬러 */
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 10px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 8px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* 멘토 리스트 */
 .mentors-list {
   display: flex;
   flex-direction: column;
-  /* ✅ 카드 간 간격 축소 */
-  gap: 8px; 
+  gap: 8px;
 }
 
 .mentor-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* ✅ 카드 내부 패딩 축소 */
-  padding: 10px 12px; 
-  background: #f9fafb;
-  border: 1px solid #e5e7eb; /* 테두리 두께 축소 */
+  padding: 10px;
+  background: #FFFFFF; /* 흰색 카드 */
+  border: 1px solid #E6DCCD;
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 .mentor-card:hover {
-  background: #f3f4f6;
-  border-color: #6d28d9;
-  transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(54, 18, 5, 0.08);
+  border-color: #DF8723;
 }
 
+/* 1등 강조 스타일 (살짝 골드빛) */
 .mentor-card.rank-1 {
-  background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
-  border-color: #fbbf24;
+  background: #FFFBF0; 
+  border-color: #DF8723;
 }
 
-/* 순위 배지 (크기 축소) */
+/* 순위 배지 */
 .rank-badge {
   flex-shrink: 0;
-  width: 28px; /* 36px -> 28px */
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 13px;
-  background: #e5e7eb;
-  color: #4b5563;
+  font-weight: 800;
+  font-size: 12px;
+  background: #E6DCCD;
+  color: #5D4037;
 }
 
-.rank-badge.rank-1 {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: white;
-  font-size: 15px;
-}
-.rank-badge.rank-2 { background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%); color: white; }
-.rank-badge.rank-3 { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); color: white; }
+.rank-1 .rank-badge { background: #DF8723; color: white; }
+.rank-2 .rank-badge { background: #D1A872; color: white; }
+.rank-3 .rank-badge { background: #A1887F; color: white; }
 
-/* 멘토 정보 */
 .mentor-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px; /* 요소 간 간격 최소화 */
+  gap: 2px;
 }
 
 .info-header {
   display: flex;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 6px;
 }
 
-.mentor-info h4 {
-  font-size: 14px; /* 16px -> 14px */
-  font-weight: bold;
-  color: #1f2937;
+.info-header h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #361205;
   margin: 0;
-  white-space: nowrap;
-}
-
-.company {
-  font-size: 11px; /* 13px -> 11px */
-  color: #6b7280;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
+  max-width: 90px;
 }
 
-/* 매칭도 점수 */
+.company {
+  font-size: 11px;
+  color: #8A5A34;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70px;
+}
+
+/* 매칭도 바 */
 .match-score {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 2px 0;
+  margin: 4px 0;
+}
+
+.score-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #DF8723;
 }
 
 .score-bar {
   flex: 1;
-  height: 4px; /* 6px -> 4px */
-  background: #e5e7eb;
-  border-radius: 2px;
+  height: 6px;
+  background: #EFE5D9;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .score-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6d28d9 0%, #a78bfa 100%);
-  border-radius: 2px;
+  /* 카라멜 그라데이션 */
+  background: linear-gradient(90deg, #DF8723 0%, #B15408 100%);
+  border-radius: 3px;
 }
 
 .score-text {
-  font-size: 12px;
-  font-weight: bold;
-  color: #6d28d9;
-  min-width: 36px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #B15408;
+  min-width: 28px;
   text-align: right;
 }
 
-/* 태그 (더 작게) */
+/* 거리 정보 */
+.distance-info {
+  font-size: 11px;
+  color: #5D4037;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.distance-detail {
+  font-size: 10px;
+  color: #9CA3AF;
+  margin-left: 2px;
+}
+
+/* 태그 스타일 */
 .tags {
   display: flex;
   gap: 4px;
+  margin-top: 4px;
 }
+
 .tag {
   padding: 2px 6px;
-  background: #ddd6fe;
-  color: #6d28d9;
+  background: #FFF3E0; /* 연한 오렌지 배경 */
+  color: #E65100;
   border-radius: 4px;
-  font-size: 10px; /* 11px -> 10px */
-  font-weight: 600;
-}
-
-/* 거리 정보 (컴팩트) */
-.distance-info {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px; /* 패딩 대폭 축소 */
-  background: #f0fdf4;
-  border-radius: 4px;
-  font-size: 11px;
-  width: fit-content;
-}
-.distance-main {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.distance-main .val {
-  font-weight: 700;
-  color: #16a34a;
-}
-.distance-detail {
-  color: #6b7280;
   font-size: 10px;
-  margin-left: 4px;
-  opacity: 0.8;
-}
-
-/* 화살표 아이콘 */
-.arrow-icon {
-  font-size: 16px;
-  color: #d1d5db;
-}
-.mentor-card:hover .arrow-icon {
-  color: #6d28d9;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* 빈 상태 */
 .empty-state {
-  padding: 40px 20px;
   text-align: center;
+  padding: 30px 10px;
+  color: #8A5A34;
+}
+.empty-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
 }
 </style>

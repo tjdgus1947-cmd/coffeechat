@@ -309,7 +309,7 @@ const handleSubmit = async () => {
   font-weight: 500;
 }
 .step-item.active {
-  color: #6d28d9;
+  color: #8B4513;
   font-weight: 700;
 }
 .circle {
@@ -326,7 +326,7 @@ const handleSubmit = async () => {
   transition: background-color 0.3s;
 }
 .step-item.active .circle {
-  background-color: #6d28d9;
+  background-color: #8B4513;
 }
 .line {
   flex-grow: 1;
@@ -339,7 +339,7 @@ const handleSubmit = async () => {
   z-index: 1;
 }
 .line.active {
-  background-color: #6d28d9;
+  background-color: #8B4513;
 }
 
 /* 폼 컨텐츠 */
@@ -385,13 +385,13 @@ input, textarea, select {
   box-sizing: border-box;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: #6d28d9;
-  box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.1);
+  border-color: #8B4513;
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
 }
 
 /* 버튼 */
 .btn-primary {
-  background-color: #6d28d9;
+  background-color: #8B4513;
   color: white;
   border: none;
   padding: 14px;
@@ -401,7 +401,7 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
   transition: background-color 0.2s;
 }
-.btn-primary:hover:not(:disabled) { background-color: #5b21b6; }
+.btn-primary:hover:not(:disabled) { background-color: #6B3410; }
 .btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; }
 
 .btn-secondary {
@@ -439,8 +439,8 @@ input:focus, textarea:focus, select:focus {
 
 /* AI 결과 */
 .final-textarea {
-  background-color: #fcfaff;
-  border-color: #e9d5ff;
+  background-color: #FFF8F0;
+  border-color: #F5E6D3;
   line-height: 1.6;
 }
 

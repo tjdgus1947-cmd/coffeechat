@@ -3,19 +3,22 @@
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from app.core.api import mentors
+from app.api import mentors # 8.1에서 만든 mentors.py 임포트
+# API 라우터 임포트 (app = FastAPI() 선언 전에 있어야 함)
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.api import auth
-from app.core.api import matching
-from app.core.api import location
-from app.core.api import availability
-from app.core.api import bookings
+from app.api import auth # 9단계에서 방금 추가함
+from app.api import matching
+from app.api import location
+from app.api import availability
+from app.api import bookings
+# datetime 객체와 인코더를 먼저 임포트하여 FastAPI 인스턴스에 연결 준비
 from datetime import datetime
 from fastapi.encoders import jsonable_encoder
-from app.core.api import coffeechats
-from app.core.api import profile
-from app.core.api import ai_generation
-from app.core.api import chat
+from app.api import mentors
+from app.api import coffeechats # 👈 coffeechats 라우터 추가
+from app.api import profile
+from app.api import ai_generation # 임포트 추가
+from app.api import chat
 
 
 # 🚨 ⭐️ 핵심: FastAPI 앱 인스턴스를 생성합니다. ⭐️
