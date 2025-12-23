@@ -394,7 +394,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   width: 100%;
   height: calc(100vh - 70px); /* 네비바 제외 */
   position: relative;
-  background-color: #F7F4E8;
+  background-color: #E5DCC8;
   padding: 20px;
   box-sizing: border-box;
   overflow: hidden; 
@@ -414,7 +414,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   padding: 12px 20px;
   border: 1px solid #D1A872;
   border-bottom: none;
-  background-color: #EFE5D9;
+  background-color: #FFFFFF ;
   color: #8A5A34;
   border-radius: 12px 12px 0 0;
   cursor: pointer;
@@ -426,12 +426,12 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
 
 .cafe-tabs button.active {
   background-color: #FFFFFF;
-  color: #361205;
+  color: #1a0a03;
   padding-bottom: 14px;
   transform: translateY(-2px);
   box-shadow: 0 -4px 6px rgba(54, 18, 5, 0.1);
   font-weight: 800;
-  border-top: 3px solid #DF8723;
+  border-top: 4px solid #B85C00;
 }
 
 .tab-badge {
@@ -449,8 +449,8 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
 /* 메인 패널 */
 .paper-panel {
   flex-grow: 1;
-  background-color: #FFFFFF;
-  border: 1px solid #D1A872;
+  background-color: #e3d0bcc0;
+  border: 2px solid #B8935A;
   border-radius: 0 16px 16px 16px;
   box-shadow: 0 10px 30px rgba(54, 18, 5, 0.08);
   overflow: hidden;
@@ -537,7 +537,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   align-items: center;
   justify-content: space-between;
   
-  background-color: #fffaee; /* 연한 종이 색 */
+  background-color: #d7c8bc; /* 연한 종이 색 */
   border: 1px solid #e0d0b0;
   padding: 12px 24px;
   border-radius: 2px;
@@ -612,7 +612,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .empty-graph-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #8A5A34; font-size: 1.1rem; z-index: 5; }
 .receipt-style-container { max-width: 800px; margin: 40px auto; padding: 0 20px 60px; }
-.manage-section { margin-bottom: 40px; background-color: #FFFFFF; padding: 24px; border-radius: 8px; border: 1px dashed #D1A872; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+.manage-section { margin-bottom: 40px; background-color: #FFFFFF; padding: 24px; border-radius: 8px; border: 2px solid #a87a56; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
 .section-header h3 { font-size: 1.2rem; color: #361205; border-bottom: 2px solid #361205; padding-bottom: 10px; margin-bottom: 10px; display: inline-block; }
 .desc { display: block; color: #8A5A34; margin-bottom: 20px; font-size: 0.95rem; }
 .chat-card { background: #FFFFFF; border: 1px solid #E6DCCD; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
@@ -620,7 +620,7 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
 .chat-card.completed { border-left: 4px solid #DF8723; }
 .mentor-name { font-weight: 700; color: #361205; font-size: 1.1rem; }
 .chat-time { font-size: 0.9rem; color: #8A5A34; margin-top: 4px; display: block; }
-.review-btn { background-color: #F7F4E8; color: #361205; border: 1px solid #D1A872; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.review-btn { background-color: #fceccb; color: #361205; border: 1.5px solid #D1A872; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
 .review-btn:hover { background-color: #DF8723; color: white; border-color: #DF8723; }
 .link-btn { background: none; border: none; color: #DF8723; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 10px; }
 .empty-state-box { text-align: center; padding: 40px; color: #A67857; font-style: italic; background-color: #FDFBF7; border-radius: 8px; }

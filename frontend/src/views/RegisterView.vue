@@ -133,9 +133,9 @@ function goRegister(selected) {
 ======================================== */
 .register-page-container {
   min-height: 100vh;
-  background-color: #F7F4E8; /* 크림색 배경 */
+  background-color: #EFE6D6; /* 크림색 배경 */
   background-image: 
-    radial-gradient(circle at 20px 20px, rgba(209, 168, 114, 0.05) 1px, transparent 1px);
+    radial-gradient(circle at 20px 20px, rgba(209, 168, 114, 0.08) 1px, transparent 1px);
   background-size: 40px 40px;
   padding: 40px 20px;
   display: flex;
@@ -172,14 +172,14 @@ function goRegister(selected) {
   font-family: serif;
   font-size: 3rem;
   font-weight: 900;
-  color: #361205;
+  color: #2A0E05;
   margin: 0 0 10px 0;
   letter-spacing: -1px;
 }
 
 .subtitle {
   font-size: 1.1rem;
-  color: #8A5A34;
+  color: #6F3F1D;
   margin-bottom: 20px;
 }
 
@@ -193,8 +193,8 @@ function goRegister(selected) {
 
 /* 메뉴판 보드 */
 .menu-board {
-  background: #3E2723; /* 칠판색 */
-  border: 8px solid #6D4C41;
+  background: #2B1A16; /* 칠판색 */
+  border: 8px solid #5D4037;
   border-radius: 16px;
   padding: 40px 30px;
   box-shadow: 0 10px 40px rgba(54, 18, 5, 0.3);
@@ -233,18 +233,18 @@ function goRegister(selected) {
 }
 
 .choice-card {
-  background: #FFFFFF;
+  background: #FFFDF8;
   border-radius: 20px;
   padding: 30px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 8px 20px rgba(54, 18, 5, 0.15);
+  box-shadow: 0 10px 25px rgba(54, 18, 5, 0.25);
   border: 3px solid transparent;
 }
 
 .choice-card:hover {
   transform: translateY(-8px);
-  border-color: #DF8723;
+  border-color: #C56A12;
   box-shadow: 0 15px 35px rgba(223, 135, 35, 0.25);
 }
 
@@ -291,11 +291,11 @@ function goRegister(selected) {
 }
 
 .mentee-cup {
-  background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+  background: linear-gradient(135deg, #FFE4A3 0%, #FFD166 100%);
 }
 
 .mentor-cup {
-  background: linear-gradient(135deg, #6D4C41 0%, #5D4037 100%);
+  background: linear-gradient(135deg, #4E342E 0%, #3E2723 100%);
 }
 
 .cup-sleeve {
@@ -361,7 +361,7 @@ function goRegister(selected) {
 
 .desc {
   font-size: 0.95rem;
-  color: #8A5A34;
+  color: #6F3F1D;
   margin-bottom: 20px;
 }
 
@@ -387,7 +387,7 @@ function goRegister(selected) {
 .order-btn {
   width: 100%;
   padding: 14px 20px;
-  background: linear-gradient(135deg, #DF8723 0%, #B15408 100%);
+  background: linear-gradient(135deg, #C56A12 0%, #B15408 100%);
   color: white;
   border: none;
   border-radius: 25px;
@@ -441,10 +441,10 @@ function goRegister(selected) {
 }
 
 .ink-link {
-  color: #DF8723;
+  color: #C56A12;
   font-weight: 800;
   text-decoration: none;
-  border-bottom: 2px solid #DF8723;
+  border-bottom: 2px solid #C56A12;
   transition: color 0.2s;
 }
 
@@ -464,7 +464,7 @@ function goRegister(selected) {
   background: #FFFFFF;
   padding: 25px 30px;
   border-radius: 12px 12px 0 0;
-  border: 1px solid #D1A872;
+  border: 2px solid #B08968;
   border-bottom: 2px dashed #D1A872;
   display: flex;
   align-items: center;
@@ -473,7 +473,7 @@ function goRegister(selected) {
 
 .back-btn {
   background: #F5E8D8;
-  border: 1px solid #D1A872;
+  border: 2px solid #B08968;
   padding: 8px 16px;
   border-radius: 20px;
   font-weight: 600;
@@ -528,7 +528,7 @@ function goRegister(selected) {
   background: #FFFFFF;
   padding: 40px 30px;
   border-radius: 0 0 12px 12px;
-  border: 1px solid #D1A872;
+  border: 2px solid #B08968;
   border-top: none;
   box-shadow: 0 8px 20px rgba(54, 18, 5, 0.1);
 }

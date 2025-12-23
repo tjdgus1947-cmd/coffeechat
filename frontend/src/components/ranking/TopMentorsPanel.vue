@@ -140,8 +140,8 @@ function calculateDistanceScore(km) {
 <style scoped>
 /* 패널 전체: 메모지/메뉴판 느낌 */
 .top-mentors-panel {
-  background: #FFF8E7; /* 연한 크림색 (메모지) */
-  border: 1px solid #D1A872; /* 라떼색 테두리 */
+  background: #d7c8bc; /* 연한 크림색 (메모지) */
+  border: 2px solid #5d564d; /* 라떼색 테두리 */
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 4px 15px rgba(54, 18, 5, 0.1);
@@ -149,8 +149,8 @@ function calculateDistanceScore(km) {
   
   /* 종이 질감 패턴 (격자 무늬) */
   background-image: 
-    linear-gradient(#F7F4E8 2px, transparent 2px), 
-    linear-gradient(90deg, #F7F4E8 2px, transparent 2px);
+    linear-gradient(#d7c8bc 2px, transparent 2px), 
+    linear-gradient(90deg, #d7c8bc 2px, transparent 2px);
   background-size: 20px 20px;
   background-position: -2px -2px;
 }
@@ -158,7 +158,7 @@ function calculateDistanceScore(km) {
 .panel-header {
   margin-bottom: 12px;
   text-align: center;
-  border-bottom: 2px dashed #D1A872; /* 점선 구분선 */
+  border-bottom: 2px dashed #100d08; /* 점선 구분선 */
   padding-bottom: 10px;
 }
 
@@ -171,7 +171,7 @@ function calculateDistanceScore(km) {
 
 .subtitle {
   font-size: 11px;
-  color: #8A5A34; /* 중간 브라운 */
+  color: #361205; /* 중간 브라운 */
   margin: 0;
 }
 

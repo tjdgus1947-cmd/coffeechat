@@ -117,7 +117,7 @@ const onNodeClick = (event) => {
 .network-graph {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #fef8f3 0%, #fef5ee 100%);
+  background: #f4e2ce 
 }
 
 /* VueFlow 커스터마이징 */

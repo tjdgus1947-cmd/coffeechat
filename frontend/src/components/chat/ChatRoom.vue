@@ -279,7 +279,7 @@ function formatMessageTime(dateString) {
 .messages-container {
   flex: 1;
   padding: 20px;
-  background-color: #f7f4e8; /* 옅은 크림색 */
+  background-color: #d7c8bc; /* 옅은 크림색 */
   overflow-y: auto;
 }
 
@@ -335,11 +335,12 @@ function formatMessageTime(dateString) {
 
 .message-input {
   flex: 1;
-  background-color: #f9f9f9;
+  background-color: #f9f9f990;
   border: 1px solid #e0e0e0;
   border-radius: 20px;
   padding: 12px 20px;
   font-size: 14px;
+  font-weight: 100;
   resize: none;
   outline: none;
   transition: border 0.2s;

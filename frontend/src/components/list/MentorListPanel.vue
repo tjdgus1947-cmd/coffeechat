@@ -149,12 +149,13 @@ function selectMentor(mentor) {
 </script>
 
 <style scoped>
+  
 /* 전체 배경: 크림색 메뉴판 */
 .menu-board-container {
   max-width: 800px;
   margin: 40px auto;
   padding: 40px;
-  background-color: #F7F4E8;
+  background-color: #c5baa8;
   min-height: 80vh;
   font-family: 'Noto Sans KR', serif; /* 명조체로 메뉴판 느낌 살리기 */
   color: #3e2723;
@@ -262,11 +263,11 @@ function selectMentor(mentor) {
 
 /* 🔖 시그니처(찜) 강조 스타일 */
 .signature-row {
-  background-color: #fff3e0; /* 연한 살구색 배경으로 강조 */
-  border: 1px solid #ffe0b2;
+  background-color: #ddd4c3; /* 연한 살구색 배경으로 강조 */
+  border: 1px solid #d1be9e;
 }
 .signature-row:hover {
-  background-color: #ffe0b2;
+  background-color: #d1be9e;
 }
 
 /* 메뉴 메인 정보 (이름 ...... 회사) */

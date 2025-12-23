@@ -167,7 +167,7 @@
 .main-container {
     font-family: 'Gowun Dodum', sans-serif;
     color: #4A352D;
-    background-color: #F8F7F3;
+    background-color: #E5DCC8;
     width: 100%;
     overflow-x: hidden;
     min-height: 100vh;
