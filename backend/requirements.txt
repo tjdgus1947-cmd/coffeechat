@@ -1,11 +1,11 @@
-# 코드의 import 기준으로 정리한 의존성 목록.
-# 버전은 실제 개발 환경에서 `pip freeze`로 확인한 뒤 고정할 것.
+# Dependencies collected from imports. Pin versions with `pip freeze` when needed.
+# (ASCII only: pip on Windows reads this file as cp949)
 fastapi
 uvicorn[standard]
 pydantic[email]
-python-multipart      # 회원가입 Form/File 업로드
+python-multipart
 python-dotenv
-supabase>=2.8          # 인증 모듈이 supabase_auth 인 버전
+supabase>=2.8
 sentence-transformers
 torch
 shapely
