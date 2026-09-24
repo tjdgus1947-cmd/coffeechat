@@ -1,26 +1,31 @@
-# backend/.gitignore
-
-# (보안) API 키 파일
+# ===== Secrets =====
 .env
+.env.*
+!.env.example
 
-# (필수) Python 캐시 파일
+# ===== Python =====
 __pycache__/
-app/__pycache__/
-app/api/__pycache__/
-app/core/__pycache__/
-app/services/__pycache__/
-
-# (필수) Conda/Python 가상환경 폴더
+*.py[cod]
 venv/
-lecture_web_38/
-*.egg-info/
-
-# (필수) 테스트용 파일
-test_connection.py
-
 .venv/
-backend/.venv/
-__pycache__/
+*.egg-info/
+backend/test_connection.py
+
+# ===== Node / Frontend =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.log
+
+# ===== OS / Editor =====
+.DS_Store
+desktop.ini
+Thumbs.db
+.vscode/
+.idea/
+
+# ===== Native binaries =====
 *.dll
 *.so
 *.dylib
