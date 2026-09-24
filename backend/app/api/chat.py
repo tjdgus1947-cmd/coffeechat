@@ -63,45 +63,37 @@ def get_my_chat_rooms(current_user_id: str = Depends(get_current_user_id)):
         if not response.data:
             return []
         
+        # 방 참여자 이름은 IN 조회 1번으로 가져온다 (이전: 방마다 users 조회 3번)
+        user_ids = list({uid for room in response.data for uid in (room['mentor_id'], room['mentee_id'])})
+        users_response = supabase.table('users').select('id, full_name').in_('id', user_ids).execute()
+        name_by_id = {u['id']: u.get('full_name') for u in (users_response.data or [])}
+
         chat_rooms = []
-        
+
         for room in response.data:
-            # 2. 상대방 ID
-            partner_id = room['mentee_id'] if room['mentor_id'] == current_user_id else room['mentor_id']
-            
-            partner_info = supabase.table('users') \
-                .select('full_name') \
-                .eq('id', partner_id) \
-                .single() \
-                .execute()
-            
-            # 3. 마지막 메시지 조회
+            # 마지막 메시지 (idx_chat_messages_room 인덱스 사용)
             last_msg = supabase.table('chat_messages') \
                 .select('message, created_at') \
                 .eq('chat_room_id', room['id']) \
                 .order('created_at', desc=True) \
                 .limit(1) \
                 .execute()
-            
-            # 4. 읽지 않은 메시지 수
+
+            # 읽지 않은 메시지 수
             unread_count = supabase.table('chat_messages') \
                 .select('id', count='exact') \
                 .eq('chat_room_id', room['id']) \
                 .eq('is_read', False) \
                 .neq('sender_id', current_user_id) \
                 .execute()
-            
-            # 5. 멘토/멘티 이름 조회
-            mentor_name = supabase.table('users').select('full_name').eq('id', room['mentor_id']).single().execute()
-            mentee_name = supabase.table('users').select('full_name').eq('id', room['mentee_id']).single().execute()
-            
+
             chat_rooms.append(ChatRoomInfo(
                 id=room['id'],
                 coffee_chat_id=room['coffee_chat_id'],
                 mentor_id=room['mentor_id'],
                 mentee_id=room['mentee_id'],
-                mentor_name=mentor_name.data.get('full_name') if mentor_name.data else None,
-                mentee_name=mentee_name.data.get('full_name') if mentee_name.data else None,
+                mentor_name=name_by_id.get(room['mentor_id']),
+                mentee_name=name_by_id.get(room['mentee_id']),
                 last_message=last_msg.data[0]['message'] if last_msg.data else None,
                 last_message_time=last_msg.data[0]['created_at'] if last_msg.data else None,
                 unread_count=unread_count.count or 0,
@@ -110,6 +102,8 @@ def get_my_chat_rooms(current_user_id: str = Depends(get_current_user_id)):
         
         return chat_rooms
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ 채팅방 목록 조회 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -148,19 +142,22 @@ def get_chat_messages(
             return []
         
         # 3. 발신자 이름 매핑
+        #    (이전: 메시지마다 users 조회 → 메시지 N개면 쿼리 N번, N+1 문제)
+        #    (변경: 발신자 id 를 모아 IN 조회 1번 → dict 로 매핑)
+        sender_ids = list({msg['sender_id'] for msg in messages_response.data})
+        users_response = supabase.table('users') \
+            .select('id, full_name') \
+            .in_('id', sender_ids) \
+            .execute()
+        name_by_id = {u['id']: u.get('full_name') for u in (users_response.data or [])}
+
         messages = []
         for msg in messages_response.data:
-            sender_info = supabase.table('users') \
-                .select('full_name') \
-                .eq('id', msg['sender_id']) \
-                .single() \
-                .execute()
-            
             messages.append(ChatMessage(
                 id=msg['id'],
                 chat_room_id=msg['chat_room_id'],
                 sender_id=msg['sender_id'],
-                sender_name=sender_info.data.get('full_name') if sender_info.data else None,
+                sender_name=name_by_id.get(msg['sender_id']),
                 message=msg['message'],
                 created_at=msg['created_at'],
                 is_read=msg['is_read']
@@ -230,6 +227,49 @@ def send_message(
 
 
 # ----------------------------------------------------
+# 📌 3-1) 메시지 1건 읽음 처리 (프론트 ChatRoom.vue 가 실시간 수신 시 호출)
+# ----------------------------------------------------
+
+@router.post("/api/chat/messages/{message_id}/read")
+def mark_message_read(
+    message_id: str,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """내가 참여한 방의, 상대가 보낸 메시지만 읽음 처리한다."""
+    try:
+        msg = supabase.table('chat_messages') \
+            .select('id, chat_room_id, sender_id') \
+            .eq('id', message_id) \
+            .limit(1) \
+            .execute()
+        if not msg.data:
+            raise HTTPException(status_code=404, detail="메시지를 찾을 수 없습니다.")
+
+        room_check = supabase.table('chat_rooms') \
+            .select('id') \
+            .eq('id', msg.data[0]['chat_room_id']) \
+            .or_(f'mentor_id.eq.{current_user_id},mentee_id.eq.{current_user_id}') \
+            .execute()
+        if not room_check.data:
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
+
+        if msg.data[0]['sender_id'] != current_user_id:
+            supabase.table('chat_messages') \
+                .update({'is_read': True}) \
+                .eq('id', message_id) \
+                .execute()
+
+        return {"message": "읽음 처리 완료"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 읽음 처리 실패: {e}")
+        raise HTTPException(status_code=500, detail="읽음 처리 중 오류가 발생했습니다.")
+
+
+
+# ----------------------------------------------------
 # 📌 4) 🔥 추가: 전체 안 읽은 메시지 개수 반환
 # ----------------------------------------------------
 
@@ -265,6 +305,8 @@ def get_unread_chat_count(current_user_id: str = Depends(get_current_user_id)):
         unread_count = msgs_resp.count or 0
         return {"unread_count": unread_count}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print("❌ unread-count 조회 실패:", e)
         raise HTTPException(status_code=500, detail="unread-count 조회 실패")
