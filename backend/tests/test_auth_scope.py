@@ -71,3 +71,25 @@ def test_채팅_메시지_발신자_이름은_한번에_조회한다(make_client
     assert res.status_code == 200
     assert {m["sender_name"] for m in res.json()} == {"멘토", "멘티"}
     assert fake.calls.count(("users", "select")) == 1  # 메시지 6개여도 users 조회는 1번
+
+
+def test_로그인은_공용_클라이언트가_아닌_일회용_클라이언트로_한다(make_client, monkeypatch):
+    """공용 service_role 클라이언트로 로그인하면 이후 DB 요청이 그 사용자 권한으로 바뀐다 (RLS 403 의 원인)."""
+    from types import SimpleNamespace
+
+    from app.api import auth
+
+    calls = []
+    fake_auth = SimpleNamespace(
+        sign_in_with_password=lambda creds: calls.append("temp") or SimpleNamespace(user=None, session=None)
+    )
+    monkeypatch.setattr(auth, "new_auth_client", lambda: SimpleNamespace(auth=fake_auth))
+    shared = SimpleNamespace(auth=SimpleNamespace(
+        sign_in_with_password=lambda creds: calls.append("shared")
+    ))
+    monkeypatch.setattr(auth, "supabase", shared)
+
+    make_client(FakeSupabase(), "anyone").post(
+        "/api/auth/login", json={"email": "a@b.com", "password": "pw"}
+    )
+    assert calls == ["temp"]

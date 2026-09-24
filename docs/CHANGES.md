@@ -137,7 +137,19 @@
 - 없는 테이블(`user_interactions`)에 쓰던 미사용 함수를 삭제했다.
 - 인증 토큰 앞부분을 로그로 출력하던 코드를 삭제했다.
 - `requirements.txt`에 누락됐던 `python-multipart`(회원가입 Form 처리)를 추가했다.
-- 테스트 26개와 GitHub Actions CI(백엔드 pytest, 프론트 빌드)를 추가했다.
+- 테스트와 GitHub Actions CI(백엔드 pytest, 프론트 빌드)를 추가했다.
+
+---
+
+## 13. 로그인하면 백엔드 전체 권한이 그 사용자로 바뀌던 문제
+
+**문제**: RLS를 켠 뒤 회원가입에서 `users` INSERT가 403(`new row violates row-level security policy`)으로 실패했다.
+
+**원인**: supabase-py 클라이언트는 `sign_up`이나 `sign_in`이 성공하면 **그 사용자의 토큰으로 Authorization 헤더를 교체**한다. 백엔드는 service_role 클라이언트 하나를 전역으로 공유하는데, 여기서 로그인까지 처리했다. 그래서 누군가 로그인하면 그 뒤의 모든 DB 요청(다른 사용자의 요청 포함)이 **마지막으로 로그인한 사용자 권한**으로 나갔다. RLS가 꺼져 있을 때는 드러나지 않던 문제다.
+
+**변경**: 회원가입과 로그인은 요청마다 새로 만든 일회용 클라이언트(`new_auth_client`, 세션 저장 안 함)에서 처리하고, 공용 클라이언트는 DB 작업에만 쓴다.
+
+**확인**: `test_로그인은_공용_클라이언트가_아닌_일회용_클라이언트로_한다`
 
 ---
 

@@ -55,7 +55,7 @@ if "sentence_transformers" not in sys.modules:
         util=types.SimpleNamespace(cos_sim=_cos_sim),
     )
 if "supabase" not in sys.modules:
-    _stub("supabase", create_client=lambda *a, **k: None, Client=object)
+    _stub("supabase", create_client=lambda *a, **k: None, Client=object, ClientOptions=lambda **k: None)
 if "gotrue" not in sys.modules:
     _stub("gotrue")
     _stub("gotrue.errors", AuthApiError=type("AuthApiError", (Exception,), {"message": ""}))

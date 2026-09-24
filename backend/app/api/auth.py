@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Form, File, UploadFile
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from app.core.config import supabase
+from app.core.config import supabase, new_auth_client
 from app.services.ml_service import generate_embedding
 import uuid
 from fastapi import Depends, HTTPException
@@ -94,7 +94,7 @@ def sign_up_mentor(
     """
     try:
         # 1. Supabase Auth에 사용자 생성
-        response = supabase.auth.sign_up({
+        response = new_auth_client().auth.sign_up({
             "email": email,
             "password": password,
             "options": {
@@ -193,7 +193,7 @@ def sign_up_mentee(
         # ... (이하 로직은 기존과 동일하게 유지) ...
         
         # 1. Supabase Auth에 사용자 생성
-        response = supabase.auth.sign_up({
+        response = new_auth_client().auth.sign_up({
             "email": email,
             "password": password,
             "options": {
@@ -261,7 +261,7 @@ def sign_up_mentee(
 @router.post("/api/auth/login")
 def sign_in(user_data: UserSignIn):
     try:
-        response = supabase.auth.sign_in_with_password({
+        response = new_auth_client().auth.sign_in_with_password({
             "email": user_data.email,
             "password": user_data.password
         })

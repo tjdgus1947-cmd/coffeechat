@@ -26,3 +26,20 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
 else:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     print("Supabase client initialized (Backend)")
+
+def new_auth_client() -> Client:
+    """
+    회원가입·로그인 전용 일회용 클라이언트.
+
+    supabase-py 클라이언트는 sign_up / sign_in 이 성공하면 그 사용자의 토큰으로
+    Authorization 헤더를 바꾼다. 공용 `supabase`(service_role)로 로그인하면 이후 모든 DB 요청이
+    "마지막으로 로그인한 사용자" 권한으로 나가서 RLS 에 막히거나, 남의 권한으로 실행된다.
+    그래서 인증 작업은 요청마다 새 클라이언트에서 하고, 세션은 저장하지 않는다.
+    """
+    from supabase import ClientOptions
+
+    return create_client(
+        SUPABASE_URL,
+        SUPABASE_SERVICE_KEY,
+        options=ClientOptions(persist_session=False, auto_refresh_token=False),
+    )
