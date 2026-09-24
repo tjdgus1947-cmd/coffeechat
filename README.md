@@ -68,19 +68,105 @@ flowchart TD
 
 ## 데이터 모델
 
-코드에서 사용하는 테이블입니다. (Supabase / PostgreSQL)
+Supabase(PostgreSQL) 위에 **pgvector**(임베딩 유사도)와 **PostGIS**(반경 검색)를 함께 사용합니다. 전체 DDL은 [`docs/schema.sql`](docs/schema.sql)에 있습니다.
+
+```mermaid
+erDiagram
+    AUTH_USERS ||--|| users : "id"
+    users ||--o| mentor_profiles : "user_id"
+    users ||--o| mentee_profiles : "user_id"
+    mentor_profiles ||--o{ verification_documents : "mentor_id"
+    users ||--o{ coffee_chats : "mentee_id / mentor_id"
+    mentor_availability |o--o{ coffee_chats : "availability_id"
+    coffee_chats ||--o| chat_rooms : "coffee_chat_id"
+    coffee_chats ||--o| reviews : "coffee_chat_id"
+    chat_rooms ||--o{ chat_messages : "chat_room_id"
+    mentee_profiles ||--o{ connection_weights : "mentee_id"
+    mentor_profiles ||--o{ connection_weights : "mentor_id"
+
+    users {
+        uuid id PK
+        text full_name
+        user_role role
+    }
+    mentor_profiles {
+        uuid id PK
+        uuid user_id UK
+        text career_info
+        geography location
+        vector embedding
+        verification_status verification_status
+    }
+    mentee_profiles {
+        uuid id PK
+        uuid user_id UK
+        text current_situation
+        text career_goal
+        geography location
+        vector embedding
+    }
+    mentor_availability {
+        uuid id PK
+        uuid mentor_id
+        timestamptz start_time
+        timestamptz end_time
+        bool is_booked
+    }
+    coffee_chats {
+        uuid id PK
+        uuid mentee_id FK
+        uuid mentor_id FK
+        uuid availability_id FK
+        text status
+        timestamptz start_time
+        timestamptz end_time
+        text concern
+    }
+    chat_rooms {
+        uuid id PK
+        uuid coffee_chat_id UK
+        uuid mentor_id FK
+        uuid mentee_id FK
+    }
+    chat_messages {
+        uuid id PK
+        uuid chat_room_id FK
+        uuid sender_id FK
+        text message
+        bool is_read
+    }
+    reviews {
+        bigint id PK
+        uuid coffee_chat_id UK
+        int rating "1~5"
+        text content
+    }
+    connection_weights {
+        uuid id PK
+        uuid mentee_id FK
+        uuid mentor_id FK
+        numeric weight
+    }
+    verification_documents {
+        uuid id PK
+        uuid mentor_id FK
+        text file_url
+    }
+```
 
 | 테이블 | 역할 |
 |---|---|
-| `users` | 공통 사용자 정보 (이름, 역할: mentor/mentee) |
-| `mentor_profiles` / `mentee_profiles` | 역할별 프로필, 자기소개, `embedding`, `location`(PostGIS geography) |
+| `users` | `auth.users`와 1:1, 이름과 역할(mentor/mentee) |
+| `mentor_profiles` / `mentee_profiles` | 역할별 프로필, 자기소개, `embedding`(vector), `location`(geography) |
 | `mentor_availability` | 멘토의 예약 가능 시간 슬롯 |
 | `coffee_chats` | 예약 (멘티, 멘토, 슬롯, 상태: pending/approved/rejected) |
-| `chat_rooms` / `chat_messages` | 승인된 예약의 채팅방과 메시지 |
-| `reviews`, `user_likes`, `user_interactions` | 후기, 찜, 상호작용 로그 |
+| `chat_rooms` / `chat_messages` | 승인된 예약당 채팅방 1개와 메시지 |
+| `reviews` | 예약당 후기 1개, 평점 1~5 (CHECK 제약) |
+| `user_likes` | 멘토 찜 (사용자-멘토 쌍 UNIQUE) |
+| `connection_weights` | 멘티-멘토 연결 가중치 (트리거 함수로 누적) |
+| `verification_documents` | 멘토 인증 서류 |
 
-<!-- TODO(본인): Supabase에서 스키마를 export해 docs/schema.sql로 추가하고, ERD 이미지를 여기에 첨부
-     pg_dump --schema-only --no-owner -n public "$DATABASE_URL" > docs/schema.sql -->
+DB 함수: `match_mentors`(pgvector 코사인 유사도), `nearby_mentors`(PostGIS `ST_DWithin` 반경 검색), `update_mentor_location` / `update_mentee_location`(좌표 → geography).
 
 <br>
 
