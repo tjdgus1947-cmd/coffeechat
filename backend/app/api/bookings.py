@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Depends
 from app.core.config import supabase
-from typing import List, Optional
+from typing import List, Optional, Literal
 from pydantic import BaseModel
 from .auth import get_current_user_id
 import uuid
@@ -47,7 +47,8 @@ class BookingCreateRequest(BaseModel):
     concern: Optional[str] = None  # 🔥 고민 필드 추가
 
 class BookingStatusUpdate(BaseModel):
-    status: str 
+    # 멘토가 할 수 있는 처리는 승인/거절 두 가지뿐이다 (그 외 값은 422)
+    status: Literal['approved', 'rejected']
 
 # --- API 라우트 ---
 
@@ -107,6 +108,8 @@ def get_received_bookings_for_mentor(
             return transformed_data
         return []
     
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ 멘토 예약 조회 실패: {e}")
         traceback.print_exc()
@@ -144,6 +147,8 @@ def get_sent_bookings_for_mentee(
             
         return []
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ 멘티 예약 조회 실패: {e}")
         traceback.print_exc()
@@ -155,10 +160,18 @@ def create_booking(
     request: BookingCreateRequest,
     mentee_id: str = Depends(get_current_user_id)
 ):
-    """커피챗 예약 생성 (고민 포함)"""
+    """커피챗 예약 생성 (고민 포함)
+
+    동시성 처리:
+      1) 슬롯 선점: `is_booked = false` 인 경우에만 true 로 바꾸는 조건부 UPDATE.
+         DB가 행 단위로 처리하므로 동시에 두 요청이 와도 한쪽만 성공한다.
+      2) 예약 INSERT 실패 시 선점한 슬롯을 되돌린다 (보상 처리).
+      3) 최종 안전장치: coffee_chats.availability_id UNIQUE 제약 (001 마이그레이션).
+    """
+    slot_claimed = False
     try:
         slot_check = supabase.table('mentor_availability') \
-            .select('*') \
+            .select('id, mentor_id, start_time, end_time, is_booked') \
             .eq('id', request.availability_slot_id) \
             .execute()
 
@@ -167,46 +180,73 @@ def create_booking(
 
         slot = slot_check.data[0]
 
-        if slot['is_booked']:
-            raise HTTPException(status_code=409, detail="이미 예약된 시간 슬롯입니다.")
+        # 프론트는 mentor_profiles.id 를 보내지만, users.id 가 와도 처리한다
+        mentor_profile = supabase.table("mentor_profiles") \
+            .select("id, user_id") \
+            .eq("id", request.mentor_id) \
+            .execute()
+        if not mentor_profile.data:
+            mentor_profile = supabase.table("mentor_profiles") \
+                .select("id, user_id") \
+                .eq("user_id", request.mentor_id) \
+                .execute()
+        if not mentor_profile.data:
+            raise HTTPException(status_code=404, detail="멘토를 찾을 수 없습니다.")
+        mentor_profile_id = mentor_profile.data[0]['id']
+        mentor_user_id = mentor_profile.data[0]['user_id']
 
-        existing = supabase.table('coffee_chats') \
-            .select('id') \
-            .eq('availability_id', request.availability_slot_id) \
+        # 요청한 멘토의 슬롯이 맞는지 확인 (다른 멘토 슬롯으로 예약되는 것 방지)
+        if str(slot['mentor_id']) != str(mentor_profile_id):
+            raise HTTPException(status_code=400, detail="해당 멘토의 슬롯이 아닙니다.")
+
+        if str(mentor_user_id) == str(mentee_id):
+            raise HTTPException(status_code=400, detail="본인에게는 예약할 수 없습니다.")
+
+        # 1) 슬롯 선점 (조건부 UPDATE)
+        claim = supabase.table('mentor_availability') \
+            .update({'is_booked': True}) \
+            .eq('id', request.availability_slot_id) \
+            .eq('is_booked', False) \
             .execute()
 
-        if existing.data:
-            raise HTTPException(status_code=409, detail="이미 해당 슬롯에 예약이 존재합니다.")
-        
-        mentor_profile = supabase.table("mentor_profiles").select("user_id").eq("id", request.mentor_id).single().execute()
-        real_mentor_id = mentor_profile.data['user_id']
+        if not claim.data:
+            raise HTTPException(status_code=409, detail="이미 예약된 시간 슬롯입니다.")
+        slot_claimed = True
 
-        # 🔥 concern 필드 추가
+        # 2) 예약 생성
         chat_response = supabase.table('coffee_chats').insert({
             'id': str(uuid.uuid4()),
             'mentee_id': mentee_id,
-            'mentor_id': real_mentor_id,
+            'mentor_id': mentor_user_id,
             'availability_id': request.availability_slot_id,
             'status': 'pending',
             'start_time': slot['start_time'],
             'end_time': slot['end_time'],
-            'concern': request.concern  # 🔥 고민 저장
+            'concern': request.concern
         }).execute()
-        
+
         if not chat_response.data:
             raise HTTPException(status_code=500, detail="예약 정보 삽입에 실패했습니다.")
-            
-        supabase.table('mentor_availability') \
-            .update({'is_booked': True}) \
-            .eq('id', request.availability_slot_id) \
-            .execute()
 
+        slot_claimed = False  # 성공했으므로 되돌리지 않는다
         return chat_response.data[0]
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ 예약 생성 중 예외: {e}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="예약 생성 중 오류가 발생했습니다.")
+    finally:
+        # 슬롯은 잡았는데 예약 생성에 실패한 경우 슬롯을 다시 풀어 준다
+        if slot_claimed:
+            try:
+                supabase.table('mentor_availability') \
+                    .update({'is_booked': False}) \
+                    .eq('id', request.availability_slot_id) \
+                    .execute()
+            except Exception as rollback_error:
+                print(f"⚠️ 슬롯 복구 실패 (수동 확인 필요): {rollback_error}")
 
 
 @router.put("/api/bookings/{booking_id}/status")
@@ -215,53 +255,62 @@ def update_booking_status(
     update_data: BookingStatusUpdate,
     current_mentor_id: str = Depends(get_current_user_id)
 ):
-    """커피챗 승인/거절 처리 + 채팅방 생성"""
+    """커피챗 승인/거절 처리
+
+    - 대기(pending) 상태인 예약만 처리한다. 이미 처리된 예약은 409.
+    - 승인: 채팅방 생성, 슬롯은 사용 완료로 삭제
+    - 거절: 슬롯을 다시 예약 가능 상태로 되돌림
+    """
     try:
         check_response = supabase.table('coffee_chats') \
-            .select('id, availability_id, mentor_id, mentee_id') \
+            .select('id, status, availability_id, mentor_id, mentee_id') \
             .eq('id', booking_id) \
             .eq('mentor_id', current_mentor_id) \
             .execute()
-            
+
         if not check_response.data:
             raise HTTPException(status_code=404, detail="권한이 없거나 예약을 찾을 수 없습니다.")
 
         booking_info = check_response.data[0]
+        if booking_info['status'] != 'pending':
+            raise HTTPException(status_code=409, detail="이미 처리된 예약입니다.")
+
         slot_id = booking_info.get('availability_id')
 
-        update_payload = {'status': update_data.status}
-        
-        if update_data.status in ['approved', 'rejected']:
-            update_payload['availability_id'] = None 
-
+        # 상태 전이도 조건부 UPDATE: 동시에 승인/거절이 눌려도 한 번만 반영된다
         update_response = supabase.table('coffee_chats') \
-            .update(update_payload) \
+            .update({'status': update_data.status, 'availability_id': None}) \
             .eq('id', booking_id) \
+            .eq('status', 'pending') \
             .execute()
 
-        # 🔥 승인 시 채팅방 생성
+        if not update_response.data:
+            raise HTTPException(status_code=409, detail="이미 처리된 예약입니다.")
+
         if update_data.status == 'approved':
             try:
-                chat_room_response = supabase.table('chat_rooms').insert({
+                supabase.table('chat_rooms').insert({
                     'coffee_chat_id': booking_id,
                     'mentor_id': booking_info['mentor_id'],
                     'mentee_id': booking_info['mentee_id']
                 }).execute()
-                
-                print(f"✅ 채팅방 생성 완료: {chat_room_response.data}")
             except Exception as chat_error:
                 print(f"⚠️ 채팅방 생성 실패 (예약은 승인됨): {chat_error}")
 
-        if update_data.status in ['approved', 'rejected']:
+            if slot_id:
+                supabase.table('mentor_availability').delete().eq('id', slot_id).execute()
+        else:
             if slot_id:
                 supabase.table('mentor_availability') \
-                    .delete() \
+                    .update({'is_booked': False}) \
                     .eq('id', slot_id) \
                     .execute()
 
         return {"message": f"예약이 {update_data.status} 처리되었습니다."}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"🔥 상태 업데이트 실패: {e}")
+        print(f"❌ 예약 상태 변경 실패: {e}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="예약 상태 변경 중 오류가 발생했습니다.")
