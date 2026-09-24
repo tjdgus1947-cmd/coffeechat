@@ -4,62 +4,72 @@
 - 의미적 유사도: bge-m3 임베딩
 - 키워드 매칭: BM25 알고리즘
 """
-from typing import List, Dict
+from typing import Dict, List
 import math
 from collections import Counter
 import re
 
 
+HANGUL_RE = re.compile(r'[가-힣]')
+
+
+def tokenize(text: str) -> List[str]:
+    """
+    BM25 용 토큰화.
+    - 영문/숫자: 공백 단위 단어
+    - 한글: 공백 단위로 자르면 조사가 붙어 "데이터를" ≠ "데이터" 가 되므로,
+      단어를 글자 2개씩 겹쳐 자른 bigram 으로 만든다 ("데이터를" → 데이, 이터, 터를).
+      형태소 분석기 없이 조사·어미 차이를 흡수하는 방법 (Elasticsearch CJK bigram 과 같은 방식)
+    """
+    text = re.sub(r'[^\w\s가-힣]', ' ', (text or '').lower())
+    tokens: List[str] = []
+    for word in text.split():
+        if HANGUL_RE.search(word) and len(word) >= 2:
+            tokens.extend(word[i:i + 2] for i in range(len(word) - 1))
+        else:
+            tokens.append(word)
+    return tokens
+
+
 class BM25:
     """
     BM25 알고리즘 구현 (키워드 기반 검색)
+    score(q, d) = Σ IDF(t) · f(t,d)·(k1+1) / (f(t,d) + k1·(1 - b + b·|d|/avgdl))
     """
     def __init__(self, corpus: List[str], k1: float = 1.5, b: float = 0.75):
         self.k1 = k1
         self.b = b
-        self.corpus = corpus
+        self.doc_freqs = [Counter(tokenize(doc)) for doc in corpus]
+        self.doc_lens = [sum(freqs.values()) for freqs in self.doc_freqs]
         self.corpus_size = len(corpus)
-        self.avgdl = sum(len(doc.split()) for doc in corpus) / self.corpus_size
-        
-        # 문서 빈도 계산
-        self.doc_freqs = []
-        self.idf = {}
-        
-        for doc in corpus:
-            frequencies = Counter(self._tokenize(doc))
-            self.doc_freqs.append(frequencies)
-            
-            for word in frequencies.keys():
-                self.idf[word] = self.idf.get(word, 0) + 1
-        
-        # IDF 계산
-        for word, freq in self.idf.items():
-            self.idf[word] = math.log((self.corpus_size - freq + 0.5) / (freq + 0.5) + 1)
-    
-    def _tokenize(self, text: str) -> List[str]:
-        """텍스트 토큰화 (한글/영문 모두 지원)"""
-        # 한글, 영문, 숫자만 남기고 소문자 변환
-        text = re.sub(r'[^\w\s가-힣]', ' ', text.lower())
-        return text.split()
-    
+        # 문서 길이는 IDF/점수 계산과 같은 토큰 기준으로 센다
+        self.avgdl = (sum(self.doc_lens) / self.corpus_size) if self.corpus_size else 0.0
+
+        df: Dict[str, int] = {}
+        for freqs in self.doc_freqs:
+            for word in freqs:
+                df[word] = df.get(word, 0) + 1
+        self.idf = {
+            word: math.log((self.corpus_size - n + 0.5) / (n + 0.5) + 1)
+            for word, n in df.items()
+        }
+
     def score(self, query: str, doc_idx: int) -> float:
         """쿼리와 문서 간의 BM25 점수 계산"""
-        score = 0
-        doc_freqs = self.doc_freqs[doc_idx]
-        doc_len = sum(doc_freqs.values())
-        
-        for word in self._tokenize(query):
-            if word not in doc_freqs:
+        freqs = self.doc_freqs[doc_idx]
+        doc_len = self.doc_lens[doc_idx]
+        if not self.avgdl:
+            return 0.0
+        total = 0.0
+        for word in set(tokenize(query)):
+            f = freqs.get(word)
+            if not f:
                 continue
-            
-            freq = doc_freqs[word]
-            idf = self.idf.get(word, 0)
-            
-            score += idf * (freq * (self.k1 + 1)) / \
-                     (freq + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl))
-        
-        return score
-    
+            total += self.idf[word] * (f * (self.k1 + 1)) / (
+                f + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl)
+            )
+        return total
+
     def get_scores(self, query: str) -> List[float]:
         """모든 문서에 대한 BM25 점수 반환"""
         return [self.score(query, i) for i in range(self.corpus_size)]
@@ -85,15 +95,13 @@ def hybrid_search(
     if not candidates:
         return []
     
-    print(f"🔍 하이브리드 검색 시작 ({len(candidates)}명)")
-    
     # 1. BM25 점수 계산
     corpus = [c.get('text', '') for c in candidates]
     bm25 = BM25(corpus)
     bm25_scores = bm25.get_scores(query_text)
     
     # BM25 점수 정규화 (0~100)
-    max_bm25 = max(bm25_scores) if max(bm25_scores) > 0 else 1
+    max_bm25 = max(bm25_scores) or 1
     bm25_normalized = [(score / max_bm25) * 100 for score in bm25_scores]
     
     # 2. 의미 검색 점수 (이미 계산됨)
@@ -110,9 +118,7 @@ def hybrid_search(
         candidate['keyword_score'] = round(keyword, 2)
         candidate['hybrid_score'] = round(hybrid_score, 2)
         
-        # 기존 final_score 업데이트
-        original_final = candidate.get('final_score', 0)
-        # 거리 점수 비율 유지
+        # 텍스트 부분(70%)을 하이브리드 점수로 교체하고, 거리 점수 기여분(30%)은 유지
         distance_contribution = candidate.get('breakdown', {}).get('distance_contribution', 0)
         
         candidate['final_score'] = round(hybrid_score * 0.7 + distance_contribution, 2)
@@ -120,7 +126,6 @@ def hybrid_search(
     # 재정렬
     candidates.sort(key=lambda x: x['final_score'], reverse=True)
     
-    print(f"✅ 하이브리드 검색 완료")
     return candidates
 
 

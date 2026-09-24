@@ -6,7 +6,6 @@
 """
 from app.core.config import supabase
 from typing import Dict, List
-import json
 
 def get_user_feedback_profile(user_id: str) -> Dict:
     """
@@ -106,26 +105,3 @@ def personalize_match_scores(
     matches.sort(key=lambda x: x['final_score'], reverse=True)
     
     return matches
-
-
-def log_user_interaction(
-    user_id: str,
-    candidate_id: str,
-    interaction_type: str,  # 'view', 'like', 'booking'
-    metadata: Dict = None
-):
-    """
-    사용자 상호작용 로깅 (미래 학습용)
-    """
-    try:
-        supabase.table('user_interactions').insert({
-            'user_id': user_id,
-            'candidate_id': candidate_id,
-            'interaction_type': interaction_type,
-            'metadata': json.dumps(metadata) if metadata else None
-        }).execute()
-        
-        print(f"📊 Interaction logged: {user_id[:8]}... → {candidate_id[:8]}... ({interaction_type})")
-    
-    except Exception as e:
-        print(f"⚠️ 로깅 실패: {e}")

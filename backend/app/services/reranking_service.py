@@ -1,131 +1,68 @@
 # backend/app/services/reranking_service.py
 """
-2단계 Re-ranking 시스템
-1단계: bge-m3로 빠르게 후보 100명 추출
-2단계: Cross-Encoder로 정밀 재평가
+2단계 Re-ranking
+  1단계: bge-m3 임베딩 + 거리 + BM25 로 후보를 좁힌다 (bi-encoder: 빠르지만 대략적)
+  2단계: Cross-Encoder 가 (내 소개, 후보 소개) 쌍을 함께 읽고 관련도를 다시 매긴다 (느리지만 정밀)
+
+모델
+  기본값 BAAI/bge-reranker-v2-m3: 한국어를 포함한 다국어 리랭커. 임베딩 모델(bge-m3)과 같은 계열.
+  이전 모델 cross-encoder/ms-marco-MiniLM-L-6-v2 는 영어 MS MARCO 로만 학습돼 한국어 소개글에 부적합했다.
+  RERANKER_MODEL 환경변수로 교체 가능
+  (예: cross-encoder/mmarco-mMiniLMv2-L12-H384-v1 — 더 가볍지만 학습 언어에 한국어가 없음)
 """
-from sentence_transformers import CrossEncoder
-from typing import List, Dict
+import math
+import os
+from typing import Dict, List
+
 import torch
+from sentence_transformers import CrossEncoder
 
-# GPU 설정
 device = "cuda" if torch.cuda.is_available() else "cpu"
+RERANKER_MODEL = os.environ.get(
+    "RERANKER_MODEL", "BAAI/bge-reranker-v2-m3"
+)
 
-# 🔥 Cross-Encoder 모델 로드 (한국어 특화)
 try:
-    # 옵션 1: 다국어 모델 (추천)
-    reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512, device=device)
-    print(f"✅ Re-ranker 모델 로드 성공 (device: {device})")
+    reranker = CrossEncoder(RERANKER_MODEL, max_length=512, device=device)
+    print(f"✅ Re-ranker 로드: {RERANKER_MODEL} (device: {device})")
 except Exception as e:
-    print(f"⚠️ Re-ranker 로드 실패: {e}")
+    print(f"⚠️ Re-ranker 로드 실패, 리랭킹 없이 동작: {e}")
     reranker = None
+
+
+def to_probability(logit: float) -> float:
+    """Cross-Encoder 출력(로짓, 범위 제한 없음)을 시그모이드로 0~1 로 변환한다.
+    기존 점수(0~100)와 섞기 전에 스케일을 맞추기 위함."""
+    # exp 오버플로 방지: 부호에 따라 식을 나눠 계산 (수치적으로 안정적인 시그모이드)
+    if logit >= 0:
+        return 1.0 / (1.0 + math.exp(-logit))
+    z = math.exp(logit)
+    return z / (1.0 + z)
 
 
 def rerank_candidates(
     query_text: str,
     candidates: List[Dict],
     top_k: int = 10,
-    rerank_weight: float = 0.3  # Re-rank 점수 가중치
+    rerank_weight: float = 0.3,
 ) -> List[Dict]:
     """
-    후보들을 Cross-Encoder로 재평가하여 재순위화
-    
-    Args:
-        query_text: 현재 사용자의 자기소개 텍스트
-        candidates: 1차 매칭 결과 (user_id, final_score, text 포함)
-        top_k: 최종 반환할 개수
-        rerank_weight: Re-rank 점수 반영 비율 (0~1)
-    
-    Returns:
-        재순위화된 후보 목록
+    후보를 Cross-Encoder 로 재평가해 final_score 를 갱신하고 상위 top_k 를 반환한다.
+
+    final_score = 기존 final_score × (1 - w) + rerank_score × w   (둘 다 0~100)
     """
-    if not reranker or not candidates:
-        return candidates[:top_k]
-    
-    if len(candidates) <= top_k:
-        return candidates  # 재순위화 불필요
-    
-    print(f"🔄 Re-ranking {len(candidates)}명 → {top_k}명...")
-    
-    try:
-        # 1. Cross-Encoder 점수 계산
-        candidate_texts = [c.get('text', '') for c in candidates]
-        pairs = [[query_text, text] for text in candidate_texts]
-        
-        # 배치 처리로 점수 계산
-        cross_scores = reranker.predict(pairs, show_progress_bar=False)
-        
-        # 2. 기존 점수와 결합
-        for i, candidate in enumerate(candidates):
-            original_score = candidate.get('final_score', 0)
-            cross_score = float(cross_scores[i]) * 100  # 0~100 스케일로 변환
-            
-            # 가중 평균
-            combined_score = (
-                original_score * (1 - rerank_weight) +
-                cross_score * rerank_weight
-            )
-            
-            candidate['rerank_score'] = round(cross_score, 2)
-            candidate['combined_score'] = round(combined_score, 2)
-        
-        # 3. 재정렬
-        candidates.sort(key=lambda x: x['combined_score'], reverse=True)
-        
-        print(f"✅ Re-ranking 완료")
-        return candidates[:top_k]
-    
-    except Exception as e:
-        print(f"⚠️ Re-ranking 실패, 원본 순서 반환: {e}")
+    if not reranker or not candidates or not query_text:
         return candidates[:top_k]
 
+    pairs = [[query_text, c.get("text", "")] for c in candidates]
+    logits = reranker.predict(pairs, show_progress_bar=False)
 
-def rerank_with_diversity(
-    query_text: str,
-    candidates: List[Dict],
-    top_k: int = 10,
-    diversity_penalty: float = 0.1
-) -> List[Dict]:
-    """
-    다양성을 고려한 Re-ranking
-    - 비슷한 후보들이 연속으로 나오지 않도록 조정
-    """
-    if not reranker or len(candidates) <= top_k:
-        return candidates[:top_k]
-    
-    # 1. 기본 Re-ranking
-    reranked = rerank_candidates(query_text, candidates, top_k * 2, rerank_weight=0.3)
-    
-    # 2. 다양성 선택 (Maximal Marginal Relevance)
-    selected = []
-    remaining = reranked.copy()
-    
-    # 첫 번째는 무조건 최고 점수
-    selected.append(remaining.pop(0))
-    
-    while len(selected) < top_k and remaining:
-        best_idx = 0
-        best_score = -1
-        
-        for i, candidate in enumerate(remaining):
-            # 기본 점수
-            relevance = candidate.get('combined_score', 0)
-            
-            # 이미 선택된 후보들과의 유사도 계산 (간단히 거리로)
-            max_similarity = 0
-            for sel in selected:
-                # 거리 기반 유사도 (가까울수록 유사)
-                dist_diff = abs(candidate.get('distance_km', 100) - sel.get('distance_km', 100))
-                similarity = max(0, 1 - dist_diff / 50)  # 50km 기준
-                max_similarity = max(max_similarity, similarity)
-            
-            # 다양성 페널티 적용
-            diversity_score = relevance - (diversity_penalty * 100 * max_similarity)
-            
-            if diversity_score > best_score:
-                best_score = diversity_score
-                best_idx = i
-        
-        selected.append(remaining.pop(best_idx))
-    
-    return selected
+    for cand, logit in zip(candidates, logits):
+        rerank_score = to_probability(float(logit)) * 100
+        combined = cand.get("final_score", 0) * (1 - rerank_weight) + rerank_score * rerank_weight
+        cand["rerank_score"] = round(rerank_score, 2)
+        # 다음 단계(개인화)가 이어받을 수 있도록 final_score 자체를 갱신한다
+        cand["final_score"] = round(combined, 2)
+
+    candidates.sort(key=lambda c: c["final_score"], reverse=True)
+    return candidates[:top_k]
