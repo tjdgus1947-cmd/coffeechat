@@ -32,12 +32,13 @@ from mentor_availability a
 left join mentor_profiles m on m.id = a.mentor_id
 where m.id is null;
 
--- 5) 존재하지 않는 사용자를 가리키는 찜이 있는가? (FK 추가 전 확인)
+-- 5) 존재하지 않는 사용자/멘토를 가리키는 찜이 있는가? (FK 추가 전 확인)
+--    user_id 는 users.id, liked_mentor_id 는 mentor_profiles.id 를 저장한다 (MenteeNetworkView.vue 기준)
 select l.id, l.user_id, l.liked_mentor_id
 from user_likes l
-left join users u1 on u1.id = l.user_id
-left join users u2 on u2.id = l.liked_mentor_id
-where u1.id is null or u2.id is null;
+left join users u on u.id = l.user_id
+left join mentor_profiles m on m.id = l.liked_mentor_id
+where u.id is null or m.id is null;
 
 -- 6) 종료 시각이 시작 시각보다 빠르거나 같은 슬롯이 있는가?
 select id, start_time, end_time

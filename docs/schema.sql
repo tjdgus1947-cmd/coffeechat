@@ -92,7 +92,7 @@ CREATE TABLE reviews (
 CREATE TABLE user_likes (
     id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         uuid NOT NULL,        -- FK 없음
-    liked_mentor_id uuid NOT NULL,        -- FK 없음
+    liked_mentor_id uuid NOT NULL,        -- FK 없음 (값은 mentor_profiles.id)
     created_at      timestamptz DEFAULT now(),
     UNIQUE (user_id, liked_mentor_id)
 );

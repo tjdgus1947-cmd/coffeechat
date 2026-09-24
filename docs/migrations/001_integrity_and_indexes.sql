@@ -38,7 +38,8 @@ alter table mentor_availability
 -- ---------------------------------------------------------------------
 -- 3. 빠져 있던 FK
 --    mentor_availability.mentor_id 는 mentor_profiles.id 를 저장한다 (availability.py 기준)
---    user_likes 의 두 컬럼은 users.id 를 저장한다 (MyPageView.vue 기준)
+--    user_likes.user_id 는 users.id, liked_mentor_id 는 mentor_profiles.id 를 저장한다
+--    (찜을 저장하는 MenteeNetworkView.vue 가 멘토 노드의 id = mentor_profiles.id 를 넣는다)
 -- ---------------------------------------------------------------------
 alter table mentor_availability
     add constraint mentor_availability_mentor_id_fkey
@@ -48,7 +49,7 @@ alter table user_likes
     add constraint user_likes_user_id_fkey
         foreign key (user_id) references users(id) on delete cascade,
     add constraint user_likes_liked_mentor_id_fkey
-        foreign key (liked_mentor_id) references users(id) on delete cascade;
+        foreign key (liked_mentor_id) references mentor_profiles(id) on delete cascade;
 
 -- ---------------------------------------------------------------------
 -- 4. 인덱스

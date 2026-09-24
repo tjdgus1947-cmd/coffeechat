@@ -112,7 +112,7 @@
 |---|---|
 | `coffee_chats.status` CHECK + NOT NULL | 허용 상태값 밖의 값 차단 (`reviews.rating`에는 이미 CHECK가 있었음) |
 | `mentor_availability` CHECK `end_time > start_time` | 잘못된 슬롯 차단 |
-| `mentor_availability.mentor_id`, `user_likes` FK | FK가 없어 존재하지 않는 멘토·사용자를 가리킬 수 있었음 |
+| `mentor_availability.mentor_id`, `user_likes` FK | FK가 없어 존재하지 않는 멘토·사용자를 가리킬 수 있었음 (`liked_mentor_id` → `mentor_profiles.id`) |
 | `coffee_chats (mentor_id, created_at desc)` 등 복합 인덱스 | 예약 목록 조회 패턴(`WHERE mentor_id = ? ORDER BY created_at DESC`)에 맞춤 |
 | `location` GiST 인덱스 | `ST_DWithin` 반경 검색은 GiST가 있어야 인덱스를 탄다 |
 | `idx_chat_rooms_coffee_chat` 삭제 | UNIQUE 제약이 이미 같은 인덱스를 만듦 (중복) |
@@ -131,7 +131,7 @@
 
 ## 12. 기타
 
-- 마이페이지 찜 목록 버그: 존재하지 않는 `mentor_profiles.company` 컬럼을 조회해 목록이 비어 있었다. `career_info`에서 회사명을 추출하도록 수정했다.
+- 마이페이지 찜 목록 버그: 찜은 `liked_mentor_id`에 `mentor_profiles.id`를 저장하는데, 마이페이지는 이를 `users.id`로 조회했고 존재하지 않는 `company` 컬럼까지 요청해 목록이 비어 있었다. `mentor_profiles` 기준으로 조회하고 회사명은 `career_info`에서 추출하도록 수정했다. (마이그레이션 사전 점검에서 FK 대상이 코드와 다르다는 걸 발견해 함께 바로잡음)
 - 프론트가 호출하는데 백엔드에 없던 `POST /api/chat/messages/{id}/read`를 추가했다.
 - 사용하지 않고 스키마와도 맞지 않던 `api/coffeechats.py`(존재하지 않는 컬럼 사용, 인증 없음)를 삭제했다.
 - 없는 테이블(`user_interactions`)에 쓰던 미사용 함수를 삭제했다.
