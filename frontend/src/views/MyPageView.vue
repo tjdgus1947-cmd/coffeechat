@@ -194,12 +194,20 @@ async function fetchLikedMentors() {
     if (!likes || likes.length === 0) return;
 
     const mentorIds = likes.map(l => l.liked_mentor_id);
+    // mentor_profiles 에는 company/team 컬럼이 없다. 회사명은 career_info("회사: OO, 직무: ...")에 들어 있다.
     const { data: mentors, error: mentorError } = await supabase
-      .from('users').select('id, full_name, mentor_profiles(company, team)').in('id', mentorIds);
+      .from('users').select('id, full_name, mentor_profiles(career_info)').in('id', mentorIds);
     if (mentorError) throw mentorError;
 
-    likedMentorsList.value = mentors.map(m => ({
-      id: m.id, name: m.full_name, company: m.mentor_profiles?.[0]?.company || '소속 없음'
+    // user_id 가 UNIQUE 라 1:1 관계로 인식되면 객체, 아니면 배열로 온다 → 둘 다 처리
+    const careerOf = (m) => {
+      const p = Array.isArray(m.mentor_profiles) ? m.mentor_profiles[0] : m.mentor_profiles;
+      return p?.career_info || '';
+    };
+    const companyOf = (text) => text.match(/회사:\s*([^,]+)/)?.[1]?.trim();
+
+    likedMentorsList.value = (mentors || []).map(m => ({
+      id: m.id, name: m.full_name, company: companyOf(careerOf(m)) || '소속 없음'
     }));
   } catch (error) { console.error('찜 목록 로딩 실패:', error); }
 }

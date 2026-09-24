@@ -17,8 +17,6 @@ load_dotenv(dotenv_path=env_path)
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
-# 👈 4. ⭐️ URL이 제대로 로드됐는지 터미널에 출력 (디버깅용) ⭐️
-print(f"---- CONFIG: .env에서 로드한 URL: {SUPABASE_URL} ----")
 
 # Supabase 클라이언트 인스턴스 생성
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:

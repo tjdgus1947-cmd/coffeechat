@@ -3,6 +3,7 @@
 fastapi
 uvicorn[standard]
 pydantic[email]
+python-multipart      # 회원가입 Form/File 업로드
 python-dotenv
 supabase
 sentence-transformers
