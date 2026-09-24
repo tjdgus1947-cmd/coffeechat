@@ -80,7 +80,7 @@ export default {
       }
 
       const script = document.createElement('script');
-      script.src = '//dapi.kakao.com/v2/maps/sdk.js?appkey=a37ab17958bf71b653513edd08f31fac&autoload=false';
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_KEY}&autoload=false`;
       script.onload = () => {
         window.kakao.maps.load(() => {
           this.$nextTick(() => this.initializeMap());

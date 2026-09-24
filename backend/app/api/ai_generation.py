@@ -7,8 +7,9 @@ import sys
 
 router = APIRouter()
 
-# 1. API 키 설정 (공백 제거 필수)
-raw_api_key = "AIzaSyC4W7JPn28OTMwvQrGObPDj6g1c0PXF4ZU" 
+# 1. API 키 설정: .env의 GOOGLE_API_KEY에서 읽는다 (코드에 키를 하드코딩하지 않음)
+from app.core import config as _config  # noqa: F401  (import 시 backend/.env 로드)
+raw_api_key = os.environ.get("GOOGLE_API_KEY", "")
 GOOGLE_API_KEY = raw_api_key.strip()
 
 # 2. transport='rest' 옵션 추가
