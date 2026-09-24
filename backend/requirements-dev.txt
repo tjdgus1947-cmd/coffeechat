@@ -1,0 +1,8 @@
+# 테스트 실행용 최소 의존성 (torch·모델·Supabase 는 tests/conftest.py 에서 가짜 모듈로 대체)
+fastapi
+httpx
+pydantic[email]
+python-multipart
+python-dotenv
+shapely
+pytest
