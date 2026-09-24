@@ -368,6 +368,16 @@ function formatDistance(km) {
   display: flex;
   gap: 12px;
   border-top: 2px solid #f0e4d4;
+  /* 내용이 길어도 예약/닫기 버튼은 항상 보이게 카드 하단에 고정 */
+  position: sticky;
+  bottom: 0;
+  background: #fffaf5;
+  z-index: 2;
+}
+
+@media (max-width: 560px) {
+  .modal-card { width: calc(100% - 24px); max-height: 88vh; max-height: 88dvh; border-radius: 18px; }
+  .modal-footer { padding: 14px 16px 18px; }
 }
 
 .btn-secondary,

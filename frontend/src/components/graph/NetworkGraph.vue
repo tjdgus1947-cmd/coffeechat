@@ -4,14 +4,15 @@
   <VueFlow
     :nodes="enhancedNodes"
     :edges="enhancedEdges"
-    :fit-view-on-init="true"
     :nodes-draggable="true"
+    :min-zoom="0.3"
     @node-click="onNodeClick"
+    @pane-ready="onPaneReady"
     class="network-graph"
   >
     <Background />
-    <Controls />
-    <MiniMap />
+    <Controls position="top-left" />
+    <MiniMap class="graph-minimap" />
   </VueFlow>
 </template>
 
@@ -24,6 +25,8 @@ import { MiniMap } from '@vue-flow/minimap';
 
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
+import '@vue-flow/controls/dist/style.css';
+import '@vue-flow/minimap/dist/style.css';
 
 const props = defineProps({
   nodes: {
@@ -108,6 +111,11 @@ const enhancedEdges = computed(() => {
   }));
 });
 
+// 처음 그릴 때 노드가 가장자리에 붙지 않도록 여백을 두고 화면에 맞춘다
+const onPaneReady = (instance) => {
+  requestAnimationFrame(() => instance.fitView({ padding: 0.2 }));
+};
+
 const onNodeClick = (event) => {
   emit('node-click', event.node);
 };
@@ -146,6 +154,11 @@ const onNodeClick = (event) => {
 :deep(.vue-flow__controls button:hover) {
   background-color: #fef5ee;
   border-color: #a8846f;
+}
+
+/* 좁은 화면에서는 미니맵이 그래프를 가리므로 숨김 */
+@media (max-width: 768px) {
+  :deep(.graph-minimap) { display: none; }
 }
 
 /* 노드 선택 상태 */

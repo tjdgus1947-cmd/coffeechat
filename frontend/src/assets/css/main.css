@@ -1,0 +1,12 @@
+/* 전역 스타일 (main.js 에서 import) */
+/* ===== 레이아웃 안정화 (글자 밀림·박스 넘침 방지) ===== */
+*, *::before, *::after {
+  box-sizing: border-box;   /* padding 이 width 에 포함되도록 → 100% 너비 입력칸이 박스 밖으로 안 나감 */
+}
+body {
+  word-break: keep-all;     /* 한국어를 어절 단위로 줄바꿈 ("로그인" → "로그/인" 방지) */
+  overflow-wrap: break-word;/* 긴 URL·영단어는 필요할 때만 끊어서 넘침 방지 */
+}
+img, video, canvas { max-width: 100%; }
+input, select, textarea, button { font-family: inherit; max-width: 100%; }
+[class*="badge"] { white-space: nowrap; }

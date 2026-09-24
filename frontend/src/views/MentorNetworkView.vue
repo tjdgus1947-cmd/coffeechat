@@ -187,11 +187,17 @@
           @select-room="handleSelectRoom" 
           ref="chatRoomListRef"
           class="chat-room-list"
+          :class="{ 'hidden-mobile': selectedChatRoom }"
         />
-        <ChatRoom 
-          :selected-room="selectedChatRoom"
-          class="chat-room"
-        />
+        <div class="chat-room-pane" :class="{ 'hidden-mobile': !selectedChatRoom }">
+          <div v-if="selectedChatRoom" class="mobile-back-header">
+            <button class="back-btn" @click="selectedChatRoom = null">← 목록으로</button>
+          </div>
+          <ChatRoom 
+            :selected-room="selectedChatRoom"
+            class="chat-room"
+          />
+        </div>
       </div>
     </div>
 
@@ -379,7 +385,8 @@ const getTrendText = (diff) => diff === 0 ? '변동 없음' : Math.abs(diff);
 .mentor-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 70px); /* 네비바 제외 높이 */
+  height: calc(100vh - 73px); /* 네비바(70px + 테두리 3px) 제외 */
+  height: calc(100dvh - 73px);
   background-color: #f7f4e8; /* 크림색 배경 */
   color: #3e2723;
   overflow: hidden;
@@ -592,5 +599,54 @@ const getTrendText = (diff) => diff === 0 ? '변동 없음' : Math.abs(diff);
 /* 반응형 */
 @media (max-width: 1024px) {
   .content-grid, .bottom-grid, .stats-row { grid-template-columns: 1fr; }
+}
+
+/* ===== 레이아웃 보정 ===== */
+/* 상단 환영 카드·탭을 아래 콘텐츠(최대 1200px)와 같은 폭·같은 왼쪽 선에 맞춤 */
+.top-section > .welcome-card { max-width: 1200px; margin: 0 auto; }
+.cafe-tabs { padding-left: max(40px, calc((100% - 1200px) / 2)); }
+.cafe-tabs { overflow-x: auto; scrollbar-width: none; padding-top: 4px; }
+.cafe-tabs::-webkit-scrollbar { display: none; }
+.cafe-tabs button { flex-shrink: 0; white-space: nowrap; }
+.card-top { gap: 16px; }
+.goal-badge.paper-texture { flex-shrink: 0; white-space: nowrap; }
+.greeting-text { min-width: 0; }
+
+.chat-room-pane { display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; }
+.chat-room-pane .chat-room { flex: 1; min-height: 0; }
+.mobile-back-header { display: none; padding: 10px 14px; border-bottom: 1px solid #eee; background: #faf7f2; }
+.back-btn { background: none; border: none; font-weight: 700; color: #3e2723; cursor: pointer; }
+
+/* 리뷰 포스트잇은 가로 스크롤 영역 안에서만 */
+.review-panel, .review-list { min-width: 0; }
+.review-sticky { flex-shrink: 0; max-width: 260px; }
+
+@media (max-width: 1024px) {
+  .top-section { padding: 20px; }
+  .content-section { padding: 0 20px 30px; }
+  .chat-view-wrapper { padding: 16px 20px; }
+  .chat-layout { grid-template-columns: 300px 1fr; }
+}
+
+@media (max-width: 768px) {
+  .mentor-container { height: calc(100vh - 63px); height: calc(100dvh - 63px); }
+  .cafe-tabs { padding-left: 12px !important; margin-top: 12px; }
+  .cafe-tabs button { padding: 10px 16px; font-size: 14px; }
+  .top-section { padding: 14px 12px; }
+  .welcome-card.wood-texture { padding: 20px 18px; }
+  .card-top { flex-direction: column-reverse; align-items: flex-start; margin-bottom: 24px; }
+  .goal-badge.paper-texture { padding: 6px 12px; font-size: 0.85rem; transform: rotate(1deg); }
+  .greeting-text h2 { font-size: 1.4rem; }
+  .stats-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat-ticket { padding: 12px 6px; }
+  .stat-label { font-size: 0.75rem; white-space: nowrap; }
+  .stat-value { font-size: 1.5rem; }
+  .content-section { padding: 0 12px 24px; }
+  .content-wrapper { gap: 20px; }
+  .chat-view-wrapper { padding: 10px 12px; }
+  .chat-layout { grid-template-columns: 1fr; }
+  .chat-room-list { border-right: none; }
+  .hidden-mobile { display: none !important; }
+  .mobile-back-header { display: block; }
 }
 </style>

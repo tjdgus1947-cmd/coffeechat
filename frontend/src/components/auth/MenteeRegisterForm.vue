@@ -455,4 +455,18 @@ input:focus, textarea:focus, select:focus {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== 레이아웃 보정 ===== */
+.step-item span { white-space: nowrap; }
+.upload-box input[type="file"] { width: 100%; }
+
+@media (max-width: 560px) {
+  .register-form-container { margin: 8px auto 16px; padding: 0; }
+  .step-indicator { margin-bottom: 24px; }
+  .step-item { font-size: 12px; }
+  .line { margin-left: 6px; margin-right: 6px; }
+  .form-content { padding: 20px 16px; border-radius: 12px; }
+  h3 { font-size: 18px; }
+  .btn-group { flex-direction: column-reverse; }
+}
 </style>

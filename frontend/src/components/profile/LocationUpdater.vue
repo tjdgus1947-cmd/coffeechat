@@ -232,6 +232,8 @@ const updateLocation = async () => {
   display: flex;
   gap: 8px;
 }
+.input-group > input { flex: 1; min-width: 0; }
+.btn-brown, .btn-latte { white-space: nowrap; }
 
 /* ☕ 버튼 스타일 모음 */
 .btn-brown {
@@ -317,7 +319,8 @@ const updateLocation = async () => {
   gap: 12px;
   margin-bottom: 12px;
 }
-.coord-item { flex: 1; }
+.coord-item { flex: 1; min-width: 0; }
+.coord-item input { width: 100%; }
 .coord-item label {
   display: block; font-size: 0.8rem; font-weight: 700; color: #795548; margin-bottom: 4px;
 }

@@ -353,4 +353,34 @@ function selectMentor(mentor) {
   margin: 0 auto 16px;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ===== 레이아웃 보정 ===== */
+.filter-row > span { white-space: nowrap; flex-shrink: 0; }
+.underline-input { flex: 1; min-width: 0; width: auto; max-width: 320px; }
+
+/* 이름 ...... 회사: 회사명이 길면 말줄임 */
+.menu-main { min-width: 0; }
+.mentor-name { flex-shrink: 0; }
+.mentor-company {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
+}
+
+@media (max-width: 768px) {
+  .menu-board-container { margin: 12px auto; padding: 20px 14px; min-height: 0; }
+  .menu-header { margin-bottom: 20px; padding-bottom: 14px; }
+  .menu-header h1 { font-size: 1.5rem; letter-spacing: 1px; }
+  .filter-paper { padding: 12px 14px; margin-bottom: 18px; transform: none; }
+  .filter-row { flex-direction: column; align-items: stretch; gap: 6px; }
+  .underline-input { max-width: none; }
+  .menu-sheet { padding: 20px 14px; }
+  .menu-section { margin-bottom: 32px; }
+  .section-title { font-size: 1.1rem; }
+  .menu-row { padding: 8px 6px; }
+  .mentor-name { font-size: 1rem; }
+  .mentor-company { font-size: 0.85rem; max-width: 50%; }
+  .dots { margin: 0 6px; }
+}
 </style>

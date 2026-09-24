@@ -390,7 +390,8 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100vh - 70px); /* 네비바 제외 */
+  height: calc(100vh - 73px); /* 네비바(70px + 테두리 3px) 제외 */
+  height: calc(100dvh - 73px);
   position: relative;
   background-color: #E5DCC8;
   padding: 20px;
@@ -623,4 +624,110 @@ async function handleReviewSubmitted() { await bookingStore.fetchBookings(); awa
 .link-btn { background: none; border: none; color: #DF8723; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 10px; }
 .empty-state-box { text-align: center; padding: 40px; color: #A67857; font-style: italic; background-color: #FDFBF7; border-radius: 8px; }
 .loading-state { text-align: center; padding: 60px; color: #8A5A34; font-size: 1.1rem; }
+
+/* ===================================================== */
+/* 레이아웃 보정: 겹침·넘침·줄바꿈 정리                  */
+/* ===================================================== */
+
+/* 탭: 글자가 세로로 쪼개지지 않게, 좁으면 가로 스크롤 */
+.cafe-tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-top: 4px;
+}
+.cafe-tabs::-webkit-scrollbar { display: none; }
+.cafe-tabs button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 그래프: 상단 안내바와 오른쪽 추천 패널 영역을 피해서 그린다 */
+.graph-component {
+  position: absolute;
+  top: 76px;
+  left: 0;
+  right: 330px;
+  bottom: 0;
+  width: auto;
+  height: auto;
+}
+.top-mentors-floating { top: 76px; right: 24px; max-height: calc(100% - 96px); overflow-y: auto; }
+.floating-chat-btn { left: auto; right: 360px; bottom: 24px; }
+
+/* 약속 현황 카드: 이름과 상태 배지 사이 간격, 배지 색 */
+.chat-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #FFF4E0;
+  color: #B85C00;
+  border: 1px solid #F2C98B;
+}
+.status-badge.approved { background: #EEF7EC; color: #3F6B35; border-color: #BFD9B7; }
+.status-badge.rejected { background: #F7EEEE; color: #9A4A4A; border-color: #E2C3C3; }
+.chat-details p { margin: 0; color: #6B4423; white-space: nowrap; }
+.chat-card { gap: 12px; }
+
+@media (max-width: 1024px) {
+  .graph-component { right: 0; }
+  .floating-chat-btn { right: 24px; }
+}
+
+/* 태블릿 이하: 추천 패널은 그래프 아래로 내려서 겹치지 않게 */
+@media (max-width: 1024px) {
+  .graph-wrapper { display: flex; flex-direction: column; overflow-y: auto; }
+  .info-strip {
+    position: relative;
+    top: auto; left: auto; transform: none;
+    margin: 16px auto 0;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  .graph-component {
+    position: relative;
+    top: auto; right: auto; bottom: auto; left: auto;
+    flex-shrink: 0;
+    height: 420px;
+    margin-top: 12px;
+  }
+  .top-mentors-floating {
+    position: relative;
+    top: auto; right: auto;
+    max-height: none;
+    margin: 16px auto 24px;
+    width: calc(100% - 32px);
+    max-width: 520px;
+    flex-shrink: 0;
+  }
+  .floating-chat-btn { position: fixed; }
+}
+
+@media (max-width: 768px) {
+  .network-view-container {
+    padding: 10px;
+    height: calc(100vh - 63px);
+    height: calc(100dvh - 63px);
+  }
+  .cafe-tabs { gap: 4px; padding-left: 4px; }
+  .cafe-tabs .icon { margin-right: 4px; }
+  .info-strip {
+    width: calc(100% - 24px);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 14px;
+  }
+  .info-text, .like-counter { font-size: 0.85rem; }
+  .graph-component { height: 340px; }
+  .receipt-style-container { margin: 16px auto; padding: 0 12px 40px; }
+  .manage-section { padding: 18px 16px; margin-bottom: 20px; }
+  .chat-card { flex-direction: column; align-items: flex-start; padding: 14px 16px; }
+  .chat-card .review-btn { align-self: stretch; }
+  .mentor-name { font-size: 1rem; }
+  .empty-state-box { padding: 28px 16px; }
+}
 </style>

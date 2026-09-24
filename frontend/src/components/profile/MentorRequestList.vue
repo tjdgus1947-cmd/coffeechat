@@ -297,4 +297,26 @@ const formatSchedule = (start, end) => {
 .empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ===== 레이아웃 보정 ===== */
+.ticket-content { min-width: 0; }
+.mentee-profile { align-items: flex-start; }
+.mentee-avatar { flex-shrink: 0; }            /* 긴 소개글 옆에서 아바타가 찌그러지지 않게 */
+.mentee-text { min-width: 0; }
+.mentee-text .sub-text {                      /* 소개글은 2줄까지만 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ticket-header { gap: 8px; }
+.ticket-header span { white-space: nowrap; }
+.stamp { width: auto; padding: 5px 8px; white-space: nowrap; }
+.ticket-actions { flex-shrink: 0; }
+
+@media (max-width: 560px) {
+  .ticket-content { padding: 16px 14px 24px; }
+  .ticket-actions { width: 64px; }
+  .stamp { font-size: 0.7rem; padding: 4px 5px; }
+}
 </style>

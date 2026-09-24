@@ -109,6 +109,7 @@ const handleLogout = () => {
   box-shadow: 0 0 14px rgba(223, 135, 35, 0.15); /* 부드러운 크림 그림자 */
 
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 /* hover 시 */
@@ -140,4 +141,36 @@ button.nav-link {
   border: none !important;
 }
 
+/* ====== 태블릿 / 모바일 ====== */
+@media (max-width: 768px) {
+  .navbar { padding: 10px 20px; }
+}
+
+@media (max-width: 560px) {
+  .navbar {
+    padding: 8px 12px;
+    height: 60px;
+    gap: 8px;
+  }
+  .logo-image { height: 34px; }
+  .nav-actions { gap: 6px; }
+  .nav-link,
+  .cta-button {
+    padding: 7px 12px;
+    min-width: 0;
+    font-size: 13px;
+  }
+}
+
+/* 아주 좁은 화면: 로고는 커피잔 아이콘 부분만 보여 주고 메뉴 공간 확보 */
+@media (max-width: 440px) {
+  .logo-image {
+    height: 36px;
+    width: 36px;
+    object-fit: cover;
+    object-position: left center;
+  }
+  .nav-link,
+  .cta-button { padding: 7px 11px; }
+}
 </style>

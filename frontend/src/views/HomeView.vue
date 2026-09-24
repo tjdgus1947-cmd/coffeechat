@@ -534,4 +534,9 @@ h1, h2, h3, h4 {
 .bottom-links a:hover {
     color: #CC9966;
 }
+
+/* 태블릿: 카드 제목 길이 차이로 줄 수가 달라지지 않게 */
+@media (max-width: 1024px) {
+    .step-card h3 { font-size: 1.1rem; }
+}
 </style>

@@ -269,6 +269,14 @@ function formatMessageTime(dateString) {
 }
 .chat-header h3 { margin: 0; color: #3e2723; font-size: 16px; font-weight: 700; }
 .chat-subtitle { font-size: 12px; color: #a1887f; margin: 0; }
+.header-info { display: flex; align-items: center; min-width: 0; }
+.header-info > div:last-child { min-width: 0; }
+.message-text { overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 560px) {
+  .chat-header { padding: 12px 16px; }
+  .messages-container { padding: 14px 12px; }
+  .message-bubble { max-width: 85%; padding: 10px 14px; }
+}
 .partner-avatar-small {
   width: 36px; height: 36px; background: #d7ccc8; color: #fff;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;

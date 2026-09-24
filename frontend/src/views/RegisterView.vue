@@ -96,7 +96,7 @@
           </span>
         </div>
         <!-- 빈 공간 유지 (양쪽 균형) -->
-        <div style="width: 100px;"></div>
+        <div class="header-spacer"></div>
       </div>
 
       <div class="form-content-area">
@@ -531,5 +531,23 @@ function goRegister(selected) {
   border: 2px solid #B08968;
   border-top: none;
   box-shadow: 0 8px 20px rgba(54, 18, 5, 0.1);
+}
+
+/* ===== 레이아웃 보정 ===== */
+.back-btn { white-space: nowrap; flex-shrink: 0; }
+.header-spacer { width: 100px; flex-shrink: 0; }
+.receipt-title h2 { white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .form-receipt-header {
+    padding: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .back-btn { padding: 6px 12px; font-size: 0.85rem; }
+  .header-spacer { display: none; }
+  .receipt-title { flex-direction: row; justify-content: center; flex-basis: 100%; gap: 8px; }
+  .receipt-title h2 { font-size: 1.3rem; }
+  .form-content-area { padding: 24px 14px; }
 }
 </style>
