@@ -1,0 +1,12 @@
+# 코드의 import 기준으로 정리한 의존성 목록.
+# 버전은 실제 개발 환경에서 `pip freeze`로 확인한 뒤 고정할 것.
+fastapi
+uvicorn[standard]
+pydantic[email]
+python-dotenv
+supabase
+sentence-transformers
+torch
+shapely
+google-generativeai
+tqdm
