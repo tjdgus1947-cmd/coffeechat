@@ -74,7 +74,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
-import axios from 'axios';
+import api from '@/services/api';
 
 const authStore = useAuthStore();
 
@@ -88,7 +88,7 @@ const isUpdating = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
-const KAKAO_APP_KEY = 'a37ab17958bf71b653513edd08f31fac';
+const KAKAO_APP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
 
 // 스크립트 로드
 const loadKakaoMapScript = () => {
@@ -167,7 +167,7 @@ const updateLocation = async () => {
   if (!latitude.value || !longitude.value) return;
   isUpdating.value = true;
   try {
-    await axios.post('http://localhost:8000/api/location/update', {
+    await api.post('/location/update', {
       user_id: authStore.userId,
       role: authStore.userRole,
       lat: latitude.value,

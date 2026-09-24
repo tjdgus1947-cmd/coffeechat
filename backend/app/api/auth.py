@@ -16,7 +16,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
    
     try:
-        print(f"🔐 토큰 검증 시도: {token[:20]}...")
         
     
         response = supabase.auth.get_user(token)
@@ -26,13 +25,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             print("❌ 토큰 검증 실패: user 객체가 None")
             raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-        print(f"✅ 토큰 검증 성공: user_id={user.id}")
         return user
 
     except AuthApiError as e:
         print(f"❌ Supabase Auth 오류: {e.message}")
         raise HTTPException(status_code=401, detail=f"Authentication error: {e.message}")
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ 예상치 못한 오류: {type(e).__name__} - {str(e)}")
         raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")
@@ -45,7 +45,6 @@ def get_current_user_id(current_user: User = Depends(get_current_user)) -> str:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     user_id = str(current_user.id)
-    print(f"✅ 사용자 ID 추출 성공: {user_id}")
     return user_id
 
 
@@ -161,6 +160,8 @@ def sign_up_mentor(
             "location": {"latitude": latitude, "longitude": longitude}
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"🔥 멘토 가입 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -243,6 +244,8 @@ def sign_up_mentee(
             "location": {"latitude": latitude, "longitude": longitude}
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         # 에러 로그를 더 자세히 출력
         print(f"🔥 멘티 가입 중 오류 발생: {str(e)}")
@@ -260,6 +263,8 @@ def sign_in(user_data: UserSignIn):
         
         print(f"✅ 로그인 성공: {response.user.id if response.user else 'No user'}")
         return response
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ 로그인 실패: {str(e)}")
         raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")

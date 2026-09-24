@@ -76,6 +76,8 @@ def generate_introduction(request: IntroGenerationRequest):
         print("✅ AI 응답 생성 완료")
         return {"generated_text": generated_text}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"🔥 Gemini 생성 오류: {e}")
         raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")

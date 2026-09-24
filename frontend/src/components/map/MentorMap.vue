@@ -40,7 +40,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { mapState } from 'pinia';
 
@@ -102,7 +102,7 @@ export default {
           return;
         }
 
-        const res = await axios.get(`http://localhost:8000/api/locations/map-data/${this.userId}`);
+        const res = await api.get(`/locations/map-data/${this.userId}`);
         
         const { mentee_location, mentor_locations } = res.data;
 

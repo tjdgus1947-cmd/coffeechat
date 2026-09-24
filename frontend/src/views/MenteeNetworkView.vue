@@ -201,7 +201,7 @@
 
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue';
-import axios from 'axios';
+import api from '@/services/api';
 import { supabase } from '@/supabaseClient';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -316,9 +316,7 @@ async function fetchTopMentorsWithRealScore() {
   }
   isLoadingTopMentors.value = true;
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await axios.get(`http://localhost:8000/api/matching/find-matches`, {
-      headers: { Authorization: `Bearer ${session?.access_token}` },
+    const response = await api.get('/matching/find-matches', {
       params: { user_id: currentUserId.value, role: 'mentee', limit: 100 }
     });
     topMentorsList.value = response.data.matches.map(match => {

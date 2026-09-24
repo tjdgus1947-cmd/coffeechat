@@ -12,7 +12,8 @@ router = APIRouter()
 # --- 스키마 정의 ---
 
 class AvailabilityCreate(BaseModel):
-    user_id: uuid.UUID  # ⭐️ auth.users.id를 받습니다. (mentor_id 대신)
+    # 프론트 호환용으로 남겨 두지만 사용하지 않는다. 슬롯 주인은 토큰의 사용자로 결정한다.
+    user_id: Optional[str] = None
     start_time: datetime
     end_time: datetime
 
@@ -72,13 +73,16 @@ def get_mentor_profile_id(user_id: uuid.UUID) -> uuid.UUID:
 
 
 @router.post("/api/availability/")
-def create_availability_slot(slot: AvailabilityCreate):
+def create_availability_slot(
+    slot: AvailabilityCreate,
+    current_user_id: str = Depends(get_current_user_id),
+):
     try:
-        print("📥 [DEBUG] POST /api/availability/ 요청 수신")
-        print("➡️ 입력 slot:", slot)
-        # 만약 current_user 의존성이 있다면 그 값도 찍어라 (예: current_user_id)
-        # print("➡️ current_user_id:", current_user_id)
-        mentor_profile = supabase.table("mentor_profiles").select("id").eq("user_id", slot.user_id).execute()
+        if slot.end_time <= slot.start_time:
+            raise HTTPException(status_code=400, detail="종료 시각은 시작 시각보다 늦어야 합니다.")
+
+        # 요청 본문의 user_id가 아니라 토큰의 사용자로 멘토 프로필을 찾는다 (타인 명의 슬롯 생성 방지)
+        mentor_profile = supabase.table("mentor_profiles").select("id").eq("user_id", current_user_id).execute()
 
         if not mentor_profile.data:
             raise HTTPException(status_code=404, detail="멘토 프로필이 존재하지 않습니다.")
@@ -93,13 +97,13 @@ def create_availability_slot(slot: AvailabilityCreate):
             "is_booked": False
         }).execute()
 
-        print("🔥 DEBUG supabase insert 결과:", response)
-
         if not getattr(response, "data", None):
             raise HTTPException(status_code=500, detail="Failed to create slot (no response.data)")
 
         return {"message": "Availability slot created successfully"}
 
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         print("❗ 예외 발생 in create_availability_slot:", e)
@@ -141,6 +145,8 @@ def get_mentor_availability(id_param: str):
         
         return jsonable_encoder(response.data)
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"🔥 조회 에러: {e}")
         raise HTTPException(status_code=500, detail=str(e))    
@@ -158,7 +164,7 @@ def update_availability_slot(
         # 1. ⭐️ 보안: 현재 유저의 멘토 프로필 ID 조회
         mentor_profile_id = get_mentor_profile_id(uuid.UUID(current_user_id))
 
-        update_payload = update_data.model_dump(exclude_none=True)
+        update_payload = update_data.model_dump(mode="json", exclude_none=True)
         
         if not update_payload:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided for update")
@@ -214,6 +220,8 @@ def delete_availability_slot(
         print("✅ 삭제 성공")
         return {"message": f"Slot {slot_id} deleted successfully"}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"🔥 삭제 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
