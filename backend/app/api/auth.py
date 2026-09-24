@@ -6,8 +6,13 @@ from app.services.ml_service import generate_embedding
 import uuid
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from gotrue.errors import AuthApiError
-from gotrue.types import User
+# supabase-py 2.8+ 에서 인증 패키지 이름이 gotrue → supabase_auth 로 바뀌었다. 둘 다 지원한다.
+try:
+    from supabase_auth.errors import AuthApiError
+    from supabase_auth.types import User
+except ImportError:  # 구버전 supabase-py
+    from gotrue.errors import AuthApiError
+    from gotrue.types import User
 
 
 router = APIRouter()

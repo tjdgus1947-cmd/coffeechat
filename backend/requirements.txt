@@ -5,7 +5,7 @@ uvicorn[standard]
 pydantic[email]
 python-multipart      # 회원가입 Form/File 업로드
 python-dotenv
-supabase
+supabase>=2.8          # 인증 모듈이 supabase_auth 인 버전
 sentence-transformers
 torch
 shapely
